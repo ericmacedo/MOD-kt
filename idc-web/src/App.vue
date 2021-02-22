@@ -8,26 +8,50 @@
     <b-collapse id="nav-collapse" is-nav>
       <!-- Right aligned nav items -->
       <b-navbar-nav no-gutter>
+        <!-- eslint-disable -->
         <b-nav-item 
           v-for="(item, index) in navbar.items"
           :key="index"
           :to="item.path"
           :active="$route.path === item.path"
-          :index="index"
-          @click="toggleRowActive(index)">
-          <font-awesome-icon :icon="['fas', item.icon]"/>
-          &nbsp; {{ item.name }}
+          :index="index">
+          <a @click="toggleRowActive(index)">
+            <font-awesome-icon :icon="['fas', item.icon]"/>
+            &nbsp; {{ item.name }}
+          </a>
         </b-nav-item>
+        <!-- eslint-enable -->
       </b-navbar-nav>
 
       <!-- Right aligned nav items -->
       <b-navbar-nav class="ml-auto">
-        <b-nav-form>
-          <b-form-input size="sm" class="mr-sm-2" placeholder="Search"></b-form-input>
-          <b-button size="sm" class="my-2 my-sm-0" type="submit">Search</b-button>
+        <b-nav-form
+          v-if="$route.name === 'Dashboard'">
+          <notes-widget></notes-widget>
+          <b-nav-item>Current session: </b-nav-item>
+          <b-form-select size="sm">
+            <template #first>
+              <b-form-select-option
+                v-model="sessionSelector.selected"
+                :options="sessionSelector.options"
+                :value="null">--&nbsp;Create new session&nbsp;--</b-form-select-option>
+            </template>
+          </b-form-select>
+          <b-button-group size="sm" class="navbar-item-spaced">
+            <b-button
+              variant="outline-danger">
+              <font-awesome-icon :icon="['fas', 'trash']"/>
+              Delete
+            </b-button>
+            <b-button
+              variant="outline-success">
+              <font-awesome-icon :icon="['fas', 'save']"/>
+              Save
+            </b-button>
+          </b-button-group>
         </b-nav-form>
 
-        <b-nav-item-dropdown right>
+        <b-nav-item-dropdown right class="navbar-item-spaced">
           <!-- Using 'button-content' slot -->
           <template #button-content>
             <font-awesome-icon :icon="['fas', 'user-circle']"/> &nbsp;
@@ -45,14 +69,66 @@
     <router-view
       id="mainView"
       :userData="userData"
-      class="container"/>
+      class="h-100 w-100 container"/>
   </keep-alive>
 </div>
 </template>
 
 <script>
+const NotesWidget = {
+  name: "notes-widget",
+  template: `
+    <div>
+      <b-button rounded
+        id="notes"
+        rounded size="sm"
+        class="navbar-item-spaced"
+        variant="outline-warning">
+        <font-awesome-icon :icon="['fas', 'sticky-note']"/>
+        Notes
+      </b-button>
+      <b-popover placement="bottom"
+        target="notes" variant="warning" triggers="hover">
+        <template #title>
+          <b-button
+            variant="outline-warning"
+            size="sm"
+            v-b-modal.notesModal>
+            <font-awesome-icon :icon="['fas', 'expand-alt']"/>
+          </b-button>
+        </template>
+        <b-form-textarea
+          placeholder="Type some notes..."
+          v-model="$session.notes"
+          rows="3"
+          max-rows="6"
+        ></b-form-textarea>
+      </b-popover>
+      <b-modal id="notesModal" hide-footer
+        header-bg-variant="warning"
+        header-text-variant="light"
+        body-bg-variant="warning"
+        body-text-variant="light">
+        <template #modal-title>
+          Notes for session: {{ $session.name }}
+        </template>
+        <template #default>
+          <b-form-textarea
+            v-model="$session.notes"
+            placeholder="Type some notes..."
+            rows="10"
+            max-rows="10"
+          ></b-form-textarea>
+        </template>
+      </b-modal>
+    </div>`
+}
+
 export default {
   name: 'App',
+  components: {
+    "notes-widget": NotesWidget
+  },
   beforeMount(){
     this.userId = prompt("Please enter your Username");
 
@@ -63,7 +139,6 @@ export default {
     this.$axios.post(this.$server+"/auth", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     }).then(function(result) {
-      console.log(result.data);
       objRef.updateUserData(result.data.userData);
       objRef.makeToast(
         "success",
@@ -75,29 +150,33 @@ export default {
   },
   data: function() {
     return {
-      "title": "Vis-Kt",
-      "userId": String,
-      "userData": {},
-      "navbar": {
-        "items": [
+      title: "Vis-Kt",
+      userId: String,
+      userData: {},
+      navbar: {
+        items: [
           {
-            "name": "Corpus",
-            "icon": "book",
-            "path": "/corpus"
+            name: "Corpus",
+            icon: "book",
+            path: "/corpus"
           },
           {
-            "name": "Dashboard",
-            "icon": "tachometer-alt",
-            "path": "/dashboard"
+            name: "Dashboard",
+            icon: "tachometer-alt",
+            path: "/dashboard"
           },
           {
-            "name": "Session Manager",
-            "icon": "code-branch",
-            "path": "/sessions"
+            name: "Session Manager",
+            icon: "code-branch",
+            path: "/sessions"
           }
         ],
-        "activeIndex": -1
+        activeIndex: -1
       },
+      sessionSelector: {
+        selected: null,
+        options: []
+      }
     }
   },
   methods: {
@@ -130,10 +209,16 @@ export default {
 }
 
 #mainView {
-  height: 100%;
-  width: 100%;
-  /* margin: 60px 10px 10px 10px; */
   justify-content: center;
   vertical-align: middle;
+  margin: auto;
+	margin: auto;
+}
+
+.navbar-item-spaced {
+  /* margin-left: 5px;
+  margin-right: 5px; */
+  padding-left: 5px;
+  padding-right: 5px;
 }
 </style>

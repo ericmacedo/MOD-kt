@@ -40,14 +40,16 @@ def auth():
                 "status": "Fail"
             }, 500
 
-@app.route("/corpus", methods=["POST"])
+@app.route("/corpus", methods=["POST", "PUT"])
 def corpus():
-    from utils import get_userData
+    from models import Corpus
+
+    # TODO change POST to PUT 
 
     # USER SETTINGS
     userId = request.form["userId"]
     
-    if request.method == 'POST':
+    if request.method == 'PUT':
         from utils import process_text
 
         f_file = request.files.getlist("file")[0]
@@ -104,6 +106,17 @@ def corpus():
             del txt_content, txt_processed
 
         del f_file, f_format, f_name
+
+    elif request.method == "POST":
+        ids = request.form["ids"].split(",")
+        userId = request.form["userId"]
+        RESET_FLAG = True if request.form["RESET_FLAG"] == "true" else False
+
+        Corpus.delete(
+            userId=userId,
+            ids=(None if RESET_FLAG else ids))
+
+        del ids
     
     return {
         "status": "Success",
@@ -112,29 +125,6 @@ def corpus():
             "corpus": Corpus.get_items(userId=userId)
         }
     }, 200
-
-@app.route("/delete", methods=["POST"])
-def delete():
-    if request.method == 'POST':
-        from models import Corpus
-
-        ids = request.form["ids"].split(",")
-        userId = request.form["userId"]
-        RESET_FLAG = True if request.form["RESET_FLAG"] == "true" else False
-
-
-        Corpus.delete(
-            userId=userId,
-            ids=(None if RESET_FLAG else ids))
-
-        del ids
-        return {
-            "status": "Success",
-            "userData": {
-                "userId": userId,
-                "corpus": Corpus.get_items(userId=userId)
-            }
-        }, 200
 
 
 if __name__ == "Vis-Kt":

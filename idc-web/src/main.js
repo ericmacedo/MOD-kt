@@ -27,9 +27,13 @@ Vue.use(VuePapaParse);
 // SERVER REF
 Vue.prototype.$server = "http://localhost:5000";
 
-Vue.config.productionTip = false
+// SETUP SESSION HOLDER
+Vue.prototype.$session = {};
+
+Vue.config.productionTip = false;
 
 new Vue({
 	render: h => h(App),
-	router: router
-}).$mount('#app')
+	router: router,
+	components: {App}
+}).$mount('#app');

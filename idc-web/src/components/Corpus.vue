@@ -1,7 +1,7 @@
 <template>
 <div>
 	<b-row>
-		<b-col class="upload-wrapper" col-lg-6 col-xs-12 col-sm-12 col-md-6>
+		<b-col class="upload-wrapper h-100 w-50">
 			<b-container id="uploadFrame" class="text-center">
 				<h2 id="upload-title">Upload your files</h2>
 				<div class="upload-container">
@@ -53,7 +53,7 @@
 							:icon="['fas', file.format]"/>
 						{{ file.name }}
 						<b-form-select
-							v-if="file.format == 'csv'"
+							v-if="file.format == 'file-csv'"
 							multiple
 							v-model="file.csv.selected_fields"
 							:options="file.csv.fields"
@@ -64,7 +64,7 @@
 		</b-col>
 
 		<!-- TOOLBAR + TABLE -->
-		<b-col id="tableCol" col-xs-12 col-sm-12 col-md-6 col-lg-6>
+		<b-col id="tableCol" class="h-100 w-50">
 			<!-- TOOLBAR -->
 			<b-button-toolbar
 				id="corpusToolbar"
@@ -242,8 +242,8 @@ export default {
 		},
 		uploadFiles: async function() {
 			let objRef = this;
-			async function POST(objRef, formData) {
-				return objRef.$axios.post(objRef.$server+"/corpus", formData, {
+			async function PUT(objRef, formData) {
+				return objRef.$axios.put(objRef.$server+"/corpus", formData, {
 					headers: { "Content-Type": "multipart/form-data" }
 				})
 			}
@@ -264,7 +264,7 @@ export default {
 				formData.set("format", format);
 				formData.set("fields", fields);
 
-				const result = await POST(objRef, formData);
+				const result = await PUT(objRef, formData);
 
 				if (result.status == 200) {
 					objRef.$parent.updateUserData(result.data.userData);
@@ -289,7 +289,7 @@ export default {
 			formData.set("ids", this.table.selection.map((d) => d.id));
 			formData.set("RESET_FLAG", this.all_selected);
 
-			this.$axios.post(this.$server+"/delete", formData, {
+			this.$axios.post(this.$server+"/corpus", formData, {
 				headers: { "Content-Type": "multipart/form-data" }
 			}).then(function(result) {
 				objRef.$parent.updateUserData(result.data.userData);
@@ -314,7 +314,6 @@ export default {
 }
   
 .upload-wrapper {
-	/* margin: auto; */
 	text-align: center;
 }
   
