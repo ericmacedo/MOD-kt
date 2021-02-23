@@ -1,7 +1,8 @@
 <template>
 <div>
 	<b-row>
-		<b-col class="upload-wrapper h-100 w-50">
+		<b-col class="upload-wrapper"
+			sm="12" md="6" lg="6">
 			<b-container id="uploadFrame" class="text-center">
 				<h2 id="upload-title">Upload your files</h2>
 				<div class="upload-container">
@@ -64,7 +65,7 @@
 		</b-col>
 
 		<!-- TOOLBAR + TABLE -->
-		<b-col id="tableCol" class="h-100 w-50">
+		<b-col id="tableCol" sm="12" md="6" lg="6">
 			<!-- TOOLBAR -->
 			<b-button-toolbar
 				id="corpusToolbar"
@@ -251,9 +252,12 @@ export default {
 			const promises = this.upload.files.map(async function(file, index){
 				var format = objRef.upload.queue[index].format;
 				var selected_fields = objRef.upload.queue[index].csv.selected_fields;
+				
+				console.log(selected_fields);
+				console.log(objRef);
 
 				var fields = (
-					format == "csv" && selected_fields.lenght > 0
+					format == "file-csv" && selected_fields.length > 0
 				) ? selected_fields : [];
 
 				// FORM

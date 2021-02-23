@@ -1,48 +1,29 @@
 <template>
-<div class="dashboard">
-	<b-card-group columns>
-		<b-card header-tag="header">
-			<!-- TODO code the plain document view -->
-			<template #header>Document View</template>
-			<b-card-body></b-card-body>
-		</b-card>
-		<b-card header-tag="header">
-			<template #header>WordCloud View</template>
-			<b-card-body></b-card-body>
-		</b-card>
-		<b-card header-tag="header">
-			<template #header>Cluster View</template>
-			<b-card-body></b-card-body>
-		</b-card>
-		<b-card header-tag="header">
-			<template #header>Term frequency View</template>
-			<b-card-body></b-card-body>
-		</b-card>
-		<b-card id="graphView" header-tag="header">
-			<!-- TODO code the graph view -->
-			<template #header>Graph View</template>
-			<b-card-body></b-card-body>
-		</b-card>
-	</b-card-group>
+<div class="dashboard h-100 w-100">
+	<graph-view id="graphView"
+		sm="12" md="4" lg="4"></graph-view>
 </div>
 </template>
 
 <script>
-// import * as d3 from "d3";
+import GraphView from './GraphView'
 
 export default {
-name: 'Dashboard',
+	name: 'Dashboard',
 	props: {
 		userData: {
 			type: Object,
 			required: true
 		}
+	},
+	components: {
+		"graph-view": GraphView
 	}
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
+<style>
 .dashboard {
 	padding: 5px;
 	border: 0!important;
@@ -54,9 +35,4 @@ name: 'Dashboard',
 	text-align: center;
 	height: 25px;
 }
-
-/* #graphView {
-	height: 500px;
-	width: 500px;
-} */
 </style>

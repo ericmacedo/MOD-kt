@@ -24,11 +24,50 @@ Vue.prototype.$axios = axios;
 import VuePapaParse from "vue-papa-parse";
 Vue.use(VuePapaParse);
 
+// D3
+import * as d3 from "d3";
+Vue.prototype.$d3 = d3;
+
 // SERVER REF
 Vue.prototype.$server = "http://localhost:5000";
 
 // SETUP SESSION HOLDER
-Vue.prototype.$session = {};
+Vue.prototype.$session = {
+	name: "Default",
+	notes: "",
+	force: {
+		properties: {
+			charge: {
+				strength: -30,
+				distanceMin: 1,
+				distanceMax: 2000
+			},
+			collide: {
+				strength: .7,
+				iterations: 1
+			}
+		}
+	},
+	graph: {
+		nodes: [
+			{id: "1", x: 50, y: 50},
+			{id: "2", x: 100, y: 150},
+			{id: "3", x: 300, y: 250},
+			{id: "4", x: 200, y: 90}
+		],
+		links: [
+			{source: "1", target: "2", value: 0.5}
+		]
+	},
+	controls: {
+		projection: "t-SNE",
+		tsne: {perplexity: 5},
+		umap: {n_neighbors: 5, min_dist: 0.1},
+		cosineDistance:0,
+		linkDistance: 20,
+		charge: -30
+	}
+};
 
 Vue.config.productionTip = false;
 

@@ -77,6 +77,9 @@
 <script>
 const NotesWidget = {
   name: "notes-widget",
+  data(){
+    return {notes: this.$session.notes};
+  },
   template: `
     <div>
       <b-button rounded
@@ -99,7 +102,7 @@ const NotesWidget = {
         </template>
         <b-form-textarea
           placeholder="Type some notes..."
-          v-model="$session.notes"
+          v-model="notes"
           rows="3"
           max-rows="6"
         ></b-form-textarea>
@@ -114,7 +117,7 @@ const NotesWidget = {
         </template>
         <template #default>
           <b-form-textarea
-            v-model="$session.notes"
+            v-model="notes"
             placeholder="Type some notes..."
             rows="10"
             max-rows="10"
@@ -129,7 +132,7 @@ export default {
   components: {
     "notes-widget": NotesWidget
   },
-  beforeMount(){
+  created() {
     this.userId = prompt("Please enter your Username");
 
     const formData = new FormData();

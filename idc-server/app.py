@@ -43,9 +43,6 @@ def auth():
 @app.route("/corpus", methods=["POST", "PUT"])
 def corpus():
     from models import Corpus
-
-    # TODO change POST to PUT 
-
     # USER SETTINGS
     userId = request.form["userId"]
     
@@ -74,7 +71,7 @@ def corpus():
         elif f_format == "file-csv":
             import pandas as pd
 
-            csv_fields = request.form["fields"]
+            csv_fields = request.form["fields"].split(",")
 
             pd_csv = pd.read_csv(f_file, encoding="utf-8")
 
