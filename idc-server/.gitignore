@@ -5,3 +5,4 @@ bin/
 share/
 lib/
 pyvenv.cfg
+pre-trained/

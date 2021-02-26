@@ -12,10 +12,10 @@
 								:icon="['fas', 'file-csv']"
 								transform="shrink-3 down-2 left-6 rotate--45"/>
 							<font-awesome-icon 
-								:icon="['fas', 'file-csv']"
+								:icon="['fas', 'file-pdf']"
 								transform="shrink-2 up-4"/>
 							<font-awesome-icon 
-								:icon="['fas', 'file-csv']"
+								:icon="['fas', 'file-alt']"
 								transform="shrink-3 down-2 right-6 rotate-45"/>
 						</div>
 						<b-input-group class="mb-2">
@@ -70,7 +70,15 @@
 			<b-button-toolbar
 				id="corpusToolbar"
 				key-nav>
-				
+				<b-button-group size="sm" class="mx-1">
+					<b-button disabled
+						variant="outline-secondary">
+							{{table.items.length}}
+						</b-button>
+					<b-button @click="reloadTable">
+						<font-awesome-icon :icon="['fas', 'sync']"/>
+					</b-button>
+				</b-button-group>
 				<b-button-group class="mx-1">
 					<b-button
 						size="sm"
@@ -94,9 +102,12 @@
 					</b-button>
 				</b-button-group>
 
+				<!-- TODO create modal to confirm redirect to Dashboard? -->
 				<b-button-group class="mx-1">
 					<b-button
-						:disabled="table.items.length == 0">
+						variant="info"
+						:disabled="table.items.length == 0"
+						@click="processCorpus">
 						<font-awesome-icon :icon="['fas', 'cogs']"/>
 						Process corpus
 					</b-button>
@@ -109,7 +120,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="table.items"
+				:items="userData.corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -180,9 +191,12 @@ export default {
 		}
 	},
 	watch: {
-		userData: function(data) {
-			this.table.items = data.corpus
-			this.table.selection = [];
+		userData: {
+			handler() {
+				this.reloadTable();
+			},
+			immediate: true,
+			deep: true
 		}
 	},
 	computed: {
@@ -191,6 +205,35 @@ export default {
 		}
 	},
 	methods: {
+		makeToast(
+				title,
+				content,
+				variant,
+				id=null) {
+			// Use a shorter name for this.$createElement
+			const h = this.$createElement
+			// Create the message
+			const vProgressToast = h(
+				'p', { class: ['mb-0'] },
+				[h('b-spinner', { props: { small: true } }), ` ${content}`]);
+			this.$bvToast.toast(
+				(id) ? vProgressToast : content,
+				{
+					id: (id) ? id : null,
+					variant: variant,
+					title: title,
+					toaster: "b-toaster-bottom-right",
+					solid: false,
+					autoHideDelay: 5000,
+					noAutoHide: (id) ? true : false,
+					noCloseButton: (id) ? true : false,
+					appendToast: true
+				});
+		},
+		reloadTable() {
+			this.table.items = this.userData.corpus;
+			this.table.selection = [];
+		},
 		onRowSelected: function (selection) {
 			this.table.selection = selection;
 		},
@@ -243,18 +286,17 @@ export default {
 		},
 		uploadFiles: async function() {
 			let objRef = this;
-			async function PUT(objRef, formData) {
-				return objRef.$axios.put(objRef.$server+"/corpus", formData, {
-					headers: { "Content-Type": "multipart/form-data" }
-				})
-			}
 
-			const promises = this.upload.files.map(async function(file, index){
+			this.makeToast(
+				"Uploading files",		// title
+				"Please wait...",		// content
+				"warning",				// variant
+				"upload_documents");	// id
+			
+			let counter = 0;
+			this.upload.files.forEach((file, index) => {
 				var format = objRef.upload.queue[index].format;
 				var selected_fields = objRef.upload.queue[index].csv.selected_fields;
-				
-				console.log(selected_fields);
-				console.log(objRef);
 
 				var fields = (
 					format == "file-csv" && selected_fields.length > 0
@@ -262,29 +304,37 @@ export default {
 
 				// FORM
 				const formData = new FormData();
-				formData.set("userId", objRef.userData.userId);
+				formData.set("userId", objRef.$userData.userId);
 				formData.set("file", file);
 				formData.set("fileName", file.name);
 				formData.set("format", format);
 				formData.set("fields", fields);
 
-				const result = await PUT(objRef, formData);
+				this.$axios.put(objRef.$server+"/corpus", formData, {
+					headers: { "Content-Type": "multipart/form-data" }
+				}).then(function(result){
+					// UPDATE USERDATA
+					objRef.$userData.userId = result.data.userData.userId;
+					objRef.$userData.corpus	= result.data.userData.corpus;
+					objRef.$userData.newDocs = result.data.userData.newData;
 
-				if (result.status == 200) {
-					objRef.$parent.updateUserData(result.data.userData);
 					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
-				} else {
+				}).catch(() => {
 					objRef.upload.queue[index].status = objRef.upload.STATUS["ERROR"];
-				}
-
-				// SCROLLS TO CURRENT ITEM
-				objRef.$refs.uploadQueue.children[index].scrollIntoView(
-					{behavior: 'smooth'});
-			});				
-
-			Promise.all(promises);
+				}).then(() => {
+					++counter;
+					if (counter == this.upload.files.length) {
+						objRef.$bvToast.hide("upload_documents");
+						objRef.makeToast(
+							"Success!",						// title
+							"Files uploaded successfully",	// content
+							"success");						// variant
+					}
+					objRef.$refs.uploadQueue.children[index].scrollIntoView({behavior: 'smooth'})
+				});
+			});
 		},
-		deleteFiles: function() {
+		deleteFiles: async function() {
 			let objRef = this;
 
 			// FORM
@@ -296,14 +346,52 @@ export default {
 			this.$axios.post(this.$server+"/corpus", formData, {
 				headers: { "Content-Type": "multipart/form-data" }
 			}).then(function(result) {
-				objRef.$parent.updateUserData(result.data.userData);
-				objRef.$parent.makeToast(
-					"success",
-					"Files deleted successfully!",
-					"");
-			}).catch(function(result) {
-				console.log(result);
+				objRef.$userData.userId = result.data.userData.userId;
+				objRef.$userData.corpus	= result.data.userData.corpus;
+				objRef.$userData.newDocs = result.data.userData.newData;
+				
+				objRef.makeToast(
+					"Success!",						// title
+					"Files deleted successfully!",	// content
+					"success");						// variant
+			}).catch(function() {
+				objRef.makeToast(
+					"Oops, something went wrong!",	// title
+					"Try reloading the page",		// content
+					"danger");						// variant
 			});
+		},
+		processCorpus: async function() {
+			let objRef = this;
+
+			// FORM
+			const formData = new FormData();
+			formData.set("userId", this.userData.userId);
+			formData.set("ids", this.table.selection.map((d) => d.id));
+			formData.set("RESET_FLAG", this.all_selected);
+
+			this.makeToast(
+				"Processing corpus",	// title
+				"Please wait...",		// content
+				"warning",				// variant
+				"process_corpus");		// id
+			this.$axios.post(this.$server+"/process_corpus",formData,{
+				headers: { "Content-Type": "multipart/form-data" }
+			}).then(function(result) {
+				objRef.$userData.userId = result.data.userData.userId;
+				objRef.$userData.corpus	= result.data.userData.corpus;
+				objRef.$userData.newDocs = result.data.userData.newData;
+				
+				objRef.makeToast(
+					"Success!",						// title
+					"Files deleted successfully!",	// content
+					"success");						// variant
+			}).catch(function() {
+				objRef.makeToast(
+					"Oops, something went wrong!",	// title
+					"Try reloading the page",		// content
+					"danger");						// variant
+			}).then(() => objRef.$bvToast.hide("process_corpus"));
 		}
 	}
 }
@@ -319,12 +407,16 @@ export default {
   
 .upload-wrapper {
 	text-align: center;
+	padding: 10px 50px 0px 50px;
 }
   
 .upload-wrapper > .container {
 	background-color: #f9f9f9;
 	padding: 20px;
 	border-radius: 10px;
+	position: -webkit-sticky;
+  position: sticky;
+	top: 60px;
 }
   
 #upload-title {

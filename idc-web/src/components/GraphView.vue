@@ -1,7 +1,6 @@
 <template>
 <b-card header-tag="header" footer-tag="footer">
-	<!-- TODO code the graph view -->
-	<template #header>Graph View</template>	
+	<template #header>Graph View</template>
 	<b-form-group id="projectionToggler">
 		<b-form-radio-group buttons
 			size="sm"
@@ -202,10 +201,6 @@ export default {
 			.selectAll("line")
 			.data(this.graph.links)
 			.enter().append("line")
-			.attr("x1", d => d.source.x)
-			.attr("y1", d => d.source.y)
-			.attr("x2", d => d.target.x)
-			.attr("y2", d => d.target.y)
 			.attr("stroke-width", 1)
 			.attr("stroke", "#aaa")
 			.attr("opacity", 1);
@@ -219,8 +214,6 @@ export default {
 			.style("pointer-events", "all")
 			.attr("r", 5)
 			.attr("opacity", 1)
-			.attr("cx", d => d.x)
-			.attr("cy", d => d.y)
       .call(this.$d3.drag()
 				.on("start", 	this.dragstarted)
 				.on("drag", 	this.dragged)
@@ -236,6 +229,8 @@ export default {
 			.force("link", 		this.$d3.forceLink());
 		this.updateLayout();
 		this.simulation.on("tick", this.ticked);
+
+		this.toggleSimulation(this.controls.projection);
 	},
 	methods: {
 		parameterState(value, min, max) {

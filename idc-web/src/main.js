@@ -31,7 +31,13 @@ Vue.prototype.$d3 = d3;
 // SERVER REF
 Vue.prototype.$server = "http://localhost:5000";
 
-// SETUP SESSION HOLDER
+// USER DATA
+Vue.prototype.$userData = {
+	userId: undefined,
+	corpus: []
+};
+
+// SESSION HOLDER
 Vue.prototype.$session = {
 	name: "Default",
 	notes: "",
@@ -50,13 +56,13 @@ Vue.prototype.$session = {
 	},
 	graph: {
 		nodes: [
-			{id: "1", x: 50, y: 50},
-			{id: "2", x: 100, y: 150},
-			{id: "3", x: 300, y: 250},
-			{id: "4", x: 200, y: 90}
+			{id: 1},
+			{id: 2},
+			{id: 3},
+			{id: 4}
 		],
 		links: [
-			{source: "1", target: "2", value: 0.5}
+			{source: 1, target: 2, value: 0.5}
 		]
 	},
 	controls: {

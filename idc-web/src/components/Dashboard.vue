@@ -1,12 +1,15 @@
 <template>
 <div class="dashboard h-100 w-100">
+	<document-view id="documentView"
+		></document-view>
 	<graph-view id="graphView"
 		sm="12" md="4" lg="4"></graph-view>
 </div>
 </template>
 
 <script>
-import GraphView from './GraphView'
+import GraphView from './GraphView';
+import DocumentView from './DocumentView';
 
 export default {
 	name: 'Dashboard',
@@ -17,7 +20,8 @@ export default {
 		}
 	},
 	components: {
-		"graph-view": GraphView
+		"graph-view": GraphView,
+		"document-view": DocumentView
 	}
 }
 </script>
