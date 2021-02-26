@@ -73,7 +73,7 @@
 				<b-button-group size="sm" class="mx-1">
 					<b-button disabled
 						variant="outline-secondary">
-							{{table.items.length}}
+							{{$userData.corpus.length}}
 						</b-button>
 					<b-button @click="reloadTable">
 						<font-awesome-icon :icon="['fas', 'sync']"/>
@@ -82,7 +82,7 @@
 				<b-button-group class="mx-1">
 					<b-button
 						size="sm"
-						:disabled="table.items.length == 0"
+						:disabled="$userData.corpus.length==0"
 						@click="selectAllRows">
 						Select all
 					</b-button>
@@ -106,7 +106,7 @@
 				<b-button-group class="mx-1">
 					<b-button
 						variant="info"
-						:disabled="table.items.length == 0"
+						:disabled="$userData.corpus.length == 0"
 						@click="processCorpus">
 						<font-awesome-icon :icon="['fas', 'cogs']"/>
 						Process corpus
@@ -120,7 +120,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="userData.corpus"
+				:items="$userData.corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -190,15 +190,6 @@ export default {
 			}
 		}
 	},
-	watch: {
-		userData: {
-			handler() {
-				this.reloadTable();
-			},
-			immediate: true,
-			deep: true
-		}
-	},
 	computed: {
 		all_selected: function () {
 			return (this.table.selection.length == this.table.items.length);
@@ -230,8 +221,31 @@ export default {
 					appendToast: true
 				});
 		},
+		get_userData() {
+			const formData = new FormData();
+			formData.set("userId", this.$userData.userId);
+
+			let objRef = this;
+			this.$axios.post(this.$server+"/auth", formData, {
+				headers: { "Content-Type": "multipart/form-data" }
+			}).then(function(result) {
+				objRef.$userData.userId = result.data.userData.userId;
+				objRef.$userData.corpus	= result.data.userData.corpus;
+				objRef.$userData.newDocs = result.data.userData.newData;
+
+				objRef.makeToast(
+					"Success",					// title
+					"User data reloaded",		// content
+					"success");					// variant
+			}).catch(function() {
+				objRef.makeToast(
+					"Oops, something went wrong!",	// title
+					"Try reloading the page",		// content
+					"danger");						// variant
+			});
+		},
 		reloadTable() {
-			this.table.items = this.userData.corpus;
+			this.get_userData();
 			this.table.selection = [];
 		},
 		onRowSelected: function (selection) {
@@ -286,53 +300,53 @@ export default {
 		},
 		uploadFiles: async function() {
 			let objRef = this;
+			
+			async function PUT(objRef, formData) {
+				return objRef.$axios.put(objRef.$server+"/corpus", formData, {
+					headers: { "Content-Type": "multipart/form-data" }
+				})
+			}
 
+			const promises = this.upload.files.map(async function(file, index){
+				var format = objRef.upload.queue[index].format;
+				var selected_fields = objRef.upload.queue[index].csv.selected_fields;
+				var fields = (
+					format == "file-csv" && selected_fields.lenght > 0
+				) ? selected_fields : [];
+				
+				// FORM
+				const formData = new FormData();
+				formData.set("userId", objRef.userData.userId);
+				formData.set("file", file);
+				formData.set("fileName", file.name);
+				formData.set("format", format);
+				formData.set("fields", fields);
+				
+				const result = await PUT(objRef, formData);
+				
+				if (result.status == 200) {
+					console.log(result.data);
+					objRef.$userData.newDocs = result.data.newData;
+					objRef.$userData.corpus.concat(result.data.newData);
+					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
+				} else {
+					objRef.upload.queue[index].status = objRef.upload.STATUS["ERROR"];
+				}
+				
+				// SCROLLS TO CURRENT ITEM
+				objRef.$refs.uploadQueue.children[index].scrollIntoView(
+					{behavior: 'smooth'});
+			});				
+			
 			this.makeToast(
 				"Uploading files",		// title
 				"Please wait...",		// content
 				"warning",				// variant
 				"upload_documents");	// id
 			
-			let counter = 0;
-			this.upload.files.forEach((file, index) => {
-				var format = objRef.upload.queue[index].format;
-				var selected_fields = objRef.upload.queue[index].csv.selected_fields;
-
-				var fields = (
-					format == "file-csv" && selected_fields.length > 0
-				) ? selected_fields : [];
-
-				// FORM
-				const formData = new FormData();
-				formData.set("userId", objRef.$userData.userId);
-				formData.set("file", file);
-				formData.set("fileName", file.name);
-				formData.set("format", format);
-				formData.set("fields", fields);
-
-				this.$axios.put(objRef.$server+"/corpus", formData, {
-					headers: { "Content-Type": "multipart/form-data" }
-				}).then(function(result){
-					// UPDATE USERDATA
-					objRef.$userData.userId = result.data.userData.userId;
-					objRef.$userData.corpus	= result.data.userData.corpus;
-					objRef.$userData.newDocs = result.data.userData.newData;
-
-					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
-				}).catch(() => {
-					objRef.upload.queue[index].status = objRef.upload.STATUS["ERROR"];
-				}).then(() => {
-					++counter;
-					if (counter == this.upload.files.length) {
-						objRef.$bvToast.hide("upload_documents");
-						objRef.makeToast(
-							"Success!",						// title
-							"Files uploaded successfully",	// content
-							"success");						// variant
-					}
-					objRef.$refs.uploadQueue.children[index].scrollIntoView({behavior: 'smooth'})
-				});
-			});
+			Promise.all(promises).then(() => {
+				objRef.$bvToast.hide("upload_documents");
+				objRef.get_userData();});
 		},
 		deleteFiles: async function() {
 			let objRef = this;
@@ -345,10 +359,9 @@ export default {
 
 			this.$axios.post(this.$server+"/corpus", formData, {
 				headers: { "Content-Type": "multipart/form-data" }
-			}).then(function(result) {
-				objRef.$userData.userId = result.data.userData.userId;
-				objRef.$userData.corpus	= result.data.userData.corpus;
-				objRef.$userData.newDocs = result.data.userData.newData;
+			}).then(function() {
+				objRef.$userData.corpus	= [];
+				objRef.$userData.newDocs = [];
 				
 				objRef.makeToast(
 					"Success!",						// title
@@ -363,33 +376,31 @@ export default {
 		},
 		processCorpus: async function() {
 			let objRef = this;
-
 			// FORM
 			const formData = new FormData();
-			formData.set("userId", this.userData.userId);
-			formData.set("ids", this.table.selection.map((d) => d.id));
-			formData.set("RESET_FLAG", this.all_selected);
-
+			formData.set("userId", this.$userData.userId);
 			this.makeToast(
 				"Processing corpus",	// title
 				"Please wait...",		// content
 				"warning",				// variant
 				"process_corpus");		// id
-			this.$axios.post(this.$server+"/process_corpus",formData,{
-				headers: { "Content-Type": "multipart/form-data" }
+			
+			this.$axios.get(this.$server+"/process_corpus", {
+				params: { userId: this.$userData.userId }
 			}).then(function(result) {
-				objRef.$userData.userId = result.data.userData.userId;
 				objRef.$userData.corpus	= result.data.userData.corpus;
-				objRef.$userData.newDocs = result.data.userData.newData;
+				objRef.$userData.graph 	= result.data.userData.graph;
+				objRef.$userData.tsne 	= result.data.userData.tsne;
+				objRef.$userData.umap 	= result.data.userData.umap;
 				
 				objRef.makeToast(
-					"Success!",						// title
-					"Files deleted successfully!",	// content
-					"success");						// variant
+					"Success",							// title
+					"Corpus successfully processed!",	// content
+					"success");							// variant
 			}).catch(function() {
 				objRef.makeToast(
-					"Oops, something went wrong!",	// title
-					"Try reloading the page",		// content
+					"Oops, something went wrong",	// title
+					"Internal error",				// content
 					"danger");						// variant
 			}).then(() => objRef.$bvToast.hide("process_corpus"));
 		}

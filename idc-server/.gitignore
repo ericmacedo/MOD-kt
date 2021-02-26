@@ -1,5 +1,4 @@
 # created by virtualenv automatically
-users/*
 __pycache__/
 bin/
 share/

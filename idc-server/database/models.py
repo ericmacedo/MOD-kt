@@ -32,12 +32,29 @@ class EmbDocument(EmbeddedDocument):
             embedding       = self.embedding,
             uploaded_on     = self.uploaded_on)
     
+# class Session(EmbeddedDocument):
+#     id              = StringField(required=True, primary_key=True)
+#     name            = StringField(required=True, unique=False)
+#     notes           = StringField(required=False, unique=False)
+#     force           = DictField(required=False, unique=False)
+#     controls        = DictField(required=False, unique=False)
 
+#     def as_dict(self) -> dict:
+#         return dict(
+#             id          = self.id,
+#             name        = self.name,
+#             notes       = self.notes,
+#             graph       = self.graph,
+#             force       = self.force,
+#             controls    = self.controls)
 
 class User(Document):
     userId      = StringField(required=True, primary_key=True)
     corpus      = ListField(EmbeddedDocumentField(EmbDocument),
                             required=False, unique=False)
+    ## TODO implement session management
+    # sessions    = ListField(EmbeddedDocumentField(EmbDocument),
+    #                         required=False, unique=False)
     graph       = DictField(required=False, unique=False)
     tsne        = ListField(FloatField(), required=False, unique=False)
     umap        = ListField(FloatField(), required=False, unique=False)
@@ -46,10 +63,10 @@ class User(Document):
     def as_dict(self) -> dict:
         return dict(
             userId          = self.userId,
+            corpus          = self.corpus_tolist(),
             graph           = self.graph,
             tsne            = self.tsne,
-            umap            = self.umap,
-            word2vec        = self.word2vec)
+            umap            = self.umap)
 
     def corpus_tolist(self) -> list:
         return [doc.as_dict() for doc in self.corpus]
@@ -59,12 +76,12 @@ class User(Document):
             doc for doc in self.corpus if not doc.id in ids])
 
     def clear_workspace(self):
-        self.graph      = None
-        self.tsne       = None
-        self.umap       = None
-        self.word2vec   = None
-        self.corpus     = []
-        self.save()
+        self.update(
+            graph      = {},
+            tsne       = [],
+            umap       = [],
+            word2vec   = None,
+            corpus     = [])
 
 def create_user(userId:str) -> User:
     from mongoengine import connect
