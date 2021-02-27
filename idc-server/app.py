@@ -204,10 +204,11 @@ def process_corpus():
             cosine_distance_graph,
             encode_document,
             UMAP, t_SNE,
-            Word2Vec)
+            Word2Vec, Doc2Vec)
 
         if request.method == "GET":
             userId = request.args["userId"]
+            model = request.args["model"]
 
             user = User.objects(userId=userId)
             if user:
@@ -215,21 +216,25 @@ def process_corpus():
             else:
                 raise Exception("No such user exists!")
 
-            for doc in user.corpus:
-                print(f"Calculating embedding for doc {doc.id}")
+            if model == "S-BERT":
+                embeddings = [
+                    encode_document(doc.processed)
+                    for doc in user.corpus]
+            else:
+                embeddings = Doc2Vec(user)
+            
+            while embeddings:
                 User.objects(
                     userId=userId,
                     corpus__id=doc.id
-                ).update(set__corpus__S__embedding=(
-                    encode_document(doc.processed)))
+                ).update_one(set__corpus__S__embedding=embeddings.pop(0))
 
             user.update(
                 graph       = cosine_distance_graph(user.corpus),
                 tsne        = t_SNE(user.corpus),
-                umap        = UMAP(user.corpus),
-                word2vec    = Word2Vec(user))
+                umap        = UMAP(user.corpus))
 
-            del user
+            del user, embedding
 
             return {
                 "status": "success",

@@ -59,6 +59,7 @@ class User(Document):
     tsne        = ListField(FloatField(), required=False, unique=False)
     umap        = ListField(FloatField(), required=False, unique=False)
     word2vec    = BinaryField(required=False, unique=False)
+    doc2vec     = BinaryField(required=False, unique=False)
 
     def as_dict(self) -> dict:
         return dict(

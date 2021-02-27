@@ -67,9 +67,7 @@
 		<!-- TOOLBAR + TABLE -->
 		<b-col id="tableCol" sm="12" md="6" lg="6">
 			<!-- TOOLBAR -->
-			<b-button-toolbar
-				id="corpusToolbar"
-				key-nav>
+			<b-button-toolbar id="corpusToolbar">
 				<b-button-group size="sm" class="mx-1">
 					<b-button disabled
 						variant="outline-secondary">
@@ -103,15 +101,17 @@
 				</b-button-group>
 
 				<!-- TODO create modal to confirm redirect to Dashboard? -->
-				<b-button-group class="mx-1">
-					<b-button
-						variant="info"
-						:disabled="$userData.corpus.length == 0"
-						@click="processCorpus">
-						<font-awesome-icon :icon="['fas', 'cogs']"/>
-						Process corpus
-					</b-button>
-				</b-button-group>
+				<b-dropdown
+					class="mx-1"
+					variant="info"
+					text="Process corpus"
+					:disabled="$userData.corpus.length == 0">
+					<b-dropdown-item-button
+						v-for="(model, index) in embModel"
+						:key=index
+						@click="processCorpus(model)">
+						{{ model }}</b-dropdown-item-button>
+				</b-dropdown>
 
 			</b-button-toolbar>
 
@@ -187,7 +187,8 @@ export default {
 					"SUCCESS": 	"success",
 					"QUEUED": 	""
 				}
-			}
+			},
+			embModel: ["Doc2Vec", "S-BERT"]
 		}
 	},
 	computed: {
@@ -374,7 +375,7 @@ export default {
 					"danger");						// variant
 			});
 		},
-		processCorpus: async function() {
+		processCorpus: async function(model) {
 			let objRef = this;
 			// FORM
 			const formData = new FormData();
@@ -386,7 +387,9 @@ export default {
 				"process_corpus");		// id
 			
 			this.$axios.get(this.$server+"/process_corpus", {
-				params: { userId: this.$userData.userId }
+				params: { 
+					userId: this.$userData.userId,
+					model: model}
 			}).then(function(result) {
 				objRef.$userData.corpus	= result.data.userData.corpus;
 				objRef.$userData.graph 	= result.data.userData.graph;
