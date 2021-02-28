@@ -1,8 +1,7 @@
-from database.models import User, EmbDocument
+from models import User, Document
 from werkzeug.datastructures import FileStorage
-
-from nltk import download as NLTK_Downloader
-NLTK_Downloader("stopwords", quiet=True)
+from gensim.models.doc2vec import Doc2Vec
+from gensim.models import Word2Vec
 
 
 def pdf_to_string(file:FileStorage):
@@ -61,15 +60,16 @@ def process_text(text:str) -> str:
     return " ".join(tokens).strip()
 
 def get_userData(userId:str, newData:list=[]) -> list:
-    from database.models import User
-
-    user = User.objects.get(userId=userId)
-    corpus = user.corpus_tolist()
+    user = User(userId=userId)
 
     return {
-        "userId": userId,
-        "corpus": corpus,
-        "newData": newData}
+        "userId":   userId,
+        "corpus":   [doc.as_dict() for doc in user.corpus if doc],
+        "graph":    user.graph,
+        "tsne":     user.tsne,
+        "umap":     user.umap,
+        "sessions": [], # TODO implement sessions 
+        "newData":  newData}
 
 def term_frequency(text:str) -> dict:
     tf = {}
@@ -113,7 +113,7 @@ def encode_document(docs:str, model:str=None) -> list:
     embeddings = transformer.encode(docs).tolist()
 
     del transformer
-    return embeddings
+    return embeddings.tolist()
 
 def l2_norm(data: list) -> list:
     import numpy as np
@@ -154,7 +154,7 @@ def calculateSample(corpus_size:int) -> float:
     
     return 1 * (1.0/ (10 ** int(corpus_size/100)))
 
-def Word2Vec(user:User) -> dict:
+def Word2Vec(user:User) -> Word2Vec:
     from gensim.models import Word2Vec
     from multiprocessing import cpu_count
     from sklearn.utils import shuffle
@@ -181,21 +181,19 @@ def Word2Vec(user:User) -> dict:
 
     model.build_vocab(sentences=sentences)
     
-
     model.train(
         shuffle(sentences),
         total_examples=model.corpus_count, 
         epochs=40)
 
     model.wv.init_sims()
-    return model.wv.vectors_norm
+    return model
 
-def Doc2Vec(user:User):
+def Doc2Vec(user:User) -> Doc2Vec:
     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
     from multiprocessing import cpu_count
     from sklearn.utils import shuffle
     from tempfile import NamedTemporaryFile
-    from bson.binary import Binary
 
     tagged_data = [
         TaggedDocument(
@@ -230,4 +228,4 @@ def Doc2Vec(user:User):
         epochs=40)
 
     model.docvecs.init_sims()
-    return model.docvecs.vectors_docs_norm
+    return model

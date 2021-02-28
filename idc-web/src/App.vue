@@ -182,6 +182,9 @@ export default {
         objRef.$userData.userId = result.data.userData.userId;
         objRef.$userData.corpus	= result.data.userData.corpus;
         objRef.$userData.newDocs = result.data.userData.newData;
+        objRef.$userData.graph = result.data.userData.graph;
+        objRef.$userData.tsne = result.data.userData.tsne;
+        objRef.$userData.umap = result.data.userData.umap;
         
         objRef.makeToast(
           "success",

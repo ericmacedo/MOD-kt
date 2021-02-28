@@ -6,23 +6,19 @@ from flask import (
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from database.db import initialize_db
-from database.models import User, EmbDocument
+from models import User
 
-from utils import get_userData
+from utils import (
+    process_text, term_frequency, get_userData)
+
+from nltk import download as NLTK_Downloader
+NLTK_Downloader("stopwords", quiet=True)
 
 ALLOWED_EXTENSIONS = {"csv", "pdf", "txt"}
 
 app = Flask("Vis-Kt")
 app.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
 CORS(app)
-
-# MongoDB setup
-app.config['MONGODB_SETTINGS'] = {
-    'db': 'idc',
-    'host': 'localhost',
-    'port': 27017}
-initialize_db(app)
 
 @app.route("/auth", methods=["POST"])
 # Authetication
@@ -32,9 +28,7 @@ def auth():
         if request.method == 'POST':
             userId = request.form["userId"]
 
-            user = User.objects(userId=userId)
-
-            if user:
+            if User(userId=userId):
                 return {
                     "status": "Success",
                     "userData": get_userData(userId=userId)
@@ -57,18 +51,10 @@ def auth():
 #   PUT:    Upload operation
 def corpus():
     try:
-        from uuid import uuid4
-
-        from utils import (
-            process_text,
-            term_frequency)
-
         userId = request.form["userId"]
 
-        user = User.objects(userId=userId)
-        if user:
-            user = user.get()
-        else:
+        user = User(userId=userId)
+        if not user:
             raise Exception("No such user exists")
         
         newData = []
@@ -76,7 +62,6 @@ def corpus():
         processed = []
         file_name = []
         tf = []
-        uuid = []
         n_entries = 0
         
         if request.method == 'PUT':
@@ -93,7 +78,6 @@ def corpus():
                     process_text(content[0]))
                 tf.append(
                     term_frequency(processed[0]))
-                uuid.append(str(uuid4()))
 
                 n_entries += 1
             elif f_format == "file-csv":
@@ -113,7 +97,6 @@ def corpus():
                     processed.append(process_text(csv_content))
                     tf.append(
                         term_frequency(processed[index]))
-                    uuid.append(str(uuid4()))
                     
                     n_entries += 1
                 del pd_csv, csv_fields, csv_content
@@ -126,7 +109,6 @@ def corpus():
                     process_text(content[0]))
                 tf.append(
                     term_frequency(processed[0]))
-                uuid.append(str(uuid4()))
                 
                 n_entries += 1
 
@@ -135,25 +117,21 @@ def corpus():
             # The following loop saves memory
             for i in range(n_entries):
                 doc = dict(
-                    id              = uuid.pop(0),
                     file_name       = file_name.pop(0),
                     content         = content.pop(0),
                     term_frequency  = tf.pop(0),
                     # embedding       = embeddings.pop(0),
                     processed       = processed.pop(0))
                 
-                User.objects(userId=userId).update_one(
-                    push__corpus=EmbDocument(
-                        id              = doc["id"],
-                        file_name       = doc["file_name"],
-                        content         = doc["content"],
-                        processed       = doc["processed"],
-                        # embedding       = doc["embedding"],
-                        term_frequency  = doc["term_frequency"]))
+                user.append_document(
+                    file_name       = doc["file_name"],
+                    content         = doc["content"],
+                    processed       = doc["processed"],
+                    # embedding       = doc["embedding"],
+                    term_frequency  = doc["term_frequency"])
 
                 newData.append(doc)
                 del doc
-            # user.save()
 
             # TODO UPDATE WORD2VEC MODEL
             #   Only runs if the corpus is processed
@@ -169,10 +147,7 @@ def corpus():
                 user.clear_workspace()
             else:
                 user.delete_documents(ids)
-                ## ONLY execute if embeddings are calculated in upload time
-                # user.graph = cosine_distance_graph(
-                #   [ doc["embedding"] for doc in user.corpus]
-                # )
+
             del ids, RESET_FLAG
 
         del user
@@ -210,35 +185,41 @@ def process_corpus():
             userId = request.args["userId"]
             model = request.args["model"]
 
-            user = User.objects(userId=userId)
-            if user:
-                user = user.get()
-            else:
+            user = User(userId=userId)
+            if not user:
                 raise Exception("No such user exists!")
+
+            user.generate_index()
+            corpus = user.corpus
+
+            # # TRAIN WORD VECTORS
+            user.word2vec = Word2Vec(user)
 
             if model == "S-BERT":
                 embeddings = [
                     encode_document(doc.processed)
-                    for doc in user.corpus]
+                    for doc in corpus]
             else:
-                embeddings = Doc2Vec(user)
+                # TRAIN PARAGRAPH VECTORS
+                model = Doc2Vec(user)
+                user.doc2vec = model
+                embeddings = [
+                    vec.tolist()
+                    for vec in model.docvecs.vectors_docs_norm]
+                del model
             
-            while embeddings:
-                User.objects(
-                    userId=userId,
-                    corpus__id=doc.id
-                ).update_one(set__corpus__S__embedding=embeddings.pop(0))
+            for doc in corpus:
+                doc.embedding = embeddings.pop(0)
 
-            user.update(
-                graph       = cosine_distance_graph(user.corpus),
-                tsne        = t_SNE(user.corpus),
-                umap        = UMAP(user.corpus))
+            user.graph  = cosine_distance_graph(corpus)
+            user.tsne   = t_SNE(corpus)
+            user.umap   = UMAP(corpus)
 
             del user, embedding
 
             return {
                 "status": "success",
-                "userData": user.as_dict()
+                "userData": get_userData()
             }, 200
 
     except Exception as e:

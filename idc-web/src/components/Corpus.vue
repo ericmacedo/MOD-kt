@@ -105,7 +105,7 @@
 					class="mx-1"
 					variant="info"
 					text="Process corpus"
-					:disabled="$userData.corpus.length == 0">
+					:disabled="$userData.corpus.length == 0 || processingCorpus">
 					<b-dropdown-item-button
 						v-for="(model, index) in embModel"
 						:key=index
@@ -120,7 +120,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="$userData.corpus"
+				:items="userData.corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -159,6 +159,28 @@
 			</b-table>
 		</b-col>
 	</b-row>
+	<b-modal
+		ref="dashboard-modal"
+		id="dashboard-modal"
+		size="sm"
+		header-bg-variant="dark"
+		header-text-variant="light"
+		title="Corpus processed"
+		centered
+		hide-footer>
+		<div class="d-block text-center">
+			<h6>You corpus was processed succesfully, do you want to proceed to the <strong>Dashboard</strong> and start exploring you corpus?</h6>
+		</div>
+		<b-button
+			class="mt-3"
+			variant="outline-success"
+			block
+			@click="$bvModal.hide('dashboard-modal')"
+			to="/dashboard">
+				<font-awesome-icon :icon="['fas', 'tachometer-alt']"/>&nbsp;
+				Yes, take me to the <strong>Dashboard</strong>!
+		</b-button>
+	</b-modal>
 </div>
 </template>
 
@@ -188,12 +210,13 @@ export default {
 					"QUEUED": 	""
 				}
 			},
-			embModel: ["Doc2Vec", "S-BERT"]
+			embModel: ["Doc2Vec", "S-BERT"],
+			processingCorpus: false
 		}
 	},
 	computed: {
 		all_selected: function () {
-			return (this.table.selection.length == this.table.items.length);
+			return (this.table.selection.length == this.$userData.corpus.length);
 		}
 	},
 	methods: {
@@ -312,7 +335,7 @@ export default {
 				var format = objRef.upload.queue[index].format;
 				var selected_fields = objRef.upload.queue[index].csv.selected_fields;
 				var fields = (
-					format == "file-csv" && selected_fields.lenght > 0
+					format == "file-csv" && selected_fields.length > 0
 				) ? selected_fields : [];
 				
 				// FORM
@@ -326,7 +349,6 @@ export default {
 				const result = await PUT(objRef, formData);
 				
 				if (result.status == 200) {
-					console.log(result.data);
 					objRef.$userData.newDocs = result.data.newData;
 					objRef.$userData.corpus.concat(result.data.newData);
 					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
@@ -352,16 +374,20 @@ export default {
 		deleteFiles: async function() {
 			let objRef = this;
 
+			const to_remove = this.table.selection.map((d) => d.id);
+
 			// FORM
 			const formData = new FormData();
 			formData.set("userId", this.userData.userId);
-			formData.set("ids", this.table.selection.map((d) => d.id));
+			formData.set("ids", to_remove);
 			formData.set("RESET_FLAG", this.all_selected);
 
 			this.$axios.post(this.$server+"/corpus", formData, {
 				headers: { "Content-Type": "multipart/form-data" }
 			}).then(function() {
-				objRef.$userData.corpus	= [];
+				objRef.$userData.corpus	= objRef.$userData.corpus.filter((doc) => {
+					!to_remove.includes(doc.id);
+				});
 				objRef.$userData.newDocs = [];
 				
 				objRef.makeToast(
@@ -386,26 +412,21 @@ export default {
 				"warning",				// variant
 				"process_corpus");		// id
 			
+			this.processingCorpus = true;
 			this.$axios.get(this.$server+"/process_corpus", {
 				params: { 
 					userId: this.$userData.userId,
 					model: model}
-			}).then(function(result) {
-				objRef.$userData.corpus	= result.data.userData.corpus;
-				objRef.$userData.graph 	= result.data.userData.graph;
-				objRef.$userData.tsne 	= result.data.userData.tsne;
-				objRef.$userData.umap 	= result.data.userData.umap;
-				
-				objRef.makeToast(
-					"Success",							// title
-					"Corpus successfully processed!",	// content
-					"success");							// variant
+			}).then(function() {
+				objRef.$bvModal.show('dashboard-modal');
 			}).catch(function() {
 				objRef.makeToast(
 					"Oops, something went wrong",	// title
 					"Internal error",				// content
 					"danger");						// variant
-			}).then(() => objRef.$bvToast.hide("process_corpus"));
+			}).then(() => {
+				objRef.$bvToast.hide("process_corpus");
+				objRef.processingCorpus = false;});
 		}
 	}
 }
