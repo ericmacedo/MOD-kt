@@ -1,8 +1,5 @@
 # i2DC
 
 ## OS dependencies:
-* python3-pip python-virtualenv llvm10 npm
-
-## To do
-
-* **URGENT** : Migrate to MongoDB storage
+* Python3.6
+* python3-pip python-virtualenv npm

@@ -120,7 +120,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="userData.corpus"
+				:items="$userData.corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -160,8 +160,8 @@
 		</b-col>
 	</b-row>
 	<b-modal
-		ref="dashboard-modal"
-		id="dashboard-modal"
+		ref="dashboard-redirect-modal"
+		id="dashboard-redirect-modal"
 		size="sm"
 		header-bg-variant="dark"
 		header-text-variant="light"
@@ -175,7 +175,7 @@
 			class="mt-3"
 			variant="outline-success"
 			block
-			@click="$bvModal.hide('dashboard-modal')"
+			@click="$bvModal.hide('dashboard-redirect-modal')"
 			to="/dashboard">
 				<font-awesome-icon :icon="['fas', 'tachometer-alt']"/>&nbsp;
 				Yes, take me to the <strong>Dashboard</strong>!
@@ -187,12 +187,6 @@
 <script>
 export default {
   name: 'Corpus',
-	props: {
-		userData: {
-			type: Object,
-			required: true
-		}
-	},
 	data: function() {
 		return {
 			table: {
@@ -418,7 +412,7 @@ export default {
 					userId: this.$userData.userId,
 					model: model}
 			}).then(function() {
-				objRef.$bvModal.show('dashboard-modal');
+				objRef.$bvModal.show('dashboard-redirect-modal');
 			}).catch(function() {
 				objRef.makeToast(
 					"Oops, something went wrong",	// title

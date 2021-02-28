@@ -41,7 +41,7 @@
 							<b-button-group size="sm" class="mx-1">
 								<b-button disabled variant="secondary">Docs</b-button>
 								<b-button disabled
-									variant="outline-secondary">{{graph.nodes.length}}</b-button>
+									variant="outline-secondary">{{$session.graph.nodes.length}}</b-button>
 							</b-button-group>
 							<b-button-group size="sm" class="mx-1">
 								<b-button disabled variant="secondary">Links</b-button>
@@ -173,16 +173,9 @@ export default {
 			linksEnabled: true,
 			zoom: undefined,
 			transform: undefined,
-			graph: this.$session.graph,
 			simulation: this.$d3.forceSimulation(),
 			projections: ["t-SNE", "UMAP", "DAG"],
 			controls: this.$session.controls
-		}
-	},
-	computed: {
-		linksFiltered() {
-			// TODO implement threshold filter
-			return (this.linksEnabled) ? this.graph.links : [];
 		}
 	},
 	mounted() {
@@ -207,21 +200,21 @@ export default {
 
 		// 	NODES
 		this.nodes = this.canvas.append("g")
-      .attr("class", "nodes")
-			.selectAll("circle")
-			.data(this.graph.nodes)
-			.enter().append("circle")
-			.style("pointer-events", "all")
-			.attr("r", 5)
-			.attr("opacity", 1)
-      .call(this.$d3.drag()
+			.attr("class", "nodes")
+				.selectAll("circle")
+				.data(this.$session.graph.nodes)
+				.enter().append("circle")
+				.style("pointer-events", "all")
+				.attr("r", 5)
+				.attr("opacity", 1)
+			.call(this.$d3.drag()
 				.on("start", 	this.dragstarted)
 				.on("drag", 	this.dragged)
 				.on("end", 		this.dragended))
 		this.nodes.append("title").text(d => d.id);
 
 		// // SIMULATION ENGINE
-		this.simulation.nodes(this.graph.nodes);
+		this.simulation.nodes(this.$session.graph.nodes);
 		this.simulation
 			.force("center", 	this.$d3.forceCenter())
 			.force("charge", 	this.$d3.forceManyBody())
@@ -265,31 +258,42 @@ export default {
 			}
 		},
 		updateLayout() {
-			// FORCE CENTER
-			this.simulation.force("center")
-        .x(this.width/2)
-        .y(this.height/2)
+			let objRef = this;
 
-			// // FORCE CHARGE
-			this.simulation.force("charge")
-        .strength(this.controls.charge)
-        .distanceMin(1)
-        .distanceMax(200);
-
-			// // COLLISION FORCE
-			this.simulation.force("collide")
-        .strength(.7)
-        .radius(5)
-        .iterations(1);
+			const linksFiltered = this.$session.graph.links.filter((link) => 
+					link.value <= objRef.$session.controls.cosineDistance);
 			
-			// LINK FORCE
-			this.simulation.force("link")
-        .id(d => d.id)
-        .distance(this.controls.linkDistance)
-        .iterations(1)
-        .links(this.linksFiltered);
+			if(this.$session.controls.projection == "DAG") {
+				// FORCE CENTER
+				this.simulation.force("center")
+					.x(this.width/2)
+					.y(this.height/2)
 
-			this.simulation.alpha(1).restart();
+				// FORCE CHARGE
+				this.simulation.force("charge")
+					.strength(this.controls.charge)
+					.distanceMin(1)
+					.distanceMax(200);
+
+				// COLLISION FORCE
+				this.simulation.force("collide")
+					.strength(.7)
+					.radius(5)
+					.iterations(1);
+
+				// LINK FORCE
+				this.simulation.force("link")
+					.id(d => d.id)
+					.distance(this.controls.linkDistance)
+					.iterations(1)
+					.links(this.$session.graph.links.filter((link) => 
+						link.value <= objRef.$session.controls.cosineDistance));
+
+				this.simulation.alpha(1).restart();
+			} else {
+				this.simulation.force("link").links(linksFiltered);
+				this.simulation.stop();
+			}
 		},
 		ticked(){
 			this.links

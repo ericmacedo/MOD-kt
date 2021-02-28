@@ -1,7 +1,7 @@
 <template>
 <div>
   <b-jumbotron class="col-lg-10 col-md-10 col-sm-10 col-xs-10 offset-1 float-md-center">
-  <template #header>Hello, {{ userData.userId }}!</template>
+  <template #header>Hello, {{ $userData.userId }}!</template>
 
     <template #lead>
       This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.
@@ -22,10 +22,7 @@
 
 <script>
 export default {
-  name: 'Index',
-  props: {
-    userData: Object
-  }
+  name: 'Index'
 }
 </script>
 

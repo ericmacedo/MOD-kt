@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from models import User
 
 from utils import (
-    process_text, term_frequency, get_userData)
+    process_text, term_frequency)
 
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
@@ -28,10 +28,11 @@ def auth():
         if request.method == 'POST':
             userId = request.form["userId"]
 
-            if User(userId=userId):
+            user = User(userId=userId)
+            if user:
                 return {
                     "status": "Success",
-                    "userData": get_userData(userId=userId)
+                    "userData": user.userData()
                 }, 200
             else:
                 raise Exception("No such user exists!")
@@ -123,7 +124,7 @@ def corpus():
                     # embedding       = embeddings.pop(0),
                     processed       = processed.pop(0))
                 
-                user.append_document(
+                doc = user.append_document(
                     file_name       = doc["file_name"],
                     content         = doc["content"],
                     processed       = doc["processed"],
@@ -215,11 +216,9 @@ def process_corpus():
             user.tsne   = t_SNE(corpus)
             user.umap   = UMAP(corpus)
 
-            del user, embedding
-
             return {
                 "status": "success",
-                "userData": get_userData()
+                "userData": user.userData()
             }, 200
 
     except Exception as e:
@@ -234,6 +233,54 @@ def process_corpus():
 
 @app.route("/projection", methods=["GET"])
 def projection():
+    pass
+
+@app.route("/session", methods=["GET", "PUT"])
+def session():
+    try:
+        if request.method == "GET":
+            userId = request.args["userId"]
+            sessionId = request.args["sessionId"] if (
+                "sessionId" in request.args) else None
+
+            user = User(userId=userId)
+            session = user.sessionData(sessionId=sessionId)
+            
+            return {
+                "status": "success",
+                "sessionData": session
+            }, 200
+        elif request.method == "PUT":
+            userId = request.form["userId"]
+            session = request.form["sessionData"]
+
+            user = User(userId=userId)
+            session = user.append_session(
+                name        = session["name"],
+                notes       = session["notes"],
+                index       = session["index"],
+                graph       = session["graph"],
+                tsne        = session["tsne"],
+                umap        = session["umap"],
+                controls    = session["controls"])
+
+            return {
+                "status": "success",
+                "sessionData": session
+            }, 200
+
+    except Exception as e:
+        print(e)
+        return {
+            "status": "Fail",
+            "message": {
+                "title": str(type(e)),
+                "content": str(e)
+            }
+        }, 500
+
+@app.route("/cluster", methods=["POST"])
+def cluster():
     pass
 
 if __name__ == "Vis-Kt":

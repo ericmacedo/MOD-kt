@@ -60,7 +60,7 @@ class User:
                         content:str,
                         term_frequency:dict,
                         processed:str,
-                        embedding:list=None):
+                        embedding:list=None) -> dict:
 
         uuid = str(uuid4())
         file_path = f"{self.__corpus}/{uuid}.json"
@@ -80,6 +80,8 @@ class User:
         
         with open(self.__index, "a") as index_file:
             index_file.write(f"{uuid}\n")
+        
+        return document
 
     def delete_documents(self, ids:list):
         for f_path in os.listdir(self.__corpus):
@@ -100,15 +102,47 @@ class User:
                     id=id))
         return sessions
     
-    def append_session(self, session:dict):
-        #TODO
-        pass
+    def append_session(self,
+                        name:str,
+                        notes:str,
+                        index:list,
+                        graph:dict,
+                        tsne:list,
+                        umap:list,
+                        controls:dict) -> dict:
+
+        sessionId = str(uuid4())
+        session_path = f"{self.__sessions}/{sessionId}.json"
+        
+        session = dict(
+            id          = sessionId,
+            name        = name,
+            notes       = notes,
+            index       = index,
+            graph       = graph,
+            tsne        = tsne,
+            umap        = umap,
+            controls    = controls,
+            date        = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC"))
+
+        with open(session_path, "w", encoding="utf-8") as s_file:
+            json.dump(session, s_file)
+
+        return session
     
     def delete_sessions(self, ids:list):
         for f_path in os.listdir(self.__sessions):
             id, ext = os.path.splitext(f_path)
             if ext == ".json" and id in ids:
                 os.remove(f"{self.__sessions}/{f_path}")
+
+    def session_list(self):
+        return [{
+            "id":       session.id,
+            "name":     session.name,
+            "date":     session.date,
+            "notes":    session.notes
+        } for session in self.sessions]
 
     # GRAPH
     @property
@@ -193,6 +227,38 @@ class User:
         for f_path in files:
             if os.path.isfile(f_path):
                 os.remove(f_path)
+    
+    def userData(self) -> dict:
+        return {
+            "userId":   self.userId,
+            "corpus":   [doc.as_dict() for doc in self.corpus if doc],
+            "sessions": self.session_list()}
+
+    def sessionData(self, sessionId:str=None) -> dict:
+        if sessionId:
+            session = Session(
+                userId=self.userId,
+                sessionId=sessionId
+            ).as_dict()
+            session["sessions"] = self.session_list()
+        else:
+            session = {
+                "userId":   self.userId,
+                "name":     "Default",
+                "notes":    "",
+                "index":    self.index,
+                "graph":    self.graph,
+                "tsne":     self.tsne,
+                "umap":     self.umap,
+                "controls": {
+                    "projection": "t-SNE",
+		            "tsne": {"perplexity": 5},
+                    "umap": {"n_neighbors": 5, "min_dist": 0.1},
+                    "cosineDistance": 0.5,
+                    "linkDistance": 20,
+                    "charge": -30},
+                "date": None}
+        return session
 
 
 class Document:
@@ -289,6 +355,7 @@ class Document:
             term_frequency  = self._term_frequency,
             embedding       = self._embedding,
             uploaded_on     = self._uploaded_on)
+
     
 class Session:
     def __init__(self, userId:str, id:str):
@@ -297,24 +364,27 @@ class Session:
         self.id = id
         self.__path = f"./users/{self.__userId}/sessions/{self.id}.json"
 
-        if os.path.isfile(self.__path):
-            with open(self.__path, "r") as jsonFile:
-                self.name           = jsonFile["name"]
-                self.notes          = jsonFile["notes"]
-                self.graph          = jsonFile["graph"]
-                self.force          = jsonFile["force"]
-                self.controls       = jsonFile["controls"]
-                self.date           = jsonFile["date"]
-            return self
-        return None
+        if not os.path.isfile(self.__path):
+            return None
+        with open(self.__path, "r") as jsonFile:
+            session = json.load(jsonFile)
+            self.name           = session["name"]
+            self.notes          = session["notes"]
+            self.index          = session["index"]
+            self.graph          = session["graph"]
+            self.tsne           = session["tsne"]
+            self.umap           = session["umap"]
+            self.controls       = session["controls"]
+            self.date           = session["date"]
 
-    
     def as_dict(self) -> dict:
         return dict(
             id          = self.id,
             name        = self.name,
             notes       = self.notes,
+            index       = self.index,
             graph       = self.graph,
-            force       = self.force,
+            tsne        = self.tsne,
+            umap        = self.umap,
             controls    = self.controls,
             date        = self.date)

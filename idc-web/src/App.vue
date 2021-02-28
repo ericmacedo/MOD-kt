@@ -27,7 +27,7 @@
       </b-col>
       <b-col cols="2" >
         <b-navbar-nav
-          v-if="$route.name === 'Corpus' || $route.name === 'Dashboard'"
+          v-if="$route.name === 'Dashboard'"
           class="justify-content-md-center">
           <b-nav-item align="start">
             <!-- TODO implement clustering function -->
@@ -77,6 +77,7 @@
               <font-awesome-icon :icon="['fas', 'user-circle']"/> &nbsp;
               <em>{{ $userData.userId }}</em>
             </template>
+            <!-- TODO add "clear user data" with modal confirm -->
             <b-dropdown-item @click="updateUserData">
               <font-awesome-icon :icon="['fas', 'sync']"/>
               Reload user data
@@ -91,12 +92,12 @@
       
     </b-collapse>
   </b-navbar>
-  <keep-alive>
-    <router-view
-      id="mainView"
-      v-bind:userData="userData"
-      class="h-100 w-100 container-fluid"/>
-  </keep-alive>
+    <keep-alive>
+      <router-view
+        v-if="userData"
+        id="mainView"
+        class="h-100 w-100 container-fluid"/>
+    </keep-alive>
 </div>
 </template>
 
@@ -115,12 +116,12 @@ export default {
 		formData.set("userId", this.$userData.userId);
 
     let objRef = this;
-    this.$axios.post(this.$server+"/auth", formData, {
+    this.userData = this.$axios.post(this.$server+"/auth", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     }).then(function(result) {
       objRef.$userData.userId = result.data.userData.userId;
       objRef.$userData.corpus	= result.data.userData.corpus;
-      objRef.$userData.newDocs = result.data.userData.newData;
+      objRef.$userData.sessions	= result.data.userData.sessions;
 
       objRef.makeToast(
         "success",
@@ -133,7 +134,7 @@ export default {
   data: function() {
     return {
       title: "Vis-Kt",
-      userData: this.$userData,
+      userData: undefined,
       navbar: {
         items: [
           {
@@ -181,10 +182,6 @@ export default {
       }).then(function(result) {
         objRef.$userData.userId = result.data.userData.userId;
         objRef.$userData.corpus	= result.data.userData.corpus;
-        objRef.$userData.newDocs = result.data.userData.newData;
-        objRef.$userData.graph = result.data.userData.graph;
-        objRef.$userData.tsne = result.data.userData.tsne;
-        objRef.$userData.umap = result.data.userData.umap;
         
         objRef.makeToast(
           "success",

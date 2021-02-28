@@ -59,18 +59,6 @@ def process_text(text:str) -> str:
 
     return " ".join(tokens).strip()
 
-def get_userData(userId:str, newData:list=[]) -> list:
-    user = User(userId=userId)
-
-    return {
-        "userId":   userId,
-        "corpus":   [doc.as_dict() for doc in user.corpus if doc],
-        "graph":    user.graph,
-        "tsne":     user.tsne,
-        "umap":     user.umap,
-        "sessions": [], # TODO implement sessions 
-        "newData":  newData}
-
 def term_frequency(text:str) -> dict:
     tf = {}
     for word in text.split(" "):
