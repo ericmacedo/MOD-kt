@@ -3,7 +3,7 @@ import Router from "vue-router";
 import Index from "@/components/Index";
 import Corpus from "@/components/Corpus";
 import Dashboard from "@/components/Dashboard";
-// import Sessions from "@/components/Sessions";
+import SessionManager from "@/components/SessionManager";
 
 Vue.use(Router);
 
@@ -26,11 +26,11 @@ export default new Router({
       component: Dashboard,
       props: true
     },
-    // {
-    //     path: "/sessions",
-    //     name: "Session Manager",
-    //     component: Sessions,
-    //     props: true
-    // }
+    {
+        path: "/sessions",
+        name: "Session Manager",
+        component: SessionManager,
+        props: true
+    }
   ]
 });

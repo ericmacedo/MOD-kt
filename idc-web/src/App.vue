@@ -44,19 +44,20 @@
           <b-nav-form
             v-if="$route.name === 'Dashboard'">
             <b-nav-item>
-              <notes-widget></notes-widget>
-            </b-nav-item>
-            <b-nav-item>
-              <b-input-group size="sm" prepend="Session">
-                <b-form-select size="sm">
-                  <template #first>
-                    <b-form-select-option
-                      v-model="sessionSelector.selected"
-                      :options="sessionSelector.options"
-                      :value="null">--&nbsp;Create new session&nbsp;--</b-form-select-option>
-                  </template>
-                </b-form-select>
-                <b-button-group size="sm" class="navbar-item-spaced">
+                <b-button-group size="sm">
+                  <b-button pill
+                    size="sm"
+                    v-b-modal.dashboard-sessions-modal
+                    class="navbar-item-spaced"
+                    variant="outline-info">
+                    <font-awesome-icon :icon="['fas', 'plus']"/>
+                  </b-button>
+                  <notes-widget></notes-widget>
+                  <b-button disabled
+                    id="sessionLabel"
+                    variant="dark">
+                    {{ $session.name }}
+                  </b-button>
                   <b-button
                     variant="outline-danger">
                     <font-awesome-icon :icon="['fas', 'trash']"/>
@@ -68,7 +69,6 @@
                     Save
                   </b-button>
                 </b-button-group>
-              </b-input-group>
             </b-nav-item>
           </b-nav-form>
           <b-nav-item-dropdown right class="navbar-item-spaced">
@@ -78,6 +78,10 @@
               <em>{{ $userData.userId }}</em>
             </template>
             <!-- TODO add "clear user data" with modal confirm -->
+            <b-dropdown-item @click="clearUserData">
+              <font-awesome-icon :icon="['fas', 'trash']"/>
+              Clear user data
+            </b-dropdown-item>
             <b-dropdown-item @click="updateUserData">
               <font-awesome-icon :icon="['fas', 'sync']"/>
               Reload user data
@@ -89,13 +93,14 @@
           </b-nav-item-dropdown>
         </b-navbar-nav>
       </b-col>
-      
     </b-collapse>
   </b-navbar>
     <keep-alive>
       <router-view
         v-if="userData"
         id="mainView"
+        :width="Width"
+        :height="Height"
         class="h-100 w-100 container-fluid"/>
     </keep-alive>
 </div>
@@ -135,6 +140,8 @@ export default {
     return {
       title: "Vis-Kt",
       userData: undefined,
+      Height: 500,
+      Width: 500,
       navbar: {
         items: [
           {
@@ -194,6 +201,31 @@ export default {
           "Try reloading the page");
       });
     },
+    clearUserData() {
+      let objRef = this;
+
+      if(confirm("You're about to erase all of your data, are you sure?")) {
+        // FORM
+        const formData = new FormData();
+        formData.set("userId", this.$userData.userId);
+        formData.set("ids", []);
+        formData.set("RESET_FLAG", true);
+
+        this.$axios.post(this.$server+"/corpus", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        }).then(function() {
+          objRef.makeToast(
+            "success",
+            "Success!",
+            "User data cleared!");
+        }).catch(function() {
+          objRef.makeToast(
+            "danger",
+            "Oops, something went wrong!",
+            "Try reloading the page");
+        });
+      }
+    },
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
     }
@@ -201,29 +233,25 @@ export default {
 }
 </script>
 
-<style>
-#app {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
+<style lang="sass">
+#app
+  height: 100%
+  width: 100%
+  margin: 0
+  padding: 0
+  border: 0
 
-#mainView {
-  justify-content: center;
-  vertical-align: middle;
-  margin: auto;
-	margin: auto;
-}
+#mainView
+  justify-content: center
+  vertical-align: middle
+  margin: auto
+  margin: auto
 
-.navbar-item-spaced {
-  /* margin-left: 5px;
-  margin-right: 5px; */
-  padding-left: 5px;
-  padding-right: 5px;
-}
-.align-right {
-  justify-content: flex-end;
-}
+.align-right
+  justify-content: flex-end
+
+#sessionLabel
+  white-space: normal
+  word-wrap: break-word
+  max-width: 300px
 </style>

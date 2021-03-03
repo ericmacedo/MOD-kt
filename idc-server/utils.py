@@ -65,29 +65,41 @@ def term_frequency(text:str) -> dict:
         tf[word] = (tf[word] + 1) if (word in tf) else 1
     return tf
 
-def cosine_distance_graph(corpus:list) -> dict:
+def distance_graph(corpus:list) -> dict:
+    import numpy as np
     from sklearn.metrics import pairwise_distances
+    from sklearn.preprocessing import MinMaxScaler
 
     graph = {
-        "nodes": [],
-        "links": []}
+        "nodes":        [],
+        "dist":         [],
+        "neighborhood": []}
 
     graph["nodes"] = [{
         "id": doc.id,
         "name": doc.file_name
     } for doc in corpus]
 
-    cos_dist = pairwise_distances(
+    dist = pairwise_distances(
         [doc.embedding for doc in corpus],
-        metric="cosine",
+        metric="euclidean",
         n_jobs=-1)
 
+    dist_norm = MinMaxScaler([1e-5, 1]).fit_transform(dist)
+
     for i in range(len(corpus)):
-        for j in range(i):
-            graph["links"].append({
-                "source": i,
-                "target": j,
-                "value": cos_dist[i][j]})
+        indices = np.argsort(dist[i])
+        for j in range(len(corpus)):
+            if j < i:
+                graph["dist"].append({
+                    "source": i,
+                    "target": j,
+                    "value": float(dist_norm[i][j])})
+            if j > 0:
+                graph["neighborhood"].append({
+                    "source": i,
+                    "target": int(indices[j]),
+                    "value": j})
     return graph
 
 def encode_document(docs:str, model:str=None) -> list:
@@ -120,21 +132,6 @@ def t_SNE(corpus:list, perplexity:int=30) -> list:
         n_jobs=-1
     ).fit(np.array([doc.embedding for doc in corpus]))
     return tsne.tolist()
-
-def UMAP(corpus:list,
-        n_neighbors:int=5,
-        min_dist:int=0.1) -> list:
-    from umap import UMAP
-    import numpy as np
-
-    umap = UMAP(
-        n_components=2,
-        n_neighbors=n_neighbors,
-        min_dist=min_dist,
-        metric="cosine",
-        n_jobs=-1
-    ).fit_transform([doc.embedding for doc in corpus])
-    return umap.tolist()
 
 def calculateSample(corpus_size:int) -> float:
     if corpus_size > 500:

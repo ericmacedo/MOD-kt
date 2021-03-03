@@ -16,7 +16,6 @@ class User:
         self.__graph    = f"{self.__user}/graph.json"
         self.__index    = f"{self.__user}/corpus.index"
         self.__tsne     = f"{self.__user}/tsne.npy"
-        self.__umap     = f"{self.__user}/umap.npy"
         self.__word2vec = f"{self.__user}/Word2Vec.bin"
         self.__doc2vec  = f"{self.__user}/Doc2Vec.bin"
 
@@ -108,7 +107,6 @@ class User:
                         index:list,
                         graph:dict,
                         tsne:list,
-                        umap:list,
                         controls:dict) -> dict:
 
         sessionId = str(uuid4())
@@ -121,7 +119,6 @@ class User:
             index       = index,
             graph       = graph,
             tsne        = tsne,
-            umap        = umap,
             controls    = controls,
             date        = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC"))
 
@@ -169,17 +166,6 @@ class User:
     def tsne(self, tsne):
         np.save(self.__tsne, np.array(tsne, dtype=np.float64))
 
-    # UMAP
-    @property
-    def umap(self) -> list:
-        if os.path.isfile(self.__umap):
-            return np.load(self.__umap).tolist()
-        return None
-
-    @umap.setter
-    def umap(self, umap):
-        np.save(self.__umap, np.array(umap, dtype=np.float64))
-
     # WORD2VEC
     @property
     def word2vec(self) -> Word2Vec:
@@ -212,21 +198,24 @@ class User:
             userId          = self.userId,
             corpus          = [doc.as_dict() for doc in self.corpus],
             graph           = self.graph,
-            tsne            = self.tsne,
-            umap            = self.umap)
+            tsne            = self.tsne)
 
     def clear_workspace(self):
         files = [
             self.__index,
             self.__graph,
             self.__tsne,
-            self.__umap,
             self.__word2vec,
             self.__doc2vec]
         
         for f_path in files:
             if os.path.isfile(f_path):
                 os.remove(f_path)
+    
+        for f_path in os.listdir(self.__corpus):
+            id, ext = os.path.splitext(f_path)
+            if ext == ".json":
+                os.remove(f"{self.__corpus}/{f_path}")
     
     def userData(self) -> dict:
         return {
@@ -249,12 +238,11 @@ class User:
                 "index":    self.index,
                 "graph":    self.graph,
                 "tsne":     self.tsne,
-                "umap":     self.umap,
                 "controls": {
                     "projection": "t-SNE",
 		            "tsne": {"perplexity": 5},
-                    "umap": {"n_neighbors": 5, "min_dist": 0.1},
-                    "cosineDistance": 0.5,
+                    "distance": 0.1,
+                    "n_neighbors": 0,
                     "linkDistance": 20,
                     "charge": -30},
                 "date": None}
@@ -373,7 +361,6 @@ class Session:
             self.index          = session["index"]
             self.graph          = session["graph"]
             self.tsne           = session["tsne"]
-            self.umap           = session["umap"]
             self.controls       = session["controls"]
             self.date           = session["date"]
 
@@ -385,6 +372,5 @@ class Session:
             index       = self.index,
             graph       = self.graph,
             tsne        = self.tsne,
-            umap        = self.umap,
             controls    = self.controls,
             date        = self.date)

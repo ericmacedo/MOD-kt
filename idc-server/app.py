@@ -172,14 +172,12 @@ def corpus():
 #   It computes:
 #       * Word2Vec vectors
 #       * t-SNE
-#       * UMAP
-#       * Cosine distance matrix (graph representation)
+#       * Distance matrix (graph representation)
 def process_corpus():
     try:
         from utils import (
-            cosine_distance_graph,
+            distance_graph, t_SNE,
             encode_document,
-            UMAP, t_SNE,
             Word2Vec, Doc2Vec)
 
         if request.method == "GET":
@@ -212,9 +210,8 @@ def process_corpus():
             for doc in corpus:
                 doc.embedding = embeddings.pop(0)
 
-            user.graph  = cosine_distance_graph(corpus)
+            user.graph  = distance_graph(corpus)
             user.tsne   = t_SNE(corpus)
-            user.umap   = UMAP(corpus)
 
             return {
                 "status": "success",
@@ -261,7 +258,6 @@ def session():
                 index       = session["index"],
                 graph       = session["graph"],
                 tsne        = session["tsne"],
-                umap        = session["umap"],
                 controls    = session["controls"])
 
             return {

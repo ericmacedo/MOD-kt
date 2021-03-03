@@ -32,6 +32,10 @@ Vue.prototype.$d3 = d3;
 import { Promised } from 'vue-promised';
 Vue.component('Promised', Promised);
 
+// VUE RESIZE
+import resize from "vue-resize-directive";
+Vue.directive("resize", resize);
+
 
 // SERVER REF
 Vue.prototype.$server = "http://localhost:5000";
@@ -63,6 +67,18 @@ Vue.prototype.$session = {
 };
 
 Vue.config.productionTip = false;
+
+// STRING FORMATER HELPER
+/* eslint-disable */
+if (!String.prototype.format) {
+	String.prototype.format = function() {
+	  var args = arguments;
+	  return this.replace(/{(\d+)}/g, function(match, number) {
+		return typeof args[number] !== "null" ? args[number] : match;
+	  });
+	};
+  }
+/* eslint-enable */
 
 new Vue({
 	render: h => h(App),

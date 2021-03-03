@@ -2,18 +2,20 @@
 <div class="dashboard h-100 w-100">
 	<!-- TODO add vue-promised for get_sessionData -->
 	<Promised :promise="sessionData">
-		<template v-slot:pending>
-      <b-col id="Spinner" col>
-        <b-spinner variant="primary" label="Spinning"></b-spinner>
-      </b-col>
+	<template v-slot:pending>
+		<div class="h-100 text-center">
+			<b-spinner
+				class="m-5"
+				variant="primary"></b-spinner>
+		</div>
     </template>
     <template v-slot:default>
-			<div>
+			<b-card-group deck>
 				<document-view id="documentView"
 					></document-view>
 				<graph-view id="graphView"
 					sm="12" md="4" lg="4"></graph-view>
-			</div>
+			</b-card-group>
 		</template>
 		<template v-slot:rejected>
       <p>oops, something went wrong!</p>
@@ -29,7 +31,9 @@
 		title="Select a session to load"
 		scrollable
 		centered
-		hide-footer>
+		hide-footer
+		no-close-on-backdrop
+		no-close-on-esc>
 		<div class="d-block text-center">
 			<b-list-group>
 				<!-- NEW SESSION -->
@@ -98,8 +102,7 @@ export default {
 				objRef.$session.index			= session.index;
 				objRef.$session.graph			= session.graph;
 				objRef.$session.tsne			= session.tsne;
-				objRef.$session.umap			= session.umap;
-				objRef.$session.controls	= session.controls;
+				objRef.$session.controls		= session.controls;
 				objRef.$session.date 			= session.date;
 			});
 		}
@@ -108,16 +111,14 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style>
-.dashboard {
-	padding: 5px;
-	border: 0!important;
-	margin: 0!important;
-}
+<style lang="sass">
+.dashboard
+	padding: 5px
+	border: 0!important
+	margin: 0!important
 
-.card-header {
-	padding: 1px;
-	text-align: center;
-	height: 25px;
-}
+.card-header
+	padding: 1px
+	text-align: center
+	height: 25px
 </style>

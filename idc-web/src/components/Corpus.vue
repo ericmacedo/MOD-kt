@@ -334,7 +334,7 @@ export default {
 				
 				// FORM
 				const formData = new FormData();
-				formData.set("userId", objRef.userData.userId);
+				formData.set("userId", objRef.$userData.userId);
 				formData.set("file", file);
 				formData.set("fileName", file.name);
 				formData.set("format", format);
@@ -372,7 +372,7 @@ export default {
 
 			// FORM
 			const formData = new FormData();
-			formData.set("userId", this.userData.userId);
+			formData.set("userId", this.$userData.userId);
 			formData.set("ids", to_remove);
 			formData.set("RESET_FLAG", this.all_selected);
 
@@ -427,94 +427,80 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-* {
-	box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	-webkit-box-sizing: border-box;
-}
+<style lang="sass" scoped>
+*
+	box-sizing: border-box
+	-moz-box-sizing: border-box
+	-webkit-box-sizing: border-box
   
-.upload-wrapper {
-	text-align: center;
-	padding: 10px 50px 0px 50px;
-}
-  
-.upload-wrapper > .container {
-	background-color: #f9f9f9;
-	padding: 20px;
-	border-radius: 10px;
-	position: -webkit-sticky;
-  position: sticky;
-	top: 60px;
-}
-  
-#upload-title {
-	color: #130f40;
-	font-family: 'Varela Round', sans-serif;
-	letter-spacing: -.5px;
-	font-weight: 700;
-	padding-bottom: 10px;
-}
-  
-#upload-container {
-	background-color: rgb(239, 239, 239);
-	border-radius: 6px;
-	padding: 10px;
-}
-  
-.border-container {
-	border: 5px dashed rgba(198, 198, 198, 0.65);
-	border-radius: 6px;
-	padding: 20px;
-}
-  
-.border-container p {
-	color: #130f40;
-	font-weight: 600;
-	font-size: 1.1em;
-	letter-spacing: -1px;
-	margin-top: 30px;
-	margin-bottom: 0;
-	opacity: 0.65;
-}
-  
-#file-browser {
-	text-decoration: none;
-	color: rgb(22,42,255);
-	border-bottom: 3px dotted rgba(22, 22, 255, 0.85);
-}
-  
-#file-browser:hover {
-	color: rgb(0, 0, 255);
-	border-bottom: 3px dotted rgba(0, 0, 255, 0.85);
-}
-  
-.icons {
-	color: #95afc0;
-	opacity: 0.55;
-}
+.upload-wrapper
+	text-align: center
+	padding: 10px 50px 0px 50px
 
-#uploadQueue {
-	max-height: 250px;
-	text-align: left;
-	margin-bottom: 10px;
-	overflow-y: scroll;
-	overflow-x: auto;
-	-webkit-overflow-scrolling: touch;
-}
+	& > .container
+		background-color: #f9f9f9
+		padding: 20px
+		border-radius: 10px
+		position: -webkit-sticky
+		position: sticky
+		top: 60px
+  
+#upload-title
+	color: #130f40
+	font-family: 'Varela Round', sans-serif
+	letter-spacing: -.5px
+	font-weight: 700
+	padding-bottom: 10px
+  
+#upload-container
+	background-color: rgb(239, 239, 239)
+	border-radius: 6px
+	padding: 10px
+  
+.border-container
+	border: 5px dashed rgba(198, 198, 198, 0.65)
+	border-radius: 6px
+	padding: 20px
 
-#corpusTable {
-	overflow-y: scroll;
-	overflow-x: auto;
-	max-height: 800px;
-}
+	p
+		color: #130f40
+		font-weight: 600
+		font-size: 1.1em
+		letter-spacing: -1px
+		margin-top: 30px
+		margin-bottom: 0
+		opacity: 0.65
+  
+#file-browser
+	text-decoration: none
+	color: rgb(22,42,255)
+	border-bottom: 3px dotted rgba(22, 22, 255, 0.85)
 
-#tableCol {
-	padding-top: 10px;
-}
+	&:hover
+		color: rgb(0, 0, 255)
+		border-bottom: 3px dotted rgba(0, 0, 255, 0.85)
+  
+.icons
+	color: #95afc0
+	opacity: 0.55
 
-#corpusToolbar {
-	justify-content: center;
-	padding-bottom: 5px;
-}
+#uploadQueue
+	max-height: 250px
+	text-align: left
+	margin-bottom: 10px
+	overflow-y: scroll
+	overflow-x: auto
+	-webkit-overflow-scrolling: touch
+
+#corpusTable
+	overflow-y: scroll
+	overflow-x: auto
+	max-height: 800px
+
+#tableCol
+	padding-top: 10px
+
+#corpusToolbar
+	justify-content: center
+	padding-bottom: 5px
 </style>

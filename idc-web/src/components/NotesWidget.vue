@@ -1,6 +1,6 @@
 <template>
 <div>
-	<b-button rounded
+	<b-button
 		id="notes"
 		size="sm"
 		class="navbar-item-spaced"
