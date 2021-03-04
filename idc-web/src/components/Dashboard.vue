@@ -10,14 +10,13 @@
 		</div>
     </template>
     <template v-slot:default>
-			<b-card-group deck>
-				<document-view id="documentView"
-					></document-view>
-				<graph-view id="graphView"
-					sm="12" md="4" lg="4"></graph-view>
-			</b-card-group>
-		</template>
-		<template v-slot:rejected>
+		<b-card-group deck>
+			<document-view id="documentView"></document-view>
+			<graph-view id="graphView"
+				sm="12" md="4" lg="4"></graph-view>
+		</b-card-group>
+	</template>
+	<template v-slot:rejected>
       <p>oops, something went wrong!</p>
     </template>
 	</Promised>
@@ -39,9 +38,9 @@
 				<!-- NEW SESSION -->
 				<b-list-group-item
 					class="text-center"
-					variant="dark"
 					button
-					@click="getSession(null)">
+					variant="success"
+					@click="cluster">
 					<font-awesome-icon :icon="['fas', 'plus']"/>&nbsp;
 					Start a new session
 				</b-list-group-item>
@@ -49,6 +48,8 @@
 				<b-list-group-item
 					v-for="(session, index) of $userData.sessions"
 					:key="index"
+					button
+					variant="dark"
 					@click="getSession(session.id)"
 					class="flex-column align-items-start">
 					<div class="d-flex w-100 justify-content-between">
@@ -84,13 +85,17 @@ export default {
 		this.$bvModal.show('dashboard-sessions-modal');
 	},
 	methods: {
-		getSession(id=null) {
+		getSession(id) {
 			let objRef = this;
 			
 			this.$bvModal.hide('dashboard-sessions-modal');
-		
-			this.sessionData = this.$axios.get(
-				this.$server+"/session",{
+
+			if(Object.keys(this.$session).length > 0 &&
+				!confirm("Did you saved all your current work?")) {
+				return;
+			}
+
+			this.sessionData = this.$axios.get(this.$server+"/session",{
 					params: {
 						userId: this.$userData.userId,
 						sessionId: id}});
@@ -102,8 +107,43 @@ export default {
 				objRef.$session.index			= session.index;
 				objRef.$session.graph			= session.graph;
 				objRef.$session.tsne			= session.tsne;
-				objRef.$session.controls		= session.controls;
+				objRef.$session.clusters	= session.clusters;
+				objRef.$session.controls	= session.controls;
+				objRef.$session.focused		= session.focused;
 				objRef.$session.date 			= session.date;
+
+				objRef.$parent.updateSessionName(session.name);
+			});
+		},
+		cluster() {
+			let objRef = this;
+			
+			this.$bvModal.hide('dashboard-sessions-modal');
+
+			const cluster_k = prompt("Please, inform the number of clusters you want to find:")
+		
+			const formData = new FormData();
+			formData.set("userId", this.$userData.userId);
+			formData.set("cluster_k", cluster_k);
+			
+			this.sessionData = this.$axios.post(this.$server+"/cluster",
+				formData, { headers: { "Content-Type": "multipart/form-data" }
+			});
+
+			this.sessionData.then((result) => {
+				const session = result.data.sessionData;
+				objRef.$session.name 			= session.name;
+				objRef.$session.notes			= session.notes;
+				objRef.$session.index			= session.index;
+				objRef.$session.graph			= session.graph;
+				objRef.$session.tsne			= session.tsne;
+				objRef.$session.clusters	= session.clusters;
+				objRef.$session.controls	= session.controls;
+				objRef.$session.date 			= session.date;
+				objRef.$session.selected	= [objRef.$session.index[0]]; // the first document is focused by default
+				objRef.$session.focused		= null;
+
+				objRef.$parent.updateSessionName(session.name);
 			});
 		}
 	}

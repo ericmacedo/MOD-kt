@@ -220,10 +220,12 @@ export default {
 	mounted() {
 		this.graph.forEach((graph) => {
 			// SIMULATION ENGINE
-			graph.simulation = this.$d3.forceSimulation()
+			graph.simulation = 	this.$d3.forceSimulation()
 				.force('link', 		this.$d3.forceLink())
 				.force("charge", 	this.$d3.forceManyBody())
 				.force("center", 	this.$d3.forceCenter())
+				.force("forceX",	this.$d3.forceX())
+        .force("forceY",	this.$d3.forceY())
 				.on("tick", function() {
 					graph.node
 						.attr("cx", d => d.x)
@@ -275,9 +277,24 @@ export default {
 			this.node = this.node.data(_nodes).join("circle")
 				.style("pointer-events", "all")
 				.attr("r", 4)
+				.attr("opacity", 0.9)
 				.attr("cx", d => d.x)
 				.attr("cy", d => d.y)
-				.attr("opacity", 1)
+				.attr("fill", (d, i) => {
+					let _label = objRef.$session.clusters.labels[i];
+					return objRef.$session.clusters.colors[_label];})
+				.on("click", function(e, d) {
+					let index = objRef.$session.selected.indexOf(d.id);
+					
+					if (index == -1) {
+						objRef.$session.selected.push(d.id);
+					} else {
+						objRef.$session.selected.pop(index);
+					}
+					
+					let _ref = objRef.$d3.select(this);
+					_ref.classed("selected", !_ref.classed("selected"));
+				})
 				.call(this.$d3.drag()
 					.on("start", function(e, d) {
 						if (_projection) {
@@ -301,7 +318,8 @@ export default {
 			// LINKS
 			this.link = this.link.data(_links).join("line")
 				.attr("stroke", "#999")
-				.attr("opacity", 0.8);
+				.attr("opacity", 0.7);
+			this.link.append("title").text(d => `${d.source.name} -> ${d.target.name}`);
 
 			// SIMULATION FORCES
 			this.simulation
@@ -331,14 +349,22 @@ export default {
 
 			// FORCE CENTER
 			this.simulation.force("center")
-        .x(this.width / 2)
-        .y(this.height / 2);
+				.x(this.width / 2)
+				.y(this.height / 2);
 
-			// FORCE CHARGE
+			// // FORCE CHARGE
 			this.simulation.force("charge")
-				.strength(this.$session.controls.charge * (_projection ? 1 : 0))
+				.strength(this.$session.controls.charge)
 				.distanceMin(1)
 				.distanceMax(200);
+
+			// GRAVITY
+			this.simulation.force("forceX")
+				.strength(0.05)
+				.x(this.width / 2);
+			this.simulation.force("forceY")
+				.strength(0.05)
+				.y(this.height / 2);
 
 			// LINK FORCE
 			this.simulation.force("link")
@@ -346,7 +372,7 @@ export default {
 				.iterations(1);
 
 			if(_projection) {
-				this.simulation.alphaTarget(1).restart();
+				this.simulation.alpha(1).restart();
 			} else {
 				this.simulation.alpha(0).stop();
 			}
@@ -355,7 +381,7 @@ export default {
 }
 </script>
 
-<style lang="sass" scoped>
+<style lang="sass">
 #graphView
 	width: 550px
 	max-width: 550px
@@ -413,7 +439,7 @@ svg
 		fill: none
 
 .node
-	circle
-		stroke: #fff
-		stroke-width: 1.5px
+	circle.selected
+			stroke-width: 1px
+			stroke: red
 </style>

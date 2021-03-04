@@ -8,6 +8,8 @@ from werkzeug.utils import secure_filename
 
 from models import User
 
+from clusterer import Clusterer
+
 from utils import (
     process_text, term_frequency)
 
@@ -240,6 +242,9 @@ def session():
             sessionId = request.args["sessionId"] if (
                 "sessionId" in request.args) else None
 
+            if not sessionId:
+                raise Exception("No such sessione exists")
+
             user = User(userId=userId)
             session = user.sessionData(sessionId=sessionId)
             
@@ -256,6 +261,7 @@ def session():
                 name        = session["name"],
                 notes       = session["notes"],
                 index       = session["index"],
+                clusters    = session["clusters"],
                 graph       = session["graph"],
                 tsne        = session["tsne"],
                 controls    = session["controls"])
@@ -277,7 +283,37 @@ def session():
 
 @app.route("/cluster", methods=["POST"])
 def cluster():
-    pass
+    try:
+        if request.method == "POST":
+            userId = request.form["userId"]
+
+            user = User(userId=userId)
+            session = user.sessionData(sessionId=None)
+
+            k = int(request.form["cluster_k"])
+            clusterer = Clusterer(user=user, k=k)
+
+            session["clusters"] = {
+                "cluster_k":        clusterer.k,
+                "labels":           clusterer.doc_labels.tolist(),
+                "colors":           clusterer.colors,
+                "cluster_names":    clusterer.cluster_names,
+                "cluster_docs":     clusterer.doc_clusters}
+                    
+            return {
+                "status": "success",
+                "sessionData": session
+            }, 200
+
+    except Exception as e:
+        print(e)
+        return {
+            "status": "Fail",
+            "message": {
+                "title": str(type(e)),
+                "content": str(e)
+            }
+        }, 500
 
 if __name__ == "Vis-Kt":
     app.run(debug=True)

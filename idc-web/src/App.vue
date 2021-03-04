@@ -1,6 +1,7 @@
 <template>
 <div id="app">
-  <b-navbar sticky
+  <b-navbar sticky small
+    fixed="top"
     class="w-100"
     toggleable="lg"
     type="dark" variant="dark">
@@ -42,21 +43,15 @@
       <b-col cols="6">
         <b-navbar-nav class="ml-auto align-right">
           <b-nav-form
+          size="sm"
             v-if="$route.name === 'Dashboard'">
             <b-nav-item>
                 <b-button-group size="sm">
-                  <b-button pill
-                    size="sm"
-                    v-b-modal.dashboard-sessions-modal
-                    class="navbar-item-spaced"
-                    variant="outline-info">
-                    <font-awesome-icon :icon="['fas', 'plus']"/>
-                  </b-button>
                   <notes-widget></notes-widget>
                   <b-button disabled
                     id="sessionLabel"
                     variant="dark">
-                    {{ $session.name }}
+                    {{ session_name }}
                   </b-button>
                   <b-button
                     variant="outline-danger">
@@ -68,10 +63,17 @@
                     <font-awesome-icon :icon="['fas', 'save']"/>
                     Save
                   </b-button>
+                  <b-button pill
+                    size="sm"
+                    v-b-modal.dashboard-sessions-modal
+                    class="navbar-item-spaced"
+                    variant="outline-info">
+                    <font-awesome-icon :icon="['fas', 'plus']"/>
+                  </b-button>
                 </b-button-group>
             </b-nav-item>
           </b-nav-form>
-          <b-nav-item-dropdown right class="navbar-item-spaced">
+          <b-nav-item-dropdown size="sm" right class="navbar-item-spaced align-vertical">
             <!-- Using 'button-content' slot -->
             <template #button-content>
               <font-awesome-icon :icon="['fas', 'user-circle']"/> &nbsp;
@@ -114,32 +116,11 @@ export default {
   components: {
     "notes-widget": NotesWidget
   },
-  created() {
-    this.$userData.userId = prompt("Please enter your Username");
-
-    const formData = new FormData();
-		formData.set("userId", this.$userData.userId);
-
-    let objRef = this;
-    this.userData = this.$axios.post(this.$server+"/auth", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    }).then(function(result) {
-      objRef.$userData.userId = result.data.userData.userId;
-      objRef.$userData.corpus	= result.data.userData.corpus;
-      objRef.$userData.sessions	= result.data.userData.sessions;
-
-      objRef.makeToast(
-        "success",
-        "Logged in successfully!",
-        "Welcome, "+objRef.$userData.userId );
-    }).catch(function() {
-      alert("No such user exists!");
-    });
-  },
   data: function() {
     return {
       title: "Vis-Kt",
       userData: undefined,
+      session_name: "Default",
       Height: 500,
       Width: 500,
       navbar: {
@@ -161,12 +142,31 @@ export default {
           }
         ],
         activeIndex: -1
-      },
-      sessionSelector: {
-        selected: null,
-        options: []
       }
     }
+  },
+  created() {
+    this.$userData.userId = prompt("Please enter your Username");
+
+    const formData = new FormData();
+		formData.set("userId", this.$userData.userId);
+
+    let objRef = this;
+    this.userData = this.$axios.post(this.$server+"/auth", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    }).then(function(result) {
+      objRef.$userData.userId = result.data.userData.userId;
+      objRef.$userData.corpus	= result.data.userData.corpus;
+      objRef.$userData.sessions	= result.data.userData.sessions;
+
+      objRef.makeToast(
+        "success",
+        "Logged in successfully!",
+        "Welcome, "+objRef.$userData.userId );
+    }).catch(function() {
+      alert("No such user exists!");
+      window.location.reload();
+    });
   },
   methods: {
     makeToast(variant = null, title, content) {
@@ -228,6 +228,9 @@ export default {
     },
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
+    },
+    updateSessionName(name) {
+      this.session_name = name;
     }
   }
 }
@@ -254,4 +257,7 @@ export default {
   white-space: normal
   word-wrap: break-word
   max-width: 300px
+
+.align-vertical
+  align-self: center
 </style>

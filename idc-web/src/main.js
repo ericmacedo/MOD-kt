@@ -41,30 +41,10 @@ Vue.directive("resize", resize);
 Vue.prototype.$server = "http://localhost:5000";
 
 // USER DATA
-Vue.prototype.$userData = {
-	userId: undefined,
-	corpus: []
-};
+Vue.prototype.$userData = {};
 
 // SESSION HOLDER
-Vue.prototype.$session = {
-	name: "Default",
-	notes: "",
-	graph: {
-		nodes: [],
-		links: []
-	},
-	tsne: [],
-	umap: [],
-	controls: {
-		projection: "t-SNE",
-		tsne: {perplexity: 5},
-		umap: {n_neighbors: 5, min_dist: 0.1},
-		cosineDistance: 0.5,
-		linkDistance: 20,
-		charge: -30
-	}
-};
+Vue.prototype.$session = {};
 
 Vue.config.productionTip = false;
 

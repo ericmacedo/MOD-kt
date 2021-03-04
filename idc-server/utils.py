@@ -115,11 +115,11 @@ def encode_document(docs:str, model:str=None) -> list:
     del transformer
     return embeddings.tolist()
 
-def l2_norm(data: list) -> list:
+def l2_norm(data: list):
     import numpy as np
 
     dist = np.sqrt((data ** 2).sum(-1))[...,np.newaxis]
-    return list(data / dist)
+    return data / dist
 
 def t_SNE(corpus:list, perplexity:int=30) -> list:
     from openTSNE import TSNE

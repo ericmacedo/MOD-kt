@@ -10,17 +10,37 @@ class User:
         self.userId = userId
 
         # PATHS
-        self.__user     = f"./users/{self.userId}"
-        self.__corpus   = f"{self.__user}/corpus"
-        self.__sessions = f"{self.__user}/sessions"
-        self.__graph    = f"{self.__user}/graph.json"
-        self.__index    = f"{self.__user}/corpus.index"
-        self.__tsne     = f"{self.__user}/tsne.npy"
-        self.__word2vec = f"{self.__user}/Word2Vec.bin"
-        self.__doc2vec  = f"{self.__user}/Doc2Vec.bin"
+        self.__user         = f"./users/{self.userId}"
+        self.__corpus       = f"{self.__user}/corpus"
+        self.__sessions     = f"{self.__user}/sessions"
+        self.__graph        = f"{self.__user}/graph.json"
+        self.__index        = f"{self.__user}/corpus.index"
+        self.__tsne         = f"{self.__user}/tsne.npy"
+        self.__word2vec     = f"{self.__user}/Word2Vec.bin"
+        self.__doc2vec      = f"{self.__user}/Doc2Vec.bin"
+        self.__settings     = f"{self.__user}/settings.json"
 
         if not os.path.isdir(self.__user):
             return None
+
+    @property
+    def doc_model(self):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            if "doc_model" in settings:
+                return settings["doc_model"]
+        return None
+    
+    @doc_model.setter
+    def doc_mode(self, model:str):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            settings["doc_mode"] = model
+        
+        with open(self.__settings, "w", encoding="utf-8") as f_settings:
+            json.dump(settings, f_settings)
 
     # INDEX
     @property
