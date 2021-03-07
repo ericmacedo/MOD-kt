@@ -15,6 +15,7 @@
 			<graph-view id="graphView" class="component"
 				sm="12" md="4" lg="4"></graph-view>
 			<cluster-manager class="component"></cluster-manager>
+      <word-cloud class="component"></word-cloud>
 		</b-card-group>
 	</template>
 	<template v-slot:rejected>
@@ -71,13 +72,15 @@
 import GraphView from './GraphView';
 import DocumentView from './DocumentView';
 import ClusterManager from './ClusterManager';
+import WordCloud from './WordCloud';
 
 export default {
 	name: 'Dashboard',
 	components: {
-		"graph-view": GraphView,
-		"document-view": DocumentView,
-		"cluster-manager": ClusterManager
+		"graph-view":       GraphView,
+		"document-view":    DocumentView,
+		"cluster-manager":  ClusterManager,
+    "word-cloud":       WordCloud
 	},
 	data() {
 		return {

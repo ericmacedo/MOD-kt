@@ -247,6 +247,12 @@ export default {
 	color: #000
 	cursor: pointer
 	font-size: small
+  user-select: none
+  -ms-user-select: none
+  -moz-user-select: none
+  -khtml-user-select: none
+  -webkit-user-select: none
+  -webkit-touch-callout: none
 	*
 		margin-bottom: 0 !important
 	.list-group
@@ -259,9 +265,9 @@ export default {
 	header
 		font-size: bold
 		color: #FFF !important
-		height: 20px
+		height: 20px !important
 		text-align: center
 
 .highlighted
-  border: 1px solid red !important
+  border: 2px solid red !important
 </style>

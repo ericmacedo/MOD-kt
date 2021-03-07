@@ -26,7 +26,8 @@
     "vue-papa-parse": "^2.0.0",
     "vue-promised": "^2.0.3",
     "vue-resize-directive": "^1.2.0",
-    "vue-router": "^3.5.1"
+    "vue-router": "^3.5.1",
+    "vue-wordcloud": "^1.1.1"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",

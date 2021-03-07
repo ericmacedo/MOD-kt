@@ -12,9 +12,7 @@
 				@change="updateLayout"
       ></b-form-radio-group>
 	</b-form-group>
-	<svg id="graphViewCanvas"
-		:width="width"
-		:height="height"></svg>
+	<svg id="graphViewCanvas"></svg>
 	<template id="graphViewControls" #footer>
 		<b-container fluid>
 			<b-row>
