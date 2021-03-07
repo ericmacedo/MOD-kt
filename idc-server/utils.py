@@ -2,6 +2,8 @@ from models import User, Document
 from werkzeug.datastructures import FileStorage
 from gensim.models.doc2vec import Doc2Vec
 from gensim.models import Word2Vec
+from spacy.tokens.doc import Doc
+from spacy import displacy
 
 
 def pdf_to_string(file:FileStorage):
@@ -26,7 +28,7 @@ def pdf_to_string(file:FileStorage):
 
     return(output_string.getvalue())
     
-def process_text(text:str) -> str:
+def process_text(text:str, deep:bool=False) -> str:
     import string, re
     from nltk.corpus import stopwords
 
@@ -37,25 +39,35 @@ def process_text(text:str) -> str:
     punctuation = r"[{0}]".format(re.sub(r"[-]", "", string.punctuation))
 
     stop_words = stopwords.words("english")
+
+    # 1st lowercase
+    text = text.lower() if deep else text
     
-    tokens = list(filter(lambda x: x != "", [                   # 7th extra whitespaces
-        re.sub(r"^\d+$", r"", i) for i in re.findall(r"\S+",    # 6th numerics
-            re.sub(punctuation, " ",                            # 5th Punctuation
-                re.sub('-\n', r'',                              # 4th line breaks
-                    re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ',     # 3th symbols 
-                        strip_tags(                             # 2nd tags
-                            text.lower()                        # 1st lowercase 
-                        )
-                    )
-                )
-            )
-        )
-    ]))
+    # strip tags
+    text = strip_tags(text)
+    
+    # 3th symbols 
+    text = re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ', text)
+
+    # 4th line breaks
+    text = re.sub('-\n', r'', text)
+    
+    # 5th Punctuation
+    text = re.sub(punctuation, " ", text) if deep else text
+
+    # 6th numerics
+    tokens = [
+        re.sub(r"^\d+$", r"", i)
+        for i in re.findall(r"\S+", text)
+    ] if deep else re.findall(r"\S+", text)
+
+    # 7th extra whitespaces
+    tokens = [*filter(lambda x: x != "", tokens)]
 
     tokens = [
         token
         for token in tokens
-        if not token in stop_words]
+        if not token in stop_words] if deep else tokens
 
     return " ".join(tokens).strip()
 
@@ -214,3 +226,11 @@ def Doc2Vec(user:User) -> Doc2Vec:
 
     model.docvecs.init_sims()
     return model
+
+def displaCy_NER(doc: Doc) -> str:
+    return displacy.render(
+        docs=doc,
+        style="ent",
+        minify=True,
+        page=False,
+        jupyter=False)

@@ -11,7 +11,10 @@ from models import User
 from clusterer import Clusterer
 
 from utils import (
-    process_text, term_frequency)
+    process_text, term_frequency,
+    t_SNE, displaCy_NER)
+
+import spacy
 
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
@@ -65,22 +68,29 @@ def corpus():
         processed = []
         file_name = []
         tf = []
+        svg = []
         n_entries = 0
         
         if request.method == 'PUT':
             f_file = request.files.getlist("file")[0]
             f_format = request.form["format"]
             f_name = secure_filename(request.form["fileName"])
+
+            # spaCy
+            nlp = spacy.load("en_core_web_sm")
             
             if f_format == "file-pdf":
                 from utils import pdf_to_string
 
                 file_name.append(f_name)
-                content.append(pdf_to_string(f_file))
+                content.append(process_text(
+                    pdf_to_string(f_file)))
                 processed.append(
                     process_text(content[0]))
                 tf.append(
                     term_frequency(processed[0]))
+                svg.append(
+                    displaCy_NER(nlp(content[0])))
 
                 n_entries += 1
             elif f_format == "file-csv":
@@ -96,22 +106,26 @@ def corpus():
                         csv_content += f"{row[field]} "
                     
                     file_name.append(f"{f_name}_{index}")
-                    content.append(csv_content)
-                    processed.append(process_text(csv_content))
+                    content.append(process_text(csv_content))
+                    processed.append(process_text(csv_content, deep=True))
                     tf.append(
                         term_frequency(processed[index]))
+                    svg.append(
+                        displaCy_NER(nlp(content[index])))
                     
                     n_entries += 1
                 del pd_csv, csv_fields, csv_content
 
             elif f_format == "file-alt":
                 file_name.append(f_name)
-                content.append(
-                    f_file.stream.read().decode("utf-8", errors="ignore"))
+                content.append(process_text(
+                    f_file.stream.read().decode("utf-8", errors="ignore")))
                 processed.append(
-                    process_text(content[0]))
+                    process_text(content[0], deep=True))
                 tf.append(
                     term_frequency(processed[0]))
+                svg.append(
+                    displaCy_NER(nlp(content[0])))
                 
                 n_entries += 1
 
@@ -123,15 +137,15 @@ def corpus():
                     file_name       = file_name.pop(0),
                     content         = content.pop(0),
                     term_frequency  = tf.pop(0),
-                    # embedding       = embeddings.pop(0),
-                    processed       = processed.pop(0))
+                    processed       = processed.pop(0),
+                    svg             = svg.pop(0))
                 
                 doc = user.append_document(
                     file_name       = doc["file_name"],
                     content         = doc["content"],
                     processed       = doc["processed"],
-                    # embedding       = doc["embedding"],
-                    term_frequency  = doc["term_frequency"])
+                    term_frequency  = doc["term_frequency"],
+                    svg             = doc["svg"])
 
                 newData.append(doc)
                 del doc
@@ -178,7 +192,7 @@ def corpus():
 def process_corpus():
     try:
         from utils import (
-            distance_graph, t_SNE,
+            distance_graph,
             encode_document,
             Word2Vec, Doc2Vec)
 
@@ -192,6 +206,7 @@ def process_corpus():
 
             user.generate_index()
             corpus = user.corpus
+            user.doc_model = model
 
             # # TRAIN WORD VECTORS
             user.word2vec = Word2Vec(user)
@@ -230,9 +245,42 @@ def process_corpus():
             }
         }, 500
 
-@app.route("/projection", methods=["GET"])
+@app.route("/projection", methods=["POST"])
 def projection():
-    pass
+    try:
+        if request.method == "POST":
+            userId = request.form["userId"]
+            
+            user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+            
+            index = request.form["index"].split(",")
+            corpus = user.corpus
+
+            corpus = [*filter(lambda doc: doc.id in index, corpus)]
+            
+            projection = request.form["projection"]
+
+            if projection ==  "t-SNE":
+                perplexity = int(request.form["perplexity"])
+                projection = t_SNE(corpus, perplexity=perplexity)
+
+            return {
+                "status": "success",
+                "projection": projection
+            }, 200
+
+    except Exception as e:
+        print(e)
+        return {
+            "status": "Fail",
+            "message": {
+                "title": str(type(e)),
+                "content": str(e)
+            }
+        }, 500
+
 
 @app.route("/session", methods=["GET", "PUT"])
 def session():
@@ -298,7 +346,13 @@ def cluster():
                 "labels":           clusterer.doc_labels.tolist(),
                 "colors":           clusterer.colors,
                 "cluster_names":    clusterer.cluster_names,
-                "cluster_docs":     clusterer.doc_clusters}
+                "cluster_docs":     clusterer.doc_clusters,
+                "cluster_words":    [[
+                    { "word": word, "weight": 1 }
+                    for word in paragraph[:5]
+                    ] for paragraph in clusterer.seed_paragraphs
+                ]
+            }
                     
             return {
                 "status": "success",

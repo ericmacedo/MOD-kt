@@ -19,6 +19,7 @@ class User:
         self.__word2vec     = f"{self.__user}/Word2Vec.bin"
         self.__doc2vec      = f"{self.__user}/Doc2Vec.bin"
         self.__settings     = f"{self.__user}/settings.json"
+        self.__clusterer    = f"{self.__user}/doc_clusterer.bin"
 
         if not os.path.isdir(self.__user):
             return None
@@ -33,11 +34,13 @@ class User:
         return None
     
     @doc_model.setter
-    def doc_mode(self, model:str):
+    def doc_model(self, model:str):
         if os.path.isfile(self.__settings):
             with open(self.__settings, "r", encoding="utf-8") as f_settings:
                 settings = json.load(f_settings)
             settings["doc_mode"] = model
+        else:
+            settings = dict(doc_model=model)
         
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
@@ -79,6 +82,7 @@ class User:
                         content:str,
                         term_frequency:dict,
                         processed:str,
+                        svg:str,
                         embedding:list=None) -> dict:
 
         uuid = str(uuid4())
@@ -90,6 +94,7 @@ class User:
             "content": content,
             "processed": processed,
             "term_frequency": term_frequency,
+            "svg": svg,
             "uploaded_on": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC")}
         if embedding:
             document["embedding"] = embedding
@@ -226,7 +231,9 @@ class User:
             self.__graph,
             self.__tsne,
             self.__word2vec,
-            self.__doc2vec]
+            self.__doc2vec,
+            self.__settings,
+            self.__clusterer]
         
         for f_path in files:
             if os.path.isfile(f_path):
@@ -260,7 +267,7 @@ class User:
                 "tsne":     self.tsne,
                 "controls": {
                     "projection": "t-SNE",
-		            "tsne": {"perplexity": 5},
+		            "tsne": {"perplexity": 30},
                     "distance": 0.1,
                     "n_neighbors": 0,
                     "linkDistance": 20,
@@ -283,10 +290,11 @@ class Document:
             doc = json.load(jsonFile, encoding="utf-8")
             self._file_name      = doc["file_name"]
             self._content        = doc["content"]
-            self._processed      = doc["content"]
+            self._processed      = doc["processed"]
             self._term_frequency = doc["term_frequency"]
             self._embedding      = doc["embedding"] if "embedding" in doc else None
             self._uploaded_on    = doc["uploaded_on"]
+            self.__svg           = doc["svg"]
 
     # FILE NAME
     @property
@@ -353,6 +361,20 @@ class Document:
         with open(self.__path, "w", encoding="utf-8") as out_file:
             json.dump(doc, out_file)
 
+    # SVG
+    @property
+    def svg(self):
+        return self._svg
+    
+    @svg.setter
+    def svg(self, svg:str):
+        self._svg = svg
+        doc = self.as_dict()
+        doc["svg"] = svg
+        with open(self.__path, "w", encoding="utf-8") as out_file:
+            json.dump(doc, out_file)
+
+
     # UTILS
     def as_dict(self) -> dict:
         return dict(
@@ -362,6 +384,7 @@ class Document:
             processed       = self._processed,
             term_frequency  = self._term_frequency,
             embedding       = self._embedding,
+            svg             = self.__svg,
             uploaded_on     = self._uploaded_on)
 
     

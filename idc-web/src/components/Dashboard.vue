@@ -10,10 +10,11 @@
 		</div>
     </template>
     <template v-slot:default>
-		<b-card-group deck>
-			<document-view id="documentView"></document-view>
-			<graph-view id="graphView"
+		<b-card-group>
+			<document-view class="component" id="documentView"></document-view>
+			<graph-view id="graphView" class="component"
 				sm="12" md="4" lg="4"></graph-view>
+			<cluster-manager class="component"></cluster-manager>
 		</b-card-group>
 	</template>
 	<template v-slot:rejected>
@@ -69,12 +70,14 @@
 <script>
 import GraphView from './GraphView';
 import DocumentView from './DocumentView';
+import ClusterManager from './ClusterManager';
 
 export default {
 	name: 'Dashboard',
 	components: {
 		"graph-view": GraphView,
-		"document-view": DocumentView
+		"document-view": DocumentView,
+		"cluster-manager": ClusterManager
 	},
 	data() {
 		return {
@@ -137,11 +140,16 @@ export default {
 				objRef.$session.index			= session.index;
 				objRef.$session.graph			= session.graph;
 				objRef.$session.tsne			= session.tsne;
-				objRef.$session.clusters	= session.clusters;
-				objRef.$session.controls	= session.controls;
+				objRef.$session.clusters		= session.clusters;
+				objRef.$session.controls		= session.controls;
 				objRef.$session.date 			= session.date;
-				objRef.$session.selected	= [objRef.$session.index[0]]; // the first document is focused by default
-				objRef.$session.focused		= null;
+				
+				let _corpus = objRef.$userData.corpus.filter(
+					d => objRef.$session.index.includes(d.id));
+				
+				// the first document is focused and selected by default
+				objRef.$session.selected		= [_corpus[0]];
+				objRef.$session.focused			= _corpus[0].id;
 
 				objRef.$parent.updateSessionName(session.name);
 			});
@@ -157,8 +165,6 @@ export default {
 	border: 0!important
 	margin: 0!important
 
-.card-header
-	padding: 1px
-	text-align: center
-	height: 25px
+.component
+	border: 1px solid #161616
 </style>

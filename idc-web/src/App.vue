@@ -32,7 +32,10 @@
           class="justify-content-md-center">
           <b-nav-item align="start">
             <!-- TODO implement clustering function -->
-            <b-button pill size="sm" variant="success">
+            <b-button pill
+              size="sm"
+              title="Cluster the corpus with the given configuration on 'Cluster Manager'"
+              variant="success">
               <strong>Cluster</strong>&nbsp;
               <font-awesome-icon :icon="['fas', 'play']"/>
             </b-button>
@@ -54,19 +57,23 @@
                     {{ session_name }}
                   </b-button>
                   <b-button
+                    title="Delete the current session"
                     variant="outline-danger">
                     <font-awesome-icon :icon="['fas', 'trash']"/>
                     Delete
                   </b-button>
                   <b-button
+                    title="Save the current session"
                     variant="outline-success">
                     <font-awesome-icon :icon="['fas', 'save']"/>
                     Save
                   </b-button>
+                </b-button-group>
+                <b-button-group size="sm">
                   <b-button pill
-                    size="sm"
                     v-b-modal.dashboard-sessions-modal
-                    class="navbar-item-spaced"
+                    title="Load a session"
+                    class="navbar-item-spaced ml-3"
                     variant="outline-info">
                     <font-awesome-icon :icon="['fas', 'plus']"/>
                   </b-button>
@@ -97,14 +104,28 @@
       </b-col>
     </b-collapse>
   </b-navbar>
-    <keep-alive>
-      <router-view
-        v-if="userData"
-        id="mainView"
-        :width="Width"
-        :height="Height"
-        class="h-100 w-100 container-fluid"/>
-    </keep-alive>
+
+  <Promised :promise="userData">
+    <template v-slot:pending>
+      <div class="h-100 text-center">
+        <b-spinner
+          class="m-5"
+          variant="primary"></b-spinner>
+      </div>
+    </template>
+    <template v-slot:default>
+      <keep-alive>
+        <router-view
+          id="mainView"
+          :width="Width"
+          :height="Height"
+          class="h-100 w-100 container-fluid"/>
+      </keep-alive>
+    </template>
+    <template v-slot:rejected>
+      <p>oops, something went wrong!</p>
+    </template>
+  </Promised>
 </div>
 </template>
 
@@ -155,9 +176,10 @@ export default {
     this.userData = this.$axios.post(this.$server+"/auth", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     }).then(function(result) {
+      console.log(result.data.userData);
       objRef.$userData.userId = result.data.userData.userId;
-      objRef.$userData.corpus	= result.data.userData.corpus;
-      objRef.$userData.sessions	= result.data.userData.sessions;
+      objRef.$userData.corpus	= result.data.userData.corpus ?? [];
+      objRef.$userData.sessions	= result.data.userData.sessions ?? [];
 
       objRef.makeToast(
         "success",

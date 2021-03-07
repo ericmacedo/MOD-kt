@@ -5,8 +5,7 @@ import os, pickle
 import numpy as np
 
 class Clusterer:
-    model_path = "./users/{}/doc_clusterer.bin"
-
+    clusterer_path = "./users/{}/doc_clusterer.bin"
     def __init__(self,
                 user:User,
                 k:int,
@@ -19,7 +18,7 @@ class Clusterer:
         self.index = user.index
         corpus = user.corpus
         self.embeddings = [doc.embedding for doc in corpus]
-        self.__path = Clusterer.model_path.format(self.userId)
+        self.__path = Clusterer.clusterer_path.format(self.userId)
         
         self.k = k
         
@@ -30,7 +29,7 @@ class Clusterer:
         word_clusterer = self.cluster_words()
 
         # Builds seed paragraphs to cluster documents
-        for centroid in word_clusterer.cluster_centers_:
+        for index, centroid in enumerate(word_clusterer.cluster_centers_):
             self.seed_paragraphs.append([
                 term[0]
                 for term in self.word2vec.wv.similar_by_vector(centroid, topn=50)])
@@ -41,9 +40,9 @@ class Clusterer:
         self.cluster_names = []
         self.colors = []
         if self.seed:
-            for seed in self.seed:
-                self.cluster_names.append(seed["name"])
-                self.colors.append(seed["color"])
+            for index in range(self.k):
+                self.cluster_names.append(seed["cluster_names"][index])
+                self.colors.append(seed["colors"][index])
         else:
             palette = sns.color_palette("tab20").as_hex()
             for i in range(self.k):
@@ -66,19 +65,28 @@ class Clusterer:
 
         if self.seed: # UPDATE CLUSTERS GIVEN USER SEEDS
             init_mode = np.zeros((int(self.k), self.word2vec.vector_size))
-            for i, seed in enumerate(self.seed):
-                seed_terms = seed["positive"] + [
+            for i in range(self.k):
+                positive = []
+                negative = []
+                for word in self.seed["cluster_words"]:
+                    if word["weight"] > 0:
+                        positive.append(word["word"])
+                    else:
+                        negative.append(word["word"])
+
+                seed_terms = positive + [
                     term[0]
                     for term in self.word2vec.wv.most_similar(
-                        positive=(seed["positive"] if seed["positive"] else None),
-                        negative=(seed["negative"] if seed["negative"] else None),
-                        topn=(50 - len(seed["positive"])))
+                        positive=(positive if positive else None),
+                        negative=(negative if negative else None),
+                        topn=(50 - len(positive)))
                 ]
 
                 init_mode[i] = np.mean([
                     self.word2vec.wv.word_vec(term)
                     for term in seed_terms
                 ], axis=0)
+
         else: # NEW RANDOM CLUSTERS
             init_mode = "k-means++"
 

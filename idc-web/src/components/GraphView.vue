@@ -1,20 +1,20 @@
 <template>
 <b-card no-body footer-tag="footer">
-	<b-tabs
-		v-model="projection"
-		no-key-nav
-		small
-		align="right"
-		@change="updateLayout">
-		<b-tab
-			v-for="item of graph"
-			:key="item.name"
-			:title="item.name">
-			<svg :id="item.id"
-				:width="width" :height="height"
-				class="graphViewCanvas"></svg>
-		</b-tab>
-	</b-tabs>
+	<b-form-group id="projectionSwitcher">
+      <b-form-radio-group
+        v-model="projection"
+				:options="projection_list"
+				button-variant="outline-dark"
+				class="ml-auto"
+				no-key-nav
+				size="sm"
+				buttons
+				@change="updateLayout"
+      ></b-form-radio-group>
+	</b-form-group>
+	<svg id="graphViewCanvas"
+		:width="width"
+		:height="height"></svg>
 	<template id="graphViewControls" #footer>
 		<b-container fluid>
 			<b-row>
@@ -85,9 +85,10 @@
 									type="number"
 									min="5" max="50"></b-form-input>
 							<b-input-group-append>
-								<b-button variant="info">
+								<b-button
+									@click="getProjection('t-SNE')"
+									variant="info">
 									<font-awesome-icon :icon="['fas', 'redo']"/>
-									Recompute
 								</b-button>
 							</b-input-group-append>
 						</b-input-group>
@@ -151,57 +152,25 @@ export default {
 			width: 545,
 			height: 450,
 			projection_list: ["t-SNE", "DAG"],
-			projection: 0,
-			graph: [
-				{
-					id: "GraphViewTSNE",
-					name: "t-SNE",
-					canvas: undefined,
-					node: undefined,
-					link: undefined,
-					transform: undefined,
-					simulation: undefined,
-				},
-				{
-					id: "GraphViewDAG",
-					name: "DAG",
-					canvas: undefined,
-					node: undefined,
-					link: undefined,
-					transform: undefined,
-					simulation: undefined,
-				}
-			],
+			projection: "t-SNE",
+			simulation: undefined,
+			canvas: undefined,
+			node: undefined,
+			link: undefined
 		}
 	},
 	watch: {
 		projection(value) {
-			this.$session.controls.projection = this.graph[value].name;
+			this.$session.controls.projection = value;
 			this.updateLayout();
 		}
 	},
 	computed: {
-		node: {
-			get() {
-				return this.graph[this.projection].node;
-			},
-			set(value) {
-				this.graph[this.projection].node = value;
-			}
-		},
 		nodes() {
 			return this.$session.graph.nodes;
 		},
-		link: {
-			get() {
-				return this.graph[this.projection].link;
-			},
-			set(value) {
-				this.graph[this.projection].link = value;
-			}
-		},
 		links() {
-			if (this.$session.controls.projection == "t-SNE") {
+			if (this.projection == "t-SNE") {
 				return this.$session.graph.neighborhood.filter((link) => 
 					link.value <= this.$session.controls.n_neighbors
 				);
@@ -210,60 +179,81 @@ export default {
 					link.value <= this.$session.controls.distance);
 			}
 		},
-		simulation() {
-			return this.graph[this.projection].simulation;
-		},
 		corpus_size() {
 			return this.$session.index.length;
 		}
 	},
 	mounted() {
-		this.graph.forEach((graph) => {
-			// SIMULATION ENGINE
-			graph.simulation = 	this.$d3.forceSimulation()
-				.force('link', 		this.$d3.forceLink())
-				.force("charge", 	this.$d3.forceManyBody())
-				.force("center", 	this.$d3.forceCenter())
-				.force("forceX",	this.$d3.forceX())
-        .force("forceY",	this.$d3.forceY())
-				.on("tick", function() {
-					graph.node
-						.attr("cx", d => d.x)
-						.attr("cy", d => d.y);
-			
-					graph.link
-						.attr("x1", d => d.source.x)
-						.attr("y1", d => d.source.y)
-						.attr("x2", d => d.target.x)
-						.attr("y2", d => d.target.y);
-				});
+		let objRef = this;
+		// SIMULATION ENGINE
+		this.simulation = 	this.$d3.forceSimulation()
+			.force('link', 		this.$d3.forceLink())
+			.force("charge", 	this.$d3.forceManyBody())
+			.force("center", 	this.$d3.forceCenter())
+			.force("forceX",	this.$d3.forceX())
+			.force("forceY",	this.$d3.forceY())
+			.on("tick", function() {
+				objRef.node
+					.attr("cx", d => d.x)
+					.attr("cy", d => d.y);
+		
+				objRef.link
+					.attr("x1", d => d.source.x)
+					.attr("y1", d => d.source.y)
+					.attr("x2", d => d.target.x)
+					.attr("y2", d => d.target.y);
+			});
 
-			// CANVAS
-			graph.canvas = this.$d3.select(`#${graph.id}`)
-				.attr("width", this.width)
-				.attr("height", this.height)
-				.attr("viewBox", [0, 0, this.width, this.height])
-				.call(this.$d3.zoom()
-					.scaleExtent([0.1, 8])
-					.on("zoom", (e) => {graph.canvas.attr("transform", e.transform)}))
-				.append("g");
+		// CANVAS
+		this.canvas = this.$d3.select("#graphViewCanvas")
+			.attr("width", this.width)
+			.attr("height", this.height)
+			.attr("viewBox", [0, 0, this.width, this.height])
+			.call(this.$d3.zoom()
+				.scaleExtent([0.1, 8])
+				.on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
+			.append("g");
 
-			// 	LINKS
-			graph.link = graph.canvas.append("g")
-				.attr("class", "link")
-				.attr("stroke", "#999")
-				.attr("stroke-opacity", 0.5)
-				.selectAll("line");
+		// 	LINKS
+		this.link = this.canvas.append("g")
+			.attr("class", "link")
+			.attr("stroke", "#999")
+			.attr("stroke-opacity", 0.5)
+			.selectAll("line");
 
-			// 	NODES
-			graph.node = graph.canvas.append("g")
-				.attr("class", "node")
-				.selectAll("circle");
-		});
-
+		// 	NODES
+		this.node = this.canvas.append("g")
+			.attr("class", "node")
+			.selectAll("circle");
+		
 		this.updateLayout();
 	},
 	methods: {
+		makeToast(
+				title,
+				content,
+				variant,
+				id=null) {
+			// Use a shorter name for this.$createElement
+			const h = this.$createElement
+			// Create the message
+			const vProgressToast = h(
+				'p', { class: ['mb-0'] },
+				[h('b-spinner', { props: { small: true } }), ` ${content}`]);
+			this.$bvToast.toast(
+				(id) ? vProgressToast : content,
+				{
+					id: (id) ? id : null,
+					variant: variant,
+					title: title,
+					toaster: "b-toaster-bottom-right",
+					solid: false,
+					autoHideDelay: 5000,
+					noAutoHide: (id) ? true : false,
+					noCloseButton: (id) ? true : false,
+					appendToast: true
+				});
+		},
 		parameterState(value, min, max) {
 			return (value > max) || (value < min) ? false : null;
 		},
@@ -271,7 +261,7 @@ export default {
 			const objRef = this,
 						_links = this.links,
 						_nodes = this.nodes,
-						_projection = (this.projection == this.projection_list.indexOf("DAG"));
+						_projection = (this.projection == "DAG");
 
 			// NODES
 			this.node = this.node.data(_nodes).join("circle")
@@ -280,14 +270,22 @@ export default {
 				.attr("opacity", 0.9)
 				.attr("cx", d => d.x)
 				.attr("cy", d => d.y)
+				.classed("selected", d =>
+					objRef.$session.selected
+						.map(doc => doc.id)
+						.includes(d.id))
 				.attr("fill", (d, i) => {
 					let _label = objRef.$session.clusters.labels[i];
 					return objRef.$session.clusters.colors[_label];})
 				.on("click", function(e, d) {
-					let index = objRef.$session.selected.indexOf(d.id);
+					let index = objRef.$session.selected
+						.map(doc => doc.id)
+						.indexOf(d.id);
 					
 					if (index == -1) {
-						objRef.$session.selected.push(d.id);
+						objRef.$session.selected.push(
+							objRef.$userData.corpus.filter(doc => doc.id == d.id)[0]
+						);
 					} else {
 						objRef.$session.selected.pop(index);
 					}
@@ -298,7 +296,7 @@ export default {
 				.call(this.$d3.drag()
 					.on("start", function(e, d) {
 						if (_projection) {
-							if (!e.active) objRef.simulation.alphaTarget(0.3).restart();
+							if (!e.active) objRef.simulation.alpha(1).restart();
 							d.fx = d.x;
 							d.fy = d.y;
 					}})
@@ -309,7 +307,7 @@ export default {
 					}})
 					.on("end", function(e, d) {
 						if (_projection) {
-							if (e.active) objRef.simulation.alphaTarget(0.0001);
+							if (e.active) objRef.simulation.alpha(1);
 							d.fx = null;
 							d.fy = null;
 					}}));
@@ -376,7 +374,31 @@ export default {
 			} else {
 				this.simulation.alpha(0).stop();
 			}
-		}
+		},
+		getProjection(projection) {
+			let objRef = this;
+		
+			const formData = new FormData();
+			formData.set("userId", this.$userData.userId);
+			formData.set("projection", projection);
+			formData.set("index", this.$session.index);
+			formData.set("perplexity", this.$session.controls.tsne.perplexity);
+
+			this.makeToast(
+					`Requesting ${projection} projection`,	// title
+					"Please wait...",												// content
+					"warning",															// variant
+					"request_projection");									// id
+			this.$axios.post(this.$server+"/projection", formData, {
+				headers: { "Content-Type": "multipart/form-data" }
+			}).then((result) => {
+				objRef.$session.tsne = result.data.projection;
+
+				objRef.$bvToast.hide("request_projection");
+
+				objRef.updateLayout();
+			});
+	}
 	},
 }
 </script>
@@ -386,9 +408,9 @@ export default {
 	width: 550px
 	max-width: 550px
 	height: 575px
-	max-height: 575px
+	max-height: 560px
 	margin: 0 25px 0 25px
-	padding: 1px
+	padding: 0
 
 	header
 		padding: 1px
@@ -405,7 +427,7 @@ export default {
 		padding: 10px 5px 5px 5px
 		z-index: 2
 
-.graphViewCanvas
+#graphViewCanvas
 	z-index: 1
 	width: 545px
 	max-width: 545px
@@ -442,4 +464,7 @@ svg
 	circle.selected
 			stroke-width: 1px
 			stroke: red
+
+#projectionSwitcher
+	margin: 5px 0 5px 5px
 </style>

@@ -120,7 +120,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="$userData.corpus"
+				:items="table.items"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -191,7 +191,7 @@ export default {
 		return {
 			table: {
 				fields: ["selected", "file_name", "uploaded_on", "show_details"],
-				items: [],
+				items: this.$userData.corpus,
 				selection: []
 			},
 			upload: {
@@ -263,7 +263,7 @@ export default {
 			});
 		},
 		reloadTable() {
-			this.get_userData();
+			this.table.items = this.$userData.corpus;
 			this.table.selection = [];
 		},
 		onRowSelected: function (selection) {
