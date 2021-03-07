@@ -141,7 +141,7 @@ export default {
     return {
       title: "Vis-Kt",
       userData: undefined,
-      session_name: "Default",
+      session_name: this.$session.name,
       Height: 500,
       Width: 500,
       navbar: {
@@ -176,7 +176,6 @@ export default {
     this.userData = this.$axios.post(this.$server+"/auth", formData, {
       headers: { "Content-Type": "multipart/form-data" }
     }).then(function(result) {
-      console.log(result.data.userData);
       objRef.$userData.userId = result.data.userData.userId;
       objRef.$userData.corpus	= result.data.userData.corpus ?? [];
       objRef.$userData.sessions	= result.data.userData.sessions ?? [];
@@ -250,9 +249,6 @@ export default {
     },
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
-    },
-    updateSessionName(name) {
-      this.session_name = name;
     }
   }
 }

@@ -140,8 +140,8 @@ export default {
 				objRef.$session.index			= session.index;
 				objRef.$session.graph			= session.graph;
 				objRef.$session.tsne			= session.tsne;
-				objRef.$session.clusters		= session.clusters;
-				objRef.$session.controls		= session.controls;
+				objRef.$session.clusters	= session.clusters;
+				objRef.$session.controls	= session.controls;
 				objRef.$session.date 			= session.date;
 				
 				let _corpus = objRef.$userData.corpus.filter(
@@ -149,9 +149,10 @@ export default {
 				
 				// the first document is focused and selected by default
 				objRef.$session.selected		= [_corpus[0]];
-				objRef.$session.focused			= _corpus[0].id;
+				objRef.$session.focused			= { id: _corpus[0].id };
+        objRef.$session.highlight   = { cluster_name: "" };
 
-				objRef.$parent.updateSessionName(session.name);
+				objRef.$session.name = session.name;
 			});
 		}
 	}

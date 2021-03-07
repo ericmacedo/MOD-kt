@@ -156,14 +156,45 @@ export default {
 			simulation: undefined,
 			canvas: undefined,
 			node: undefined,
-			link: undefined
+			link: undefined,
+			selected: this.$session.selected,
+      highlight: this.$session.highlight
 		}
 	},
 	watch: {
 		projection(value) {
 			this.$session.controls.projection = value;
 			this.updateLayout();
-		}
+		},
+		selected() {
+      let objRef = this;
+      
+      if(this.selected.length == 0) {
+        this.node.classed("selected", false);
+      } else {
+        this.node.classed("selected", d =>
+          objRef.selected
+            .map(doc => doc.id)
+            .includes(d.id));
+      }
+		},
+    'highlight':{
+      deep: true,
+      handler () {
+        const normal  = 0.9,
+              faded   = 0.3;
+        let clusters  =this.$session.clusters;
+
+        if(this.highlight.cluster_name == "") {
+          this.node.attr("opacity", normal);
+        } else {
+          const doc_ids = clusters.cluster_docs[this.highlight.cluster_name];
+          
+          this.node.attr("opacity", 
+            d => doc_ids.includes(d.id) ? normal : faded);
+        }
+      }
+    }
 	},
 	computed: {
 		nodes() {
@@ -271,23 +302,24 @@ export default {
 				.attr("cx", d => d.x)
 				.attr("cy", d => d.y)
 				.classed("selected", d =>
-					objRef.$session.selected
+					objRef.selected
 						.map(doc => doc.id)
 						.includes(d.id))
 				.attr("fill", (d, i) => {
 					let _label = objRef.$session.clusters.labels[i];
 					return objRef.$session.clusters.colors[_label];})
 				.on("click", function(e, d) {
-					let index = objRef.$session.selected
+					let index = objRef.selected
 						.map(doc => doc.id)
 						.indexOf(d.id);
 					
 					if (index == -1) {
-						objRef.$session.selected.push(
-							objRef.$userData.corpus.filter(doc => doc.id == d.id)[0]
-						);
+            let _doc = objRef.$userData.corpus.filter(doc => doc.id == d.id)[0];
+						objRef.selected.push(_doc);
+            objRef.$session.focused.id = _doc.id;
 					} else {
-						objRef.$session.selected.pop(index);
+						objRef.selected.pop(index);
+            objRef.$session.focused.id = null;
 					}
 					
 					let _ref = objRef.$d3.select(this);

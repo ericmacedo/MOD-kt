@@ -12,8 +12,10 @@
 				<b-card no-body class="cluster-card text-center"
 					:id="'cluster_card_'+index"
 					text-variant="white"
-					title="Click to edit this cluster"
-					@click="launchEditor(index)">
+          :class="['cluster-card', 'text-center', cluster==highlight.cluster_name?'highlighted':'' ]"
+					title="Double click to edit this cluster"
+					@dblclick="launchEditor(index)"
+          @click="toggleHighlight(cluster)">
 					<b-card-header
 						header-tag="header"
 						:style="[{'background': $session.clusters.colors[index]}]">
@@ -132,7 +134,8 @@ export default {
 					cluster_name: "",
 					words: [],
 					index: 0
-				}
+				},
+        highlight: this.$session.highlight
 		}
 	},
 	methods: {
@@ -221,7 +224,10 @@ export default {
 				this.$refs['cluster-editor'].hide();
 				this.$forceUpdate();
 			}
-		}
+		},
+    toggleHighlight(cluster) {
+      this.highlight.cluster_name = (this.highlight.cluster_name == cluster) ? "" : cluster;
+    }
 	},
 }
 </script>
@@ -255,4 +261,7 @@ export default {
 		color: #FFF !important
 		height: 20px
 		text-align: center
+
+.highlighted
+  border: 1px solid red !important
 </style>
