@@ -54,7 +54,7 @@
                   <b-button disabled
                     id="sessionLabel"
                     variant="dark">
-                    {{ session_name }}
+                    {{ session_name.text }}
                   </b-button>
                   <b-button
                     title="Delete the current session"
@@ -70,12 +70,12 @@
                   </b-button>
                 </b-button-group>
                 <b-button-group size="sm">
-                  <b-button pill
+                  <b-button
                     v-b-modal.dashboard-sessions-modal
                     title="Load a session"
                     class="navbar-item-spaced ml-3"
                     variant="outline-info">
-                    <font-awesome-icon :icon="['fas', 'plus']"/>
+                    <font-awesome-icon :icon="['fas', 'list']"/>
                   </b-button>
                 </b-button-group>
             </b-nav-item>
@@ -130,7 +130,7 @@
 </template>
 
 <script>
-import NotesWidget from './components/NotesWidget';
+import NotesWidget from './components/dashboard/NotesWidget';
 
 export default {
   name: 'App',

@@ -1,6 +1,5 @@
 <template>
 <div class="dashboard h-100 w-100">
-	<!-- TODO add vue-promised for get_sessionData -->
 	<Promised :promise="sessionData">
 	<template v-slot:pending>
 		<div class="h-100 text-center">
@@ -10,13 +9,26 @@
 		</div>
     </template>
     <template v-slot:default>
-		<b-card-group>
-			<document-view class="component" id="documentView"></document-view>
-			<graph-view id="graphView" class="component"
-				sm="12" md="4" lg="4"></graph-view>
-			<cluster-manager class="component"></cluster-manager>
-      <word-cloud class="component"></word-cloud>
-		</b-card-group>
+		<b-container fluid>
+      <b-row>
+        <b-col cols="12" sm="6" md="6" lg="4">
+          <document-view id="documentView"
+            class="component h-50"></document-view>
+          <word-cloud id="wordCloudView"
+            class="component h-50 w-100"></word-cloud>
+        </b-col>
+        <b-col cols="12" sm="6" md="6" lg="4">
+          <graph-view id="graphView"
+            class="component h-100 w-100"></graph-view>
+        </b-col>
+        <b-col cols="12" sm="6" md="6" lg="4">
+          <cluster-manager id="clusterManagerView"
+            class="component h-50 w-100"></cluster-manager>
+            <word-similarity id="wordSimilarityView"
+              class="component h-50 w-100"></word-similarity>
+        </b-col>
+      </b-row>
+		</b-container>
 	</template>
 	<template v-slot:rejected>
       <p>oops, something went wrong!</p>
@@ -69,10 +81,11 @@
 </template>
 
 <script>
-import GraphView from './GraphView';
-import DocumentView from './DocumentView';
-import ClusterManager from './ClusterManager';
-import WordCloud from './WordCloud';
+import GraphView from './dashboard/GraphView';
+import DocumentView from './dashboard/DocumentView';
+import ClusterManager from './dashboard/ClusterManager';
+import WordCloud from './dashboard/WordCloudView';
+import WordSimilarity from './dashboard/WordSimilarityView';
 
 export default {
 	name: 'Dashboard',
@@ -80,7 +93,8 @@ export default {
 		"graph-view":       GraphView,
 		"document-view":    DocumentView,
 		"cluster-manager":  ClusterManager,
-    "word-cloud":       WordCloud
+    "word-cloud":       WordCloud,
+    "word-similarity":  WordSimilarity
 	},
 	data() {
 		return {
@@ -138,24 +152,25 @@ export default {
 
 			this.sessionData.then((result) => {
 				const session = result.data.sessionData;
-				objRef.$session.name 			= session.name;
-				objRef.$session.notes			= session.notes;
-				objRef.$session.index			= session.index;
-				objRef.$session.graph			= session.graph;
-				objRef.$session.tsne			= session.tsne;
-				objRef.$session.clusters	= session.clusters;
-				objRef.$session.controls	= session.controls;
-				objRef.$session.date 			= session.date;
+				objRef.$session.name.text	  = session.name;
+				objRef.$session.notes.text  = session.notes;
+				objRef.$session.index			  = session.index;
+				objRef.$session.graph			  = session.graph;
+				objRef.$session.tsne			  = session.tsne;
+				objRef.$session.clusters	  = session.clusters;
+				objRef.$session.controls	  = session.controls;
+				objRef.$session.date 			  = session.date;
 				
 				let _corpus = objRef.$userData.corpus.filter(
 					d => objRef.$session.index.includes(d.id));
 				
 				// the first document is focused and selected by default
-				objRef.$session.selected		= [_corpus[0]];
-				objRef.$session.focused			= { id: _corpus[0].id };
-        objRef.$session.highlight   = { cluster_name: "" };
-
-				objRef.$session.name = session.name;
+				objRef.$session.selected		            = [_corpus[0]];
+				objRef.$session.focused.id			        = _corpus[0].id;
+        objRef.$session.highlight.cluster_name  = undefined;
+        objRef.$session.word_similarity         = {
+          query: [],
+          result: []}
 			});
 		}
 	}
@@ -170,5 +185,26 @@ export default {
 	margin: 0!important
 
 .component
-	border: 1px solid #161616
+	border: 2px solid #161616
+
+.card
+	header
+		padding: 0
+		text-align: center
+		height: 25px
+
+#documentView
+  max-height: 300px !important
+  #displaCy
+    padding: 5px
+
+#wordCloudView
+  max-height: 300px !important
+
+#graphView
+  margin: 0
+
+#clusterManagerView
+  max-height: 300px !important
+
 </style>

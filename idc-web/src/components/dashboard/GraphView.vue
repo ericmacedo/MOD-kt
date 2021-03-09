@@ -15,7 +15,7 @@
 	<svg id="graphViewCanvas"></svg>
 	<template id="graphViewControls" #footer>
 		<b-container fluid>
-			<b-row>
+			<b-row h-align="center">
 				<b-col col-sm-6>
 					<b-row>
 						<template v-if="$session.controls.projection == 't-SNE'">
@@ -147,8 +147,8 @@ export default {
   name: "GraphView",
 	data() {
 		return {
-			width: 545,
-			height: 450,
+			width: 485,
+			height: 430,
 			projection_list: ["t-SNE", "DAG"],
 			projection: "t-SNE",
 			simulation: undefined,
@@ -434,35 +434,18 @@ export default {
 </script>
 
 <style lang="sass">
-#graphView
-	width: 550px
-	max-width: 550px
-	height: 575px
-	max-height: 560px
-	margin: 0 25px 0 25px
-	padding: 0
-
-	header
-		padding: 1px
-		text-align: center
-		height: 25px
-
-	footer
-		display: flex
-		vertical-align: middle
-		justify-content: center
-		justify-items: center
-		align-content: center
-		align-items: center
-		padding: 10px 5px 5px 5px
-		z-index: 2
+#graphViewControls
+  display: flex
+  vertical-align: middle
+  justify-content: center
+  justify-items: center
+  align-content: center
+  align-items: center
+  padding: 10px 5px 5px 5px
+  z-index: 2
 
 #graphViewCanvas
 	z-index: 1
-	width: 545px
-	max-width: 545px
-	height: 450px
-	max-height: 450px
 
 #projectionToggler
 	position: absolute

@@ -20,7 +20,7 @@
 		</template>
 		<b-form-textarea
 			placeholder="Type some notes..."
-			v-model="notes"
+			v-model="notes.text"
 			rows="3"
 			max-rows="6"
 		></b-form-textarea>
@@ -31,11 +31,11 @@
 		body-bg-variant="warning"
 		body-text-variant="light">
 		<template #modal-title>
-			Notes for session: {{ $session.name }}
+			Notes for session: {{ $session.name.text }}
 		</template>
 		<template #default>
 			<b-form-textarea
-				v-model="notes"
+				v-model="notes.text"
 				placeholder="Type some notes..."
 				rows="10"
 				max-rows="10"

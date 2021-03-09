@@ -41,10 +41,26 @@ Vue.directive("resize", resize);
 Vue.prototype.$server = "http://localhost:5000";
 
 // USER DATA
-Vue.prototype.$userData = {};
+Vue.prototype.$userData = Object.create({
+  userId: undefined,
+  corpus: [],
+  sessions: []
+});
 
 // SESSION HOLDER
-Vue.prototype.$session = {};
+Vue.prototype.$session = Object.create({
+  name: {text: "Default"},
+  notes: {text: ""},
+  index: [],
+  graph: { nodes: [], distance: [], neighborhood: [] },
+  tsne: [],
+  clusters: {},
+  controls: {},
+  date: undefined,
+  selected: [],
+  focused: {id: undefined},
+  highlight: {cluster_name: undefined}
+});
 
 Vue.config.productionTip = false;
 

@@ -53,18 +53,9 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="sass">
-.card
-	header
-		padding: 0
-		text-align: center
-		height: 25px
-
 #displaCy
-	max-height: 500px
 	overflow-y: auto
 	padding: 5px
 	font-size: small
 	word-break: normal
-	.entitites
-		max-height: 500px
 </style>

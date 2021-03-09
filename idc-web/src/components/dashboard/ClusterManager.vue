@@ -8,11 +8,11 @@
 			<b-col
 				v-for="(cluster, index) in $session.clusters.cluster_names"
 				:key="index"
-				class="mb-3 p-0">
+				class="mb-1 p-0">
 				<b-card no-body class="cluster-card text-center"
 					:id="'cluster_card_'+index"
 					text-variant="white"
-          :class="['cluster-card', 'text-center', cluster==highlight.cluster_name?'highlighted':'' ]"
+          :class="['cluster-card', 'text-center', cluster==highlight?'highlighted':'' ]"
 					title="Double click to edit this cluster"
 					@dblclick="launchEditor(index)"
           @click="toggleHighlight(cluster)">
@@ -37,7 +37,7 @@
 	<b-button
 		size="sm"
 		variant="outline-dark"
-		class="mx-auto mt-3"
+		class="mx-auto mb-2"
 		title="Click to create a new cluster"
 		@click="launchEditor()">
 		<font-awesome-icon 
@@ -115,7 +115,7 @@
 				size="sm"
 				variant="outline-dark"
 				title="Add new a word to this cluster"
-				class="mx-auto mt-2"
+				class="mx-auto mt-1"
 				@click="addWord">
 				<small><font-awesome-icon :icon="['fas', 'plus']"/></small>
 			</b-button>
@@ -226,19 +226,13 @@ export default {
 			}
 		},
     toggleHighlight(cluster) {
-      this.highlight.cluster_name = (this.highlight.cluster_name == cluster) ? "" : cluster;
+      this.highlight.cluster_name = (this.highlight == cluster) ? "" : cluster;
     }
 	},
 }
 </script>
 
 <style lang="sass">
-.card
-	header
-		padding: 0
-		text-align: center
-		height: 25px
-
 .cluster-card
 	padding: 0 !important
 	white-space: normal
