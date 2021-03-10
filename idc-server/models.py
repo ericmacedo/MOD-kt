@@ -16,7 +16,7 @@ class User:
         self.__graph        = f"{self.__user}/graph.json"
         self.__index        = f"{self.__user}/corpus.index"
         self.__tsne         = f"{self.__user}/tsne.npy"
-        self.__word2vec     = f"{self.__user}/Word2Vec.bin"
+        self.__fast_text    = f"{self.__user}/FastText.bin"
         self.__doc2vec      = f"{self.__user}/Doc2Vec.bin"
         self.__settings     = f"{self.__user}/settings.json"
         self.__clusterer    = f"{self.__user}/doc_clusterer.bin"
@@ -193,16 +193,16 @@ class User:
 
     # WORD2VEC
     @property
-    def word2vec(self) -> Word2Vec:
-        if os.path.isfile(self.__word2vec):
-            model = Word2Vec.load(self.__word2vec)
+    def fast_text(self) -> FastText:
+        if os.path.isfile(self.__fast_text):
+            model = FastText.load(self.__fast_text)
             model.wv.init_sims()
             return model
         return None
 
-    @word2vec.setter
-    def word2vec(self, word2vec:Word2Vec):
-        word2vec.save(self.__word2vec)
+    @fast_text.setter
+    def fast_text(self, fast_text:FastText):
+        fast_text.save(self.__fast_text)
 
     # DOC2VEC
     @property
@@ -230,7 +230,7 @@ class User:
             self.__index,
             self.__graph,
             self.__tsne,
-            self.__word2vec,
+            self.__fast_text,
             self.__doc2vec,
             self.__settings,
             self.__clusterer]

@@ -209,7 +209,7 @@ def process_corpus():
             user.doc_model = model
 
             # # TRAIN WORD VECTORS
-            user.word2vec = Word2Vec(user)
+            user.fast_text = FastText(user)
 
             if model == "S-BERT":
                 embeddings = [
@@ -368,6 +368,16 @@ def cluster():
                 "content": str(e)
             }
         }, 500
+
+@app.route("/word_similarity", methods=["POST"])
+def word_similarity():
+    try:
+        if request.method == "POST":
+            userId = request.form["userId"]
+
+            user = User(userId=userId)
+
+
 
 if __name__ == "Vis-Kt":
     app.run(debug=True)
