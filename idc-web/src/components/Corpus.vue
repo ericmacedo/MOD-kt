@@ -35,7 +35,7 @@
 							<b-button
 								variant="success"
 								:disabled="upload.files.length == 0"
-								@click="uploadFiles">
+								@click="callUploadDocument">
 								Submit</b-button>
 						</b-btn-group>
 						</b-input-group>
@@ -94,7 +94,7 @@
 						size="sm"
 						variant="danger"
 						:disabled="table.selection.length == 0"
-						@click="deleteFiles">
+						@click="callDeleteDocument">
 						<font-awesome-icon :icon="['fas', 'trash']"/>
 						Delete documents
 					</b-button>
@@ -108,7 +108,7 @@
           right
 					:disabled="corpus_size == 0 || processingCorpus">
 					<b-dropdown-item-button
-						@click="processCorpus('HIGH')">
+						@click="callProcessCorpus('HIGH')">
             <font-awesome-icon :icon="['fas', 'server']"/>&nbsp;High performance<br/>
             <small>
               &nbsp; Document encoder: S-BERT<br/>
@@ -117,7 +117,7 @@
           </b-dropdown-item-button>
           <b-dropdown-divider></b-dropdown-divider>
           <b-dropdown-item-button
-						@click="processCorpus('LOW')">
+						@click="callProcessCorpus('LOW')">
             <font-awesome-icon :icon="['fas', 'desktop']"/>&nbsp;Low performance<br/>
             <small>
               &nbsp; Document encoder: Doc2Vec<br/>
@@ -133,7 +133,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="$store.state.userData.corpus"
+				:items="corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -175,7 +175,7 @@
 	<b-modal
 		ref="dashboard-redirect-modal"
 		id="dashboard-redirect-modal"
-		size="sm"
+		size="md"
 		header-bg-variant="dark"
 		header-text-variant="light"
 		title="Corpus processed"
@@ -198,7 +198,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapState, mapActions } from 'vuex';
 
 export default {
   name: 'Corpus',
@@ -218,7 +218,6 @@ export default {
 					"QUEUED": 	""
 				}
 			},
-			embModel: ["Doc2Vec", "S-BERT"],
 			processingCorpus: false
 		}
 	},
@@ -226,7 +225,11 @@ export default {
 		all_selected: function () {
 			return (this.table.selection.length == this.corpus_size);
 		},
-    ...mapGetters('userData', ["corpus_size", "userId"])
+    ...mapState({
+      corpus: state => state.userData.corpus,
+      userId: state => state.userData.userId
+    }),
+    ...mapGetters('userData', ["corpus_size"])
 	},
 	methods: {
 		makeToast(
@@ -257,7 +260,7 @@ export default {
 		get_userData() {
 			let objRef = this;
       
-      this.userData = this.$store.dispatch("getUserData", this.userId);
+      this.userData = this.getUserData(this.userId);
 
       this.userData.then(function() {
         objRef.makeToast(
@@ -325,7 +328,7 @@ export default {
 				};
 			});
 		},
-		uploadFiles: async function() {
+		callUploadDocument: async function() {
 			let objRef = this;
 
 			const promises = this.upload.files.map(async function(file, index){
@@ -343,7 +346,7 @@ export default {
 				formData.set("format", format);
 				formData.set("fields", fields);
 				
-				const result = await objRef.$store.dispatch("uploadDocument", formData);
+				const result = await objRef.uploadDocument(formData);
 				
 				if (result.status == 200) {
 					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
@@ -363,14 +366,13 @@ export default {
 				"upload_documents");	// id
 			
 			Promise.all(promises).then(() => objRef.$bvToast.hide("upload_documents"));
-				// objRef.get_userData();});
 		},
-		deleteFiles: async function() {
+		callDeleteDocument: async function() {
 			let objRef = this;
 
 			const to_remove = this.table.selection.map((d) => d.id);
       
-      this.$store.dispatch("deleteDocument", {
+      this.deleteDocument({
         to_remove: to_remove,
         RESET_FLAG: this.all_selected
       }).then(function() {
@@ -385,7 +387,7 @@ export default {
 					"danger");						// variant
 			});
 		},
-		processCorpus: async function(performance) {
+		callProcessCorpus: async function(performance) {
 			let objRef = this;
 			
       this.makeToast(
@@ -395,7 +397,7 @@ export default {
 				"process_corpus");		// id
 			this.processingCorpus = true;
 			
-      this.$store.dispatch("processCorpus", performance)
+      this.processCorpus(performance)
         .then(function() {
           objRef.$bvModal.show('dashboard-redirect-modal');
         }).catch(function() {
@@ -406,8 +408,9 @@ export default {
         }).then(() => {
           objRef.$bvToast.hide("process_corpus");
           objRef.processingCorpus = false;});
-		}
-	}
+		},
+    ...mapActions(["deleteDocument", "uploadDocument", "processCorpus"])
+	},
 }
 </script>
 
@@ -486,6 +489,9 @@ export default {
 	padding-top: 10px
 
 #corpusToolbar
-	justify-content: center
-	padding-bottom: 5px
+  justify-content: center
+  padding-bottom: 5px
+  position: -webkit-sticky
+  position: sticky
+  top: 60px
 </style>

@@ -60,14 +60,14 @@
 				</b-list-group-item>
 				<!-- LOADED SESSIONS -->
 				<b-list-group-item
-					v-for="(session, index) of $userData.sessions"
+					v-for="(session, index) of sessions"
 					:key="index"
 					button
 					variant="dark"
 					@click="getSession(session.id)"
 					class="flex-column align-items-start">
 					<div class="d-flex w-100 justify-content-between">
-						<h5 class="mb-1">{{ session.name.text }}</h5>
+						<h5 class="mb-1">{{ session.name }}</h5>
 						<small>{{ session.date }}</small>
 					</div>
 					<p class="mb-1">
@@ -76,6 +76,30 @@
 				</b-list-group-item>
 			</b-list-group>
 		</div>
+	</b-modal>
+  <b-modal
+		ref="process-redirect-modal"
+		id="process-redirect-modal"
+		size="md"
+		header-bg-variant="dark"
+		header-text-variant="light"
+		title="You need to process you corpus!"
+		centered
+    no-close-on-backdrop
+		no-close-on-esc
+		hide-footer>
+		<div class="d-block text-center">
+			<h6>Before you can start to explore your corpus, you need to process it! Do you want to do it now?</h6>
+		</div>
+		<b-button
+			class="mt-3"
+			variant="outline-success"
+			block
+			@click="$bvModal.hide('process-redirect-modal')"
+			to="/corpus">
+				<font-awesome-icon :icon="['fas', 'book']"/>&nbsp;
+				Yes, take me to <strong>Corpus</strong>!
+		</b-button>
 	</b-modal>
 </div>
 </template>
@@ -86,6 +110,7 @@ import DocumentView from './dashboard/DocumentView';
 import ClusterManager from './dashboard/ClusterManager';
 import WordCloud from './dashboard/WordCloudView';
 import WordSimilarity from './dashboard/WordSimilarityView';
+import { mapState } from "vuex";
 
 export default {
 	name: 'Dashboard',
@@ -101,37 +126,63 @@ export default {
 			sessionData: undefined
 		}
 	},
+  computed: {
+    ...mapState({
+      sessions: state => state.userData.sessions,
+      isProcessed: state => state.userData.isProcessed
+    })
+  },
 	mounted() {
-		this.$bvModal.show('dashboard-sessions-modal');
+    if(this.isProcessed) {
+      this.$bvModal.show('dashboard-sessions-modal');
+    } else {
+      this.$bvModal.show('process-redirect-modal');
+    }
 	},
 	methods: {
+    makeToast(
+				title,
+				content,
+				variant,
+				id=null) {
+			// Use a shorter name for this.$createElement
+			const h = this.$createElement
+			// Create the message
+			const vProgressToast = h(
+				'p', { class: ['mb-0'] },
+				[h('b-spinner', { props: { small: true } }), ` ${content}`]);
+			this.$bvToast.toast(
+				(id) ? vProgressToast : content,
+				{
+					id: (id) ? id : null,
+					variant: variant,
+					title: title,
+					toaster: "b-toaster-bottom-right",
+					solid: false,
+					autoHideDelay: 5000,
+					noAutoHide: (id) ? true : false,
+					noCloseButton: (id) ? true : false,
+					appendToast: true
+				});
+		},
 		getSession(id) {
 			let objRef = this;
 			
 			this.$bvModal.hide('dashboard-sessions-modal');
 
-			if(Object.keys(this.$session).length > 0 &&
-				!confirm("Did you saved all your current work?")) {
-				return;
-			}
+			this.sessionData = this.$store.dispatch("getSessionById", id);
 
-			this.sessionData = this.$axios.get(this.$server+"/session",{
-					params: {
-						userId: this.$userData.userId,
-						sessionId: id}});
-
-			this.sessionData.then((result) => {
-				const session = result.data.sessionData;
-				objRef.$session.name.text 			= session.name;
-				objRef.$session.notes.text			= session.notes;
-				objRef.$session.index			      = session.index;
-				objRef.$session.graph			      = session.graph;
-				objRef.$session.tsne			      = session.tsne;
-				objRef.$session.clusters	      = session.clusters;
-				objRef.$session.controls	      = session.controls;
-				objRef.$session.focused		      = session.focused;
-				objRef.$session.date 			      = session.date;
-			});
+			this.sessionData.then(() => {
+				objRef.makeToast(
+          "Success",
+          "Session retrieved",
+          "success");
+			}).catch(() => {
+        objRef.makeToast(
+          "Error",
+          "Looks like something went wrong, please, try again",
+          "danger");
+      });
 		},
 		cluster() {
 			let objRef = this;
@@ -139,37 +190,21 @@ export default {
 			this.$bvModal.hide('dashboard-sessions-modal');
 
 			const cluster_k = prompt("Please, inform the number of clusters you want to find:");
-		
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-			formData.set("cluster_k", cluster_k);
-			
-			this.sessionData = this.$axios.post(this.$server+"/cluster",
-				formData, { headers: { "Content-Type": "multipart/form-data" }
-			});
 
-			this.sessionData.then((result) => {
-				const session = result.data.sessionData;
-				objRef.$session.name.text	  = session.name;
-				objRef.$session.notes.text  = session.notes;
-				objRef.$session.index			  = session.index;
-				objRef.$session.graph			  = session.graph;
-				objRef.$session.tsne			  = session.tsne;
-				objRef.$session.clusters	  = session.clusters;
-				objRef.$session.controls	  = session.controls;
-				objRef.$session.date 			  = session.date;
-				
-				let _corpus = objRef.$userData.corpus.filter(
-					d => objRef.$session.index.includes(d.id));
-				
-				// the first document is focused and selected by default
-				objRef.$session.selected		            = [_corpus[0]];
-				objRef.$session.focused.id			        = _corpus[0].id;
-        objRef.$session.highlight.cluster_name  = undefined;
-        objRef.$session.word_similarity         = {
-          query: [],
-          result: []}
-			});
+      this.makeToast(
+          "Clustering your data",
+          "Please wait",
+          "warning",
+          "cluster-data");
+			
+			this.sessionData = this.$store.dispatch("cluster", cluster_k);
+
+			this.sessionData.catch(() => {
+        objRef.makeToast(
+          "Oops, something went wrong!",
+          "Please, try again",
+          "danger");
+      }).then(() => objRef.$bvToast.hide("cluster-data"));
 		}
 	}
 }

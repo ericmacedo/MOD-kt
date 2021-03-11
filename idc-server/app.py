@@ -149,16 +149,13 @@ def corpus():
             del file_name, content, processed, tf, n_entries
 
         elif request.method == "POST":
-            ids = request.form["ids"].split(",")
-
             RESET_FLAG = True if request.form["RESET_FLAG"] == "true" else False
 
             if RESET_FLAG: # RESET WORKSPACE
                 user.clear_workspace()
             else:
+                ids = request.form["ids"].split(",")
                 user.delete_documents(ids)
-
-            del ids, RESET_FLAG
 
         del user
         
@@ -241,6 +238,8 @@ def process_corpus():
             user.graph  = distance_graph(corpus)
             user.tsne   = t_SNE(corpus)
 
+            user.isProcessed = True
+            
             return {
                 "status": "success",
                 "userData": user.userData()
@@ -404,6 +403,7 @@ def word_similarity():
 
             return {
                 "status": "success",
+                "query": query,
                 "most_similar": word_sim
             }, 200
     except Exception as e:

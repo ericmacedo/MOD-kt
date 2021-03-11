@@ -36,7 +36,7 @@
               size="sm"
               title="Cluster the corpus with the given configuration on 'Cluster Manager'"
               variant="success"
-              @click="cluster">
+              @click="callCluster">
               <strong>Cluster</strong>&nbsp;
               <font-awesome-icon :icon="['fas', 'play']"/>
             </b-button>
@@ -55,7 +55,7 @@
                   <b-button disabled
                     id="sessionLabel"
                     variant="dark">
-                    {{ $store.state.session.name }}
+                    {{ session_name }}
                   </b-button>
                   <b-button
                     title="Delete the current session"
@@ -85,10 +85,10 @@
             <!-- Using 'button-content' slot -->
             <template #button-content>
               <font-awesome-icon :icon="['fas', 'user-circle']"/> &nbsp;
-              <em>{{ $store.state.userData.userId }}</em>
+              <em>{{ userId }}</em>
             </template>
             <!-- TODO add "clear user data" with modal confirm -->
-            <b-dropdown-item @click="clearUserData">
+            <b-dropdown-item @click="callClearUserData">
               <font-awesome-icon :icon="['fas', 'trash']"/>
               Clear user data
             </b-dropdown-item>
@@ -132,6 +132,7 @@
 
 <script>
 import NotesWidget from './components/dashboard/NotesWidget';
+import { mapState, mapActions } from "vuex";
 
 export default {
   name: 'App',
@@ -166,12 +167,18 @@ export default {
       }
     }
   },
+  computed: {
+    ...mapState({
+      userId: state => state.userData.userId,
+      session_name: state => state.session.name
+    })
+  },
   created() {
     let objRef = this;
 
     const userId = prompt("Please enter your Username");
 
-    this.userData = this.$store.dispatch("getUserData", userId);
+    this.userData = this.getUserData(userId);
 
     this.userData.then(function() {
       objRef.makeToast(
@@ -179,9 +186,8 @@ export default {
         "Welcome, "+objRef.$store.state.userData.userId,
         "success");
     }).catch(function() {
-      // console.log(error);
       alert("No such user exists!");
-      // window.location.reload();
+      window.location.reload();
     });
   },
   methods: {
@@ -213,9 +219,7 @@ export default {
     updateUserData() {
       let objRef = this;
       
-      this.userData = this.$store.dispatch(
-        "getUserData",
-        this.$store.state.userData.userId);
+      this.userData = this.getUserData(this.userId);
 
       this.userData.then(function() {
         objRef.makeToast(
@@ -229,11 +233,11 @@ export default {
           "danger");
       });
     },
-    clearUserData() {
+    callClearUserData() {
       let objRef = this;
 
       if(confirm("You're about to erase all of your data, are you sure?")) {
-        this.$store.dispatch("clearUserData")
+        this.clearUserData()
           .then(function() {
             objRef.makeToast(
               "Success!",
@@ -250,7 +254,7 @@ export default {
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
     },
-    cluster() {
+    callCluster() {
       let objRef = this;
 
       objRef.makeToast(
@@ -259,7 +263,7 @@ export default {
           "warning",
           "cluster-data");
 			
-			this.sessionData = this.$store.dispatch("cluster");
+			this.sessionData = this.clusterData();
 
 			this.sessionData.catch(() => {
         objRef.makeToast(
@@ -267,7 +271,8 @@ export default {
           "Please, try again",
           "danger");
       }).then(() => objRef.$bvToast.hide("cluster-data"));
-    }
+    },
+    ...mapActions(["clusterData", "getUserData", "clearUserData"])
   }
 }
 </script>

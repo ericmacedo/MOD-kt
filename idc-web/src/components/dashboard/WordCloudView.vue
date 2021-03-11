@@ -7,10 +7,10 @@
 		<b-input-group size="sm">
 			<b-form-select v-model="selected">
         <b-form-select-option
-          :disabled="highlight.cluster_name == ''"
+          :disabled="highlight == ''"
           value="cluster">Cluster Word Cloud</b-form-select-option>
         <b-form-select-option
-          :disabled="focused.id == null"
+          :disabled="focused == null"
           value="document">Document Word Cloud</b-form-select-option>
       </b-form-select>
 		</b-input-group>
@@ -39,8 +39,9 @@
 </template>
 
 <script>
-import wordcloud from 'vue-wordcloud'
-
+import wordcloud from 'vue-wordcloud';
+import { mapState } from "vuex";
+ 
 export default {
   name: "WordCloud",
   components: {
@@ -52,8 +53,7 @@ export default {
       canvas: undefined,
       width: 485,
       height: 230,
-      highlight: this.$session.highlight,
-      focused: this.$session.focused,
+
       settings: {
         rotate: {
           from: 0, to: 0,
@@ -86,12 +86,10 @@ export default {
       let objRef = this,
           vocab  = {};
 
-      if(this.selected == "cluster") {
-        console.log(this.highlight.cluster_name);
-        const _cluster = this.$session.clusters.cluster_docs[this.highlight.cluster_name],
-              docs_tf = _cluster.map(id =>
-                objRef.$userData.corpus
-                  .filter(doc => doc.id == id)[0]?.term_frequency);
+      if(this.selected == "cluster" && this.highlight != "") {
+        const _cluster = this.cluster_docs[this.highlight];
+        const docs_tf = _cluster.map(id =>
+          objRef.corpus.find(doc => doc.id == id)?.term_frequency);
 
         for (let doc of docs_tf) {
           for (let word of Object.keys(doc)) {
@@ -99,16 +97,22 @@ export default {
           }
         }
       } else {
-        vocab = this.$userData.corpus
-          .filter(doc => doc.id == objRef.focused.id)[0]?.term_frequency;
+        vocab = this.corpus
+          .find(doc => doc.id == objRef.focused)?.term_frequency;
       }
 
       return vocab ? Object.keys(vocab).map(word => {
         return {name: word, value: vocab[word]}})
         .sort((a, b) => b.value - a.value)
         .slice(0, 50)
-      : [];
-    }
+      : [ {word: "", value: 0}];
+    },
+    ...mapState({
+      corpus: state => state.userData.corpus,
+      focused: state => state.session.focused,
+      highlight: state => state.session.highlight,
+      cluster_docs: state => state.session.clusters.cluster_docs
+    })
   },
   methods: {
     makeToast(word) {

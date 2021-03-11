@@ -6,14 +6,16 @@
 	<div class="d-block">
 		<b-input-group>
 			<b-form-select
-        v-model="focused.id"
-        :options="selected"></b-form-select>
+        v-model="focused"
+        :options="selected"
+        text-field="file_name"
+        value-field="id"></b-form-select>
 			<b-input-group-append>
 				<b-button 
 					size="sm"
 					title="Unsellect all documents"
 					variant="outline-danger"
-          @click="session_selected.splice(0, session_selected.length); focused.id = null">
+          @click="setFocused(null); setSelected([]);">
 					<font-awesome-icon size="sm" :icon="['fas', 'times']"/>
 				</b-button>
 			</b-input-group-append>
@@ -24,30 +26,36 @@
 </template>
 
 <script>
+import { mapMutations, mapState } from 'vuex';
+
 export default {
 	name: 'DocumentView',
-	data() {
-		return {
-			session_selected: this.$session.selected,
-			focused: this.$session.focused
-		}
-	},
 	computed: {
-		selected: function() {
-			return this.session_selected.map(d => {
-				return {
-					value: d.id,
-					text: d.file_name
-				}
-			});
-		},
 		displaCy_NER: function() {
 			let objRef = this;
-			return this.session_selected.filter(
-				d => d.id == objRef.focused.id
-			)[0]?.svg ?? "<center>Please select a document<center/>";
-		}
+			return this.corpus.find(
+				doc => doc.id == objRef.focused
+			)?.svg ?? "<center>Please select a document<center/>";
+		},
+    focused: {
+      get() {
+        return this.$store.state.session.focused;
+      },
+      set(id) {
+        this.setFocused(id);
+      }
+    },
+    selected() {
+      let selected = this.$store.state.session.selected;
+      return this.corpus.filter((doc) => selected.includes(doc.id));
+    },
+    ...mapState({
+      corpus: state => state.userData.corpus
+    })
 	},
+  methods: {
+    ...mapMutations("session", ["setFocused", "setSelected"])
+  }
 }
 </script>
 

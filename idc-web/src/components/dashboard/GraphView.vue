@@ -2,7 +2,7 @@
 <b-card no-body footer-tag="footer">
 	<b-form-group id="projectionSwitcher">
       <b-form-radio-group
-        v-model="projection"
+        v-model="controls.projection"
 				:options="projection_list"
 				button-variant="outline-dark"
 				class="ml-auto"
@@ -18,18 +18,18 @@
 			<b-row h-align="center">
 				<b-col col-sm-6>
 					<b-row>
-						<template v-if="$session.controls.projection == 't-SNE'">
+						<template v-if="controls.projection == 't-SNE'">
 							<b-input-group
 								prepend="Neighborhood"
 								size="sm">
 								<b-form-input
 										class="col-9"
-										v-model="$session.controls.n_neighbors"
+										v-model="controls.n_neighbors"
 										size="sm"
 										@change="updateLayout"
-										:state="parameterState($session.controls.n_neighbors, 0, corpus_size)"
+										:state="parameterState(controls.n_neighbors, 0, index_size)"
 										type="number" step="1"
-										min="0" :max="$session.corpus_size"></b-form-input>
+										min="0" :max="index_size"></b-form-input>
 							</b-input-group>
 						</template>
 						<template v-else>
@@ -38,17 +38,17 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="$session.controls.distance"
+									v-model="controls.distance"
 									type="range"
 									step="0.01" min="0.0" max="1.0"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="$session.controls.distance"
+										v-model="controls.distance"
 										size="sm"
 										@change="updateLayout"
-										:state="parameterState($session.controls.distance, 0.0, 1.0)"
+										:state="parameterState(controls.distance, 0.0, 1.0)"
 										type="number" step="0.01"
 										min="0.0" max="1.0"></b-form-input>
 								</b-input-group-append>
@@ -71,20 +71,20 @@
 					</b-row>
 				</b-col>
 				<b-col sm="6">
-					<template v-if="$session.controls.projection == 't-SNE'">
+					<template v-if="controls.projection == 't-SNE'">
 						<b-input-group
 							prepend="Perplexity"
 							size="sm">
 								<b-form-input
 									class="col-9"
-									v-model="$session.controls.tsne.perplexity"
+									v-model="controls.tsne.perplexity"
 									size="sm"
-									:state="parameterState($session.controls.tsne.perplexity, 5, 50)"
+									:state="parameterState(controls.tsne.perplexity, 5, 50)"
 									type="number"
 									min="5" max="50"></b-form-input>
 							<b-input-group-append>
 								<b-button
-									@click="getProjection('t-SNE')"
+									@click="requestProjection('t-SNE')"
 									variant="info">
 									<font-awesome-icon :icon="['fas', 'redo']"/>
 								</b-button>
@@ -98,16 +98,16 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="$session.controls.charge"
+									v-model="controls.charge"
 									type="range"
 									min="-200" max=50 step="1"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="$session.controls.charge"
+										v-model="controls.charge"
 										size="sm"
-										:state="parameterState($session.controls.charge, -200, 50)"
+										:state="parameterState(controls.charge, -200, 50)"
 										type="number"
 										min="-200" max=50 step="1"></b-form-input>
 								</b-input-group-append>
@@ -119,16 +119,16 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="$session.controls.linkDistance"
+									v-model="controls.linkDistance"
 									type="range"
 									step="1" min="0" max="200"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="$session.controls.linkDistance"
+										v-model="controls.linkDistance"
 										size="sm"
-										:state="parameterState($session.controls.linkDistance, 0, 200)"
+										:state="parameterState(controls.linkDistance, 0, 200)"
 										type="number"
 										step="1" min="0" max="200"></b-form-input>
 								</b-input-group-append>
@@ -143,6 +143,8 @@
 </template>
 
 <script>
+import { mapState, mapGetters, mapMutations } from  "vuex";
+
 export default {
   name: "GraphView",
 	data() {
@@ -150,18 +152,14 @@ export default {
 			width: 485,
 			height: 430,
 			projection_list: ["t-SNE", "DAG"],
-			projection: "t-SNE",
 			simulation: undefined,
 			canvas: undefined,
 			node: undefined,
-			link: undefined,
-			selected: this.$session.selected,
-      highlight: this.$session.highlight
+			link: undefined
 		}
 	},
 	watch: {
-		projection(value) {
-			this.$session.controls.projection = value;
+		projection() {
 			this.updateLayout();
 		},
 		selected() {
@@ -171,9 +169,7 @@ export default {
         this.node.classed("selected", false);
       } else {
         this.node.classed("selected", d =>
-          objRef.selected
-            .map(doc => doc.id)
-            .includes(d.id));
+          objRef.selected.includes(d.id));
       }
 		},
     'highlight':{
@@ -181,12 +177,11 @@ export default {
       handler () {
         const normal  = 0.9,
               faded   = 0.3;
-        let clusters  =this.$session.clusters;
 
-        if(this.highlight.cluster_name == "") {
+        if(this.highlight == "") {
           this.node.attr("opacity", normal);
         } else {
-          const doc_ids = clusters.cluster_docs[this.highlight.cluster_name];
+          const doc_ids = this.clusters.cluster_docs[this.highlight];
           
           this.node.attr("opacity", 
             d => doc_ids.includes(d.id) ? normal : faded);
@@ -195,22 +190,10 @@ export default {
     }
 	},
 	computed: {
-		nodes() {
-			return this.$session.graph.nodes;
-		},
-		links() {
-			if (this.projection == "t-SNE") {
-				return this.$session.graph.neighborhood.filter((link) => 
-					link.value <= this.$session.controls.n_neighbors
-				);
-			} else {
-				return this.$session.graph.distance.filter((link) => 
-					link.value <= this.$session.controls.distance);
-			}
-		},
-		corpus_size() {
-			return this.$session.index.length;
-		}
+    ...mapState("session", [
+      "controls", "highlight", "selected",
+      "clusters", "tsne"]),
+    ...mapGetters("session", ["nodes", "links", "index_size"])
 	},
 	mounted() {
 		let objRef = this;
@@ -290,7 +273,7 @@ export default {
 			const objRef = this,
 						_links = this.links,
 						_nodes = this.nodes,
-						_projection = (this.projection == "DAG");
+						_projection = (this.controls.projection == "DAG");
 
 			// NODES
 			this.node = this.node.data(_nodes).join("circle")
@@ -300,25 +283,12 @@ export default {
 				.attr("cx", d => d.x)
 				.attr("cy", d => d.y)
 				.classed("selected", d =>
-					objRef.selected
-						.map(doc => doc.id)
-						.includes(d.id))
+					objRef.selected.includes(d.id))
 				.attr("fill", (d, i) => {
-					let _label = objRef.$session.clusters.labels[i];
-					return objRef.$session.clusters.colors[_label];})
+					let _label = objRef.clusters.labels[i];
+					return objRef.clusters.colors[_label];})
 				.on("click", function(e, d) {
-					let index = objRef.selected
-						.map(doc => doc.id)
-						.indexOf(d.id);
-					
-					if (index == -1) {
-            let _doc = objRef.$userData.corpus.filter(doc => doc.id == d.id)[0];
-						objRef.selected.push(_doc);
-            objRef.$session.focused.id = _doc.id;
-					} else {
-						objRef.selected.pop(index);
-            objRef.$session.focused.id = null;
-					}
+					objRef.updateSelected(d.id);
 					
 					let _ref = objRef.$d3.select(this);
 					_ref.classed("selected", !_ref.classed("selected"));
@@ -355,11 +325,11 @@ export default {
 				.force("link").links(_links);
 
 			if(!_projection) {
-				const _emb = this.$session.tsne;
+				const _emb = this.tsne;
 
 				_emb.forEach((row, index) => {
-					_nodes[index].x = (row[0] + this.width/11) * 6;
-					_nodes[index].y = (row[1] + this.height/11) * 6;});
+					_nodes[index].x = (row[0] + objRef.width/11) * 6;
+					_nodes[index].y = (row[1] + objRef.height/11) * 6;});
 
 				this.node
 					.attr("cx", d => d.x)
@@ -382,7 +352,7 @@ export default {
 
 			// // FORCE CHARGE
 			this.simulation.force("charge")
-				.strength(this.$session.controls.charge)
+				.strength(this.controls.charge)
 				.distanceMin(1)
 				.distanceMax(200);
 
@@ -396,7 +366,7 @@ export default {
 
 			// LINK FORCE
 			this.simulation.force("link")
-				.distance(this.$session.controls.linkDistance)
+				.distance(this.controls.linkDistance)
 				.iterations(1);
 
 			if(_projection) {
@@ -405,30 +375,27 @@ export default {
 				this.simulation.alpha(0).stop();
 			}
 		},
-		getProjection(projection) {
+		requestProjection(projection) {
 			let objRef = this;
-		
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-			formData.set("projection", projection);
-			formData.set("index", this.$session.index);
-			formData.set("perplexity", this.$session.controls.tsne.perplexity);
 
 			this.makeToast(
 					`Requesting ${projection} projection`,	// title
 					"Please wait...",												// content
 					"warning",															// variant
 					"request_projection");									// id
-			this.$axios.post(this.$server+"/projection", formData, {
-				headers: { "Content-Type": "multipart/form-data" }
-			}).then((result) => {
-				objRef.$session.tsne = result.data.projection;
-
+          
+			this.getProjection.then(() => {
 				objRef.$bvToast.hide("request_projection");
-
 				objRef.updateLayout();
-			});
-	}
+			}).catch(() => {
+        objRef.$bvToast.hide("request_projection");
+        objRef.makeToast(
+					"Error",
+					"Oops, looks like something went wrong",
+					"danger");
+      });
+    },
+    ...mapMutations("session", ["updateSelected"])
 	},
 }
 </script>

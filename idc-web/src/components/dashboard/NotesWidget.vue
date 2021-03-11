@@ -20,7 +20,7 @@
 		</template>
 		<b-form-textarea
 			placeholder="Type some notes..."
-			v-model="notes.text"
+			v-model="$store.state.session.notes"
 			rows="3"
 			max-rows="6"
 		></b-form-textarea>
@@ -31,11 +31,11 @@
 		body-bg-variant="warning"
 		body-text-variant="light">
 		<template #modal-title>
-			Notes for session: {{ $session.name.text }}
+			Notes for session: {{ $store.state.session.name }}
 		</template>
 		<template #default>
 			<b-form-textarea
-				v-model="notes.text"
+				v-model="$store.state.session.notes"
 				placeholder="Type some notes..."
 				rows="10"
 				max-rows="10"
@@ -47,10 +47,7 @@
 
 <script>
 export default {
-	name: "NotesWidget",
-  data(){
-    return {notes: this.$session.notes};
-  }
+	name: "NotesWidget"
 }
 </script>
 

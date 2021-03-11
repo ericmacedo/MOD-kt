@@ -6,25 +6,25 @@
 	<b-container fluid id="clusterManagerWrapper">
 		<b-row cols="4" class="p-1">
 			<b-col
-				v-for="(cluster, index) in $session.clusters.cluster_names"
+				v-for="(cluster, index) in clusters.cluster_names"
 				:key="index"
 				class="mb-1 p-0">
 				<b-card no-body class="cluster-card text-center"
 					:id="'cluster_card_'+index"
 					text-variant="white"
-          :class="['cluster-card', 'text-center', cluster==highlight.cluster_name?'highlighted':'' ]"
+          :class="['cluster-card', 'text-center', cluster==highlight?'highlighted':'' ]"
 					title="Double click to edit this cluster"
 					@dblclick="launchEditor(index)"
-          @click="toggleHighlight(cluster)">
+          @click="updateHighlight(cluster)">
 					<b-card-header
 						header-tag="header"
-						:style="[{'background': $session.clusters.colors[index]}]">
+						:style="[{'background': clusters.colors[index]}]">
 						<strong>{{ cluster }}</strong>
 					</b-card-header>
 					<b-list-group>
 						<b-list-group-item
 							class="cluster-card"
-							v-for="word in $session.clusters.cluster_words[index]"
+							v-for="word in clusters.cluster_words[index]"
 							:key="word.word"
 							:variant="word.weight > 0 ? 'success' :'danger'">
 						{{ word.word }}
@@ -75,8 +75,8 @@
 						size="md"
 						title="Delete this cluster"
 						variant="outline-danger"
-						:disabled="modal.index == $session.clusters.cluster_k"
-						@click="deleteCluster">
+						:disabled="modal.index == clusters.cluster_k"
+						@click="callDeleteCluster">
 						<font-awesome-icon :icon="['fas', 'trash']"/>
 					</b-button></small>
 				</b-input-group-append>
@@ -127,6 +127,8 @@
 </template>
 
 <script>
+import { mapState, mapMutations } from "vuex";
+
 export default {
 	name: "ClusterManager",
 	data: function() {
@@ -136,14 +138,15 @@ export default {
 					cluster_name: "",
 					words: [],
 					index: 0
-				},
-        highlight: this.$session.highlight
+				}
 		}
 	},
+  computed: {
+    ...mapState("session", ["highlight", "clusters"])
+  },
 	methods: {
 		validClusterName(cluster_name) {
-			let modal = this.modal,
-					clusters = this.$session.clusters;
+			let modal = this.modal;
 
 			// Check for:
 			//	* Empty inputs
@@ -154,11 +157,11 @@ export default {
 			//		* Checks if the new name is unique among the older clusters
 			return modal.cluster_name?.length > 0 && ( 
 				(
-					modal.index < clusters.cluster_k &&
-					!clusters.cluster_names.filter((d, i) => i != modal.index).includes(cluster_name)
+					modal.index < this.clusters.cluster_k &&
+					!this.clusters.cluster_names.filter((d, i) => i != modal.index).includes(cluster_name)
 				) || (
-					modal.index == clusters.cluster_k &&
-					!clusters.cluster_names.includes(cluster_name)
+					modal.index == this.clusters.cluster_k &&
+					!this.clusters.cluster_names.includes(cluster_name)
 				)
 			);
 		},
@@ -175,7 +178,7 @@ export default {
 			}
 		},
 		launchEditor(index=null) {
-			let clusters = JSON.parse(JSON.stringify(this.$session.clusters));
+			let clusters = JSON.parse(JSON.stringify(this.clusters));
 
 			if (index != null) {
 				this.modal = {
@@ -193,43 +196,22 @@ export default {
 			this.$refs['cluster-editor'].show()
 		},
 		submitChanges() {
-			let clusters = this.$session.clusters,
-					modal = JSON.parse(JSON.stringify(this.modal));
-			
-			if (modal.index == clusters.cluster_k) {
-				++clusters.cluster_k;
-				
-				clusters.colors.push(modal.color);
-				clusters.cluster_names.push(modal.cluster_name);
-				clusters.cluster_words.push(modal.words);
-			} else {
-				clusters.colors[modal.index] = modal.color;
-				clusters.cluster_names[modal.index] = modal.cluster_name;
-				clusters.cluster_words[modal.index] = modal.words;
-			}
+			this.updateClusters(this.modal);
 
-			this.$d3.select(`#cluster_card_${modal.index} header`)
-				.style("background", modal.color);
+			this.$d3.select(`#cluster_card_${this.modal.index} header`)
+				.style("background", this.modal.color);
 
 			this.$forceUpdate();
 		},
-		deleteCluster() {
+		callDeleteCluster() {
 			if (confirm(`You're about to delete cluster ${this.modal.cluster_name}, are you sure?`)) {
-				const index = this.modal.index;
-				let clusters = this.$session.clusters;
-
-				clusters.cluster_k = clusters.cluster_k - 1;
-				clusters.cluster_names.pop(index);
-				clusters.colors.pop(index);
-				clusters.cluster_words.pop(index);
+				this.deleteCluster(this.modal.index)
 
 				this.$refs['cluster-editor'].hide();
-				this.$forceUpdate();
 			}
 		},
-    toggleHighlight(cluster) {
-      this.highlight.cluster_name = (this.highlight.cluster_name == cluster) ? "" : cluster;
-    }
+    ...mapMutations("session", [
+      "updateClusters", "deleteCluster", "updateHighlight"])
 	},
 }
 </script>

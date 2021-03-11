@@ -67,6 +67,27 @@ class User:
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
 
+    @property
+    def isProcessed(self):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            if "isProcessed" in settings:
+                return settings["isProcessed"]
+        return False
+
+    @isProcessed.setter
+    def isProcessed(self, isProcessed:bool):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            settings["isProcessed"] = isProcessed
+        else:
+            settings = dict(isProcessed=isProcessed)
+        
+        with open(self.__settings, "w", encoding="utf-8") as f_settings:
+            json.dump(settings, f_settings)
+
     # INDEX
     @property
     def index(self) -> list:
@@ -104,7 +125,7 @@ class User:
                         content:str,
                         term_frequency:dict,
                         processed:str,
-                        svg:str,
+                        svg:str=None,
                         embedding:list=None) -> dict:
 
         uuid = str(uuid4())
@@ -116,10 +137,11 @@ class User:
             "content": content,
             "processed": processed,
             "term_frequency": term_frequency,
-            "svg": svg,
             "uploaded_on": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC")}
         if embedding:
             document["embedding"] = embedding
+        if svg:
+            document["svg"] = svg
 
         with open(file_path, "w", encoding="utf-8") as out_file:
             json.dump(document, out_file)
@@ -282,9 +304,10 @@ class User:
     
     def userData(self) -> dict:
         return {
-            "userId":   self.userId,
-            "corpus":   [doc.as_dict() for doc in self.corpus if doc],
-            "sessions": self.session_list()}
+            "userId":       self.userId,
+            "corpus":       [doc.as_dict() for doc in self.corpus if doc],
+            "sessions":     self.session_list(),
+            "isProcessed":  self.isProcessed}
 
     def sessionData(self, sessionId:str=None) -> dict:
         if sessionId:
@@ -308,7 +331,14 @@ class User:
                     "n_neighbors": 0,
                     "linkDistance": 20,
                     "charge": -30},
-                "date": None}
+                "date": None,
+                "selected": [self.index[0]],
+                "focused": self.index[0],
+                "highlight": "",
+                "word_similarity": {
+                    "query": [],
+                    "most_similar": []
+                }}
         return session
 
 
@@ -330,7 +360,7 @@ class Document:
             self._term_frequency = doc["term_frequency"]
             self._embedding      = doc["embedding"] if "embedding" in doc else None
             self._uploaded_on    = doc["uploaded_on"]
-            self.__svg           = doc["svg"]
+            self.__svg           = doc["svg"] if "svg" in doc else None
 
     # FILE NAME
     @property
@@ -435,21 +465,29 @@ class Session:
             return None
         with open(self.__path, "r") as jsonFile:
             session = json.load(jsonFile)
-            self.name           = session["name"]
-            self.notes          = session["notes"]
-            self.index          = session["index"]
-            self.graph          = session["graph"]
-            self.tsne           = session["tsne"]
-            self.controls       = session["controls"]
-            self.date           = session["date"]
+            self.name               = session["name"]
+            self.notes              = session["notes"]
+            self.index              = session["index"]
+            self.graph              = session["graph"]
+            self.tsne               = session["tsne"]
+            self.controls           = session["controls"]
+            self.selected           = session["selected"]
+            self.focused            = session["focused"]
+            self.highlight          = session["highlight"]
+            self.word_similarity    = session["word_similarity"]
+            self.date               = session["date"]
 
     def as_dict(self) -> dict:
         return dict(
-            id          = self.id,
-            name        = self.name,
-            notes       = self.notes,
-            index       = self.index,
-            graph       = self.graph,
-            tsne        = self.tsne,
-            controls    = self.controls,
-            date        = self.date)
+            id                  = self.id,
+            name                = self.name,
+            notes               = self.notes,
+            index               = self.index,
+            graph               = self.graph,
+            tsne                = self.tsne,
+            controls            = self.controls,
+            selected            = self.selected,
+            focused             = self.focused,
+            highlight           = self.highlight,
+            word_similarity     = self.word_similarity,
+            date                = self.date)

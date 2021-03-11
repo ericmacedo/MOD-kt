@@ -17,7 +17,7 @@
         size="sm"
         title="Search for similar words within this corpus"
         variant="outline-info"
-        @click="getMostSimilar">
+        @click="requestMostSimilar">
         <font-awesome-icon :icon="['fas', 'search']"/>
       </b-button>
     </b-input-group>
@@ -40,19 +40,20 @@
 </template>
 
 <script>
+import { mapState, mapActions } from "vuex";
+
 export default {
   name: "WordSimilarity",
   data: function() {
     return {
-      word_similarity: this.$session.word_similarity,
-      bar: [
-        {word: "eric", value: 0.5},
-        {word: "macedo", value: 0.6},
-        {word: "cabral", value: 1.0}
-      ],
       height: 250,
       width: 485
     }
+  },
+  computed: {
+    ...mapState({
+      word_similarity: state => state.session.word_similarity
+    })
   },
   methods: {
     clipboardToast(word) {
@@ -121,12 +122,8 @@ export default {
         }
       });
     },
-    getMostSimilar() {
+    requestMostSimilar() {
       let objRef = this;
-
-      const formData = new FormData();
-      formData.set("userId", this.$userData.userId);
-      formData.set("query", this.word_similarity.query);
 
       this.makeToast(
         "Calculating word similarity",  // title
@@ -134,19 +131,15 @@ export default {
         "warning",                      // variant
         "word_similarity"); 	          // id
 
-      this.userData = this.$axios.post(this.$server+"/word_similarity", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      }).then(function(result) {
-        objRef.word_similarity.most_similar = result.data.most_similar;
-      }).catch(function() {
-        objRef.makeToast(
-          "Oops, looks like something went wrong",
-          "Please, try it again",
-          "danger");
-      }).then(() => {
-        objRef.$bvToast.hide("word_similarity");
-        objRef.$forceUpdate()});
-    }
+      this.getMostSimilar()
+        .catch(function() {
+          objRef.makeToast(
+            "Oops, looks like something went wrong",
+            "Please, try it again",
+            "danger");
+        }).then(() => objRef.$bvToast.hide("word_similarity"));
+    },
+    ...mapActions(["getMostSimilar"])
   },
 }
 </script>
