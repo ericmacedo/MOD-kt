@@ -8,16 +8,29 @@ class Clusterer:
     clusterer_path = "./users/{}/doc_clusterer.bin"
     def __init__(self,
                 user:User,
+                index:list,
                 k:int,
                 seed:dict=None):
         
         self.userId = user.userId
+
+        # SETTINGS
         self.doc_model = user.doc_model
-        self.word2vec = user.word2vec
+        self.word_model = user.word_model
+        
+        # EMBEDDINGS
+        self.word_vectors = user.fast_text if self.word_model == "FastText" else user.word2vec
         self.doc2vec = user.doc2vec
-        self.index = user.index
-        corpus = user.corpus
-        self.embeddings = [doc.embedding for doc in corpus]
+        
+        self.index = index
+        corpus = []
+        self.embeddings = []
+        
+        for doc in user.corpus:
+            if doc.id in self.index:
+                corpus.append(doc)
+                self.embeddings.append(doc.embedding)
+
         self.__path = Clusterer.clusterer_path.format(self.userId)
         
         self.k = k
@@ -32,7 +45,7 @@ class Clusterer:
         for index, centroid in enumerate(word_clusterer.cluster_centers_):
             self.seed_paragraphs.append([
                 term[0]
-                for term in self.word2vec.wv.similar_by_vector(centroid, topn=50)])
+                for term in self.word_vectors.wv.similar_by_vector(centroid, topn=50)])
 
         self.doc_labels = None
         doc_clusterer = self.cluster_documents()
@@ -61,32 +74,30 @@ class Clusterer:
 
 
     def cluster_words(self) -> KMeans:
-        self.word2vec.wv.init_sims()
+        self.word_vectors.wv.init_sims()
 
         if self.seed: # UPDATE CLUSTERS GIVEN USER SEEDS
-            init_mode = np.zeros((int(self.k), self.word2vec.vector_size))
+            init_mode = np.zeros((int(self.k), self.word_vectors.vector_size))
             for i in range(self.k):
                 positive = []
                 negative = []
-                for word in self.seed["cluster_words"]:
+                for word in self.seed["cluster_words"][i]:
                     if word["weight"] > 0:
                         positive.append(word["word"])
                     else:
                         negative.append(word["word"])
-
                 seed_terms = positive + [
                     term[0]
-                    for term in self.word2vec.wv.most_similar(
+                    for term in self.word_vectors.wv.most_similar(
                         positive=(positive if positive else None),
                         negative=(negative if negative else None),
                         topn=(50 - len(positive)))
                 ]
-
+                
                 init_mode[i] = np.mean([
-                    self.word2vec.wv.word_vec(term)
+                    self.word_vectors.wv.word_vec(term)
                     for term in seed_terms
                 ], axis=0)
-
         else: # NEW RANDOM CLUSTERS
             init_mode = "k-means++"
 
@@ -96,7 +107,7 @@ class Clusterer:
             init=init_mode,
             n_init=1,
             tol=1e-5
-        ).fit(self.word2vec.wv.vectors_norm)
+        ).fit(self.word_vectors.wv.vectors_norm)
         self.word_clusters = k_means.labels_
 
         return k_means

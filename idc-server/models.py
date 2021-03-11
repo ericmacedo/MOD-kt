@@ -1,6 +1,6 @@
 import os, json
 import numpy as np
-from gensim.models import Word2Vec
+from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec
 from datetime import datetime
 from uuid import uuid4
@@ -17,6 +17,7 @@ class User:
         self.__index        = f"{self.__user}/corpus.index"
         self.__tsne         = f"{self.__user}/tsne.npy"
         self.__fast_text    = f"{self.__user}/FastText.bin"
+        self.__word2vec     = f"{self.__user}/Word2Vec.bin"
         self.__doc2vec      = f"{self.__user}/Doc2Vec.bin"
         self.__settings     = f"{self.__user}/settings.json"
         self.__clusterer    = f"{self.__user}/doc_clusterer.bin"
@@ -38,9 +39,30 @@ class User:
         if os.path.isfile(self.__settings):
             with open(self.__settings, "r", encoding="utf-8") as f_settings:
                 settings = json.load(f_settings)
-            settings["doc_mode"] = model
+            settings["doc_model"] = model
         else:
             settings = dict(doc_model=model)
+        
+        with open(self.__settings, "w", encoding="utf-8") as f_settings:
+            json.dump(settings, f_settings)
+
+    @property
+    def word_model(self):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            if "word_model" in settings:
+                return settings["word_model"]
+        return None
+    
+    @word_model.setter
+    def word_model(self, model:str):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            settings["word_model"] = model
+        else:
+            settings = dict(word_model=model)
         
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
@@ -191,7 +213,7 @@ class User:
     def tsne(self, tsne):
         np.save(self.__tsne, np.array(tsne, dtype=np.float64))
 
-    # WORD2VEC
+    # FASTTEXT
     @property
     def fast_text(self) -> FastText:
         if os.path.isfile(self.__fast_text):
@@ -204,11 +226,24 @@ class User:
     def fast_text(self, fast_text:FastText):
         fast_text.save(self.__fast_text)
 
+    # FASTTEXT
+    @property
+    def word2vec(self) -> FastText:
+        if os.path.isfile(self.__word2vec):
+            model = Word2Vec.load(self.__word2vec)
+            model.wv.init_sims()
+            return model
+        return None
+
+    @word2vec.setter
+    def word2vec(self, word2vec:Word2Vec):
+        word2vec.save(self.__word2vec)
+
     # DOC2VEC
     @property
     def doc2vec(self) -> Doc2Vec:
         if os.path.isfile(self.__doc2vec):
-            model = Word2Vec.load(self.__doc2vec)
+            model = Doc2Vec.load(self.__doc2vec)
             model.docvecs.init_sims()
             return model
         return None
@@ -231,6 +266,7 @@ class User:
             self.__graph,
             self.__tsne,
             self.__fast_text,
+            self.__word2vec,
             self.__doc2vec,
             self.__settings,
             self.__clusterer]

@@ -3,7 +3,7 @@
 	<b-card-header header-tag="header" class="text-center">
 		Cluster Manager
 	</b-card-header>
-	<b-container fluid>
+	<b-container fluid id="clusterManagerWrapper">
 		<b-row cols="4" class="p-1">
 			<b-col
 				v-for="(cluster, index) in $session.clusters.cluster_names"
@@ -12,7 +12,7 @@
 				<b-card no-body class="cluster-card text-center"
 					:id="'cluster_card_'+index"
 					text-variant="white"
-          :class="['cluster-card', 'text-center', cluster==highlight?'highlighted':'' ]"
+          :class="['cluster-card', 'text-center', cluster==highlight.cluster_name?'highlighted':'' ]"
 					title="Double click to edit this cluster"
 					@dblclick="launchEditor(index)"
           @click="toggleHighlight(cluster)">
@@ -33,17 +33,19 @@
 				</b-card>
 			</b-col>
 		</b-row>
+    <b-row>
+      <b-button
+        size="sm"
+        variant="outline-dark"
+        class="mx-auto mb-2"
+        title="Click to create a new cluster"
+        @click="launchEditor()">
+        <font-awesome-icon 
+          size="sm"
+          :icon="['fas', 'plus']"/>
+      </b-button>
+    </b-row>
 	</b-container>
-	<b-button
-		size="sm"
-		variant="outline-dark"
-		class="mx-auto mb-2"
-		title="Click to create a new cluster"
-		@click="launchEditor()">
-		<font-awesome-icon 
-			size="sm"
-			:icon="['fas', 'plus']"/>
-	</b-button>
 
 	<b-modal
 		ref="cluster-editor"
@@ -226,7 +228,7 @@ export default {
 			}
 		},
     toggleHighlight(cluster) {
-      this.highlight.cluster_name = (this.highlight == cluster) ? "" : cluster;
+      this.highlight.cluster_name = (this.highlight.cluster_name == cluster) ? "" : cluster;
     }
 	},
 }
@@ -264,4 +266,7 @@ export default {
 
 .highlighted
   border: 2px solid red !important
+
+#clusterManagerWrapper
+  overflow-y: auto
 </style>

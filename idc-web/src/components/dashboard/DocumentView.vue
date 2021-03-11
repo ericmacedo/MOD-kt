@@ -13,7 +13,7 @@
 					size="sm"
 					title="Unsellect all documents"
 					variant="outline-danger"
-          @click="session_selected.splice(0, session_selected.length)">
+          @click="session_selected.splice(0, session_selected.length); focused.id = null">
 					<font-awesome-icon size="sm" :icon="['fas', 'times']"/>
 				</b-button>
 			</b-input-group-append>

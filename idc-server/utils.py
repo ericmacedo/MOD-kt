@@ -1,7 +1,7 @@
 from models import User, Document
 from werkzeug.datastructures import FileStorage
 from gensim.models.doc2vec import Doc2Vec
-from gensim.models import FastText
+from gensim.models import FastText, Word2Vec
 from spacy.tokens.doc import Doc
 from spacy import displacy
 
@@ -84,7 +84,7 @@ def distance_graph(corpus:list) -> dict:
 
     graph = {
         "nodes":        [],
-        "dist":         [],
+        "distance":     [],
         "neighborhood": []}
 
     graph["nodes"] = [{
@@ -103,7 +103,7 @@ def distance_graph(corpus:list) -> dict:
         indices = np.argsort(dist[i])
         for j in range(len(corpus)):
             if j < i:
-                graph["dist"].append({
+                graph["distance"].append({
                     "source": i,
                     "target": j,
                     "value": float(dist_norm[i][j])})
@@ -151,7 +151,41 @@ def calculateSample(corpus_size:int) -> float:
     
     return 1 * (1.0/ (10 ** int(corpus_size/100)))
 
-def FastText(user:User) -> FastText:
+def Word_2_Vec(user:User) -> Word2Vec:
+    from multiprocessing import cpu_count
+    from sklearn.utils import shuffle
+
+    sentences = [
+        doc.processed.split(" ")
+        for doc in user.corpus]
+
+    corpus_size = len(user.corpus)
+
+    model = Word2Vec(
+        min_count=5,
+        window=8,
+        size=100,
+        alpha=0.025,
+        min_alpha=0.0007,
+        sample=calculateSample(corpus_size),
+        hs=1,
+        sg=1,
+        negative=15,
+        ns_exponent=0.75,
+        workers=cpu_count(),
+        iter=40)
+
+    model.build_vocab(sentences=sentences)
+    
+    model.train(
+        shuffle(sentences),
+        total_examples=model.corpus_count, 
+        epochs=40)
+
+    model.wv.init_sims()
+    return model
+
+def Fast_Text(user:User) -> FastText:
     from multiprocessing import cpu_count
     from sklearn.utils import shuffle
 
@@ -185,7 +219,7 @@ def FastText(user:User) -> FastText:
     model.wv.init_sims()
     return model
 
-def Doc2Vec(user:User) -> Doc2Vec:
+def Doc_2_Vec(user:User) -> Doc2Vec:
     from gensim.models.doc2vec import Doc2Vec, TaggedDocument
     from multiprocessing import cpu_count
     from sklearn.utils import shuffle
@@ -235,9 +269,9 @@ def displaCy_NER(doc: Doc) -> str:
         jupyter=False)
 
 def most_similar(user:User, positive:list, topn:int=10) -> list:
-    fast_text = user.fast_text
+    model = user.fast_text if user.word_model == "FastText" else user.word2vec
 
-    sim_wors = fast_text.wv.most_similar(positive=positive, topn=topn)
+    sim_wors = model.wv.most_similar(positive=positive, topn=topn)
 
     return [
         {"word": word[0], "value": word[1]}

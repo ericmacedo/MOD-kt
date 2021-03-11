@@ -105,12 +105,25 @@
 					class="mx-1"
 					variant="info"
 					text="Process corpus"
+          right
 					:disabled="$userData.corpus.length == 0 || processingCorpus">
 					<b-dropdown-item-button
-						v-for="(model, index) in embModel"
-						:key=index
-						@click="processCorpus(model)">
-						{{ model }}</b-dropdown-item-button>
+						@click="processCorpus('HIGH')">
+            <font-awesome-icon :icon="['fas', 'server']"/>&nbsp;High performance<br/>
+            <small>
+              &nbsp; Document encoder: S-BERT<br/>
+              &nbsp; Word embeddings: FastText
+            </small>
+          </b-dropdown-item-button>
+          <b-dropdown-divider></b-dropdown-divider>
+          <b-dropdown-item-button
+						@click="processCorpus('LOW')">
+            <font-awesome-icon :icon="['fas', 'desktop']"/>&nbsp;Low performance<br/>
+            <small>
+              &nbsp; Document encoder: Doc2Vec<br/>
+              &nbsp; Word embeddings: Word2Vec
+            </small>
+          </b-dropdown-item-button>
 				</b-dropdown>
 
 			</b-button-toolbar>
@@ -395,7 +408,7 @@ export default {
 					"danger");						// variant
 			});
 		},
-		processCorpus: async function(model) {
+		processCorpus: async function(performance) {
 			let objRef = this;
 			// FORM
 			const formData = new FormData();
@@ -410,7 +423,7 @@ export default {
 			this.$axios.get(this.$server+"/process_corpus", {
 				params: { 
 					userId: this.$userData.userId,
-					model: model}
+					performance: performance}
 			}).then(function() {
 				objRef.$bvModal.show('dashboard-redirect-modal');
 			}).catch(function() {

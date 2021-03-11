@@ -35,7 +35,8 @@
             <b-button pill
               size="sm"
               title="Cluster the corpus with the given configuration on 'Cluster Manager'"
-              variant="success">
+              variant="success"
+              @click="cluster">
               <strong>Cluster</strong>&nbsp;
               <font-awesome-icon :icon="['fas', 'play']"/>
             </b-button>
@@ -167,26 +168,42 @@ export default {
     }
   },
   created() {
-    this.$userData.userId = prompt("Please enter your Username");
-
-    const formData = new FormData();
-		formData.set("userId", this.$userData.userId);
-
     let objRef = this;
-    this.userData = this.$axios.post(this.$server+"/auth", formData, {
-      headers: { "Content-Type": "multipart/form-data" }
-    }).then(function(result) {
-      objRef.$userData.userId = result.data.userData.userId;
-      objRef.$userData.corpus	= result.data.userData.corpus ?? [];
-      objRef.$userData.sessions	= result.data.userData.sessions ?? [];
+    // this.$userData.userId = prompt("Please enter your Username");
 
+    // const formData = new FormData();
+		// formData.set("userId", this.$userData.userId);
+
+    // let objRef = this;
+    // this.userData = this.$axios.post(this.$server+"/auth", formData, {
+    //   headers: { "Content-Type": "multipart/form-data" }
+    // }).then(function(result) {
+    //   objRef.$userData.userId = result.data.userData.userId;
+    //   objRef.$userData.corpus	= result.data.userData.corpus ?? [];
+    //   objRef.$userData.sessions	= result.data.userData.sessions ?? [];
+
+    //   objRef.makeToast(
+    //     "success",
+    //     "Logged in successfully!",
+    //     "Welcome, "+objRef.$userData.userId );
+    // }).catch(function() {
+    //   alert("No such user exists!");
+    //   window.location.reload();
+    // });
+
+    const userId = prompt("Please enter your Username");
+
+    this.userData = this.$store.dispatch("getUserData", userId);
+
+    this.userData.then(function() {
       objRef.makeToast(
         "success",
         "Logged in successfully!",
-        "Welcome, "+objRef.$userData.userId );
+        "Welcome, "+objRef.$store.state.userData.userId);
     }).catch(function() {
+      // console.log(error);
       alert("No such user exists!");
-      window.location.reload();
+      // window.location.reload();
     });
   },
   methods: {
@@ -249,6 +266,61 @@ export default {
     },
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
+    },
+    cluster() {
+      let objRef = this,
+          session = this.$session;
+		
+			const formData = new FormData();
+			formData.set("userId", this.$userData.userId);
+			formData.set("cluster_k", session.clusters.cluster_k);
+      formData.set("session", JSON.stringify({
+        name: session.name.text,
+        notes: session.notes.text,
+        index: session.index,
+        graph: session.graph,
+        tsne: session.tsne,
+        clusters: session.clusters,
+        controls: session.controls,
+        date: session.date,
+        selected: session.selected,
+        focused: session.focused.id,
+        highlight: session.highlight.cluster_name,
+        word_similarity: session.word_similarity
+      }));
+			
+			this.sessionData = this.$axios.post(this.$server+"/cluster",
+				formData, { headers: { "Content-Type": "multipart/form-data" }
+			});
+
+			this.sessionData.then((result) => {
+				const session = result.data.sessionData;
+				objRef.$session.name.text	  = session.name;
+				objRef.$session.notes.text  = session.notes;
+				objRef.$session.index			  = session.index;
+				
+        objRef.$session.graph.nodes	        = session.graph.nodes;
+        objRef.$session.graph.distance      = session.graph.distance;
+        objRef.$session.graph.neighborhood	= session.graph.neighborhood;
+				
+        objRef.$session.tsne			  = session.tsne;
+				objRef.$session.clusters	  = session.clusters;
+				objRef.$session.controls	  = session.controls;
+				objRef.$session.date 			  = session.date;
+				
+				// the first document is focused and selected by default
+				objRef.$session.selected		            = session.selected;
+				objRef.$session.focused.id			        = session.focused;
+        objRef.$session.highlight.cluster_name  = session.highlight;
+        objRef.$session.word_similarity         = session.word_similarity
+        
+        objRef.$forceUpdate();
+			}).catch(() => {
+        objRef.makeToast(
+          "danger",
+          "Oops, something went wrong!",
+          "Try reloading the page");
+      });
     }
   }
 }

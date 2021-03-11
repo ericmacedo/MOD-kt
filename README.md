@@ -16,3 +16,4 @@
 *   [ ] Incremental upload (with FAB button on Dashboard page)
 *   [ ] Session save and load
 *   [ ] Session manager (Sankey diagram)
+*   [ ] Lasso selection on graph view

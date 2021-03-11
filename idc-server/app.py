@@ -12,9 +12,14 @@ from clusterer import Clusterer
 
 from utils import (
     process_text, term_frequency,
-    t_SNE, displaCy_NER)
+    t_SNE, displaCy_NER, most_similar,
+    distance_graph,
+    encode_document, Doc_2_Vec,
+    Fast_Text, Word_2_Vec)
 
 import spacy
+
+import json
 
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
@@ -68,16 +73,12 @@ def corpus():
         processed = []
         file_name = []
         tf = []
-        svg = []
         n_entries = 0
         
         if request.method == 'PUT':
             f_file = request.files.getlist("file")[0]
             f_format = request.form["format"]
             f_name = secure_filename(request.form["fileName"])
-
-            # spaCy
-            nlp = spacy.load("en_core_web_sm")
             
             if f_format == "file-pdf":
                 from utils import pdf_to_string
@@ -89,8 +90,6 @@ def corpus():
                     process_text(content[0]))
                 tf.append(
                     term_frequency(processed[0]))
-                svg.append(
-                    displaCy_NER(nlp(content[0])))
 
                 n_entries += 1
             elif f_format == "file-csv":
@@ -110,8 +109,6 @@ def corpus():
                     processed.append(process_text(csv_content, deep=True))
                     tf.append(
                         term_frequency(processed[index]))
-                    svg.append(
-                        displaCy_NER(nlp(content[index])))
                     
                     n_entries += 1
                 del pd_csv, csv_fields, csv_content
@@ -124,8 +121,6 @@ def corpus():
                     process_text(content[0], deep=True))
                 tf.append(
                     term_frequency(processed[0]))
-                svg.append(
-                    displaCy_NER(nlp(content[0])))
                 
                 n_entries += 1
 
@@ -137,20 +132,18 @@ def corpus():
                     file_name       = file_name.pop(0),
                     content         = content.pop(0),
                     term_frequency  = tf.pop(0),
-                    processed       = processed.pop(0),
-                    svg             = svg.pop(0))
+                    processed       = processed.pop(0))
                 
                 doc = user.append_document(
                     file_name       = doc["file_name"],
                     content         = doc["content"],
                     processed       = doc["processed"],
-                    term_frequency  = doc["term_frequency"],
-                    svg             = doc["svg"])
+                    term_frequency  = doc["term_frequency"])
 
                 newData.append(doc)
                 del doc
 
-            # TODO UPDATE WORD2VEC MODEL
+            # TODO UPDATE FASTTEXT MODEL
             #   Only runs if the corpus is processed
 
             del file_name, content, processed, tf, n_entries
@@ -186,19 +179,14 @@ def corpus():
 @app.route("/process_corpus", methods=["GET"])
 # Operation to process the corpus
 #   It computes:
-#       * Word2Vec vectors
+#       * FastText vectors
 #       * t-SNE
 #       * Distance matrix (graph representation)
 def process_corpus():
     try:
-        from utils import (
-            distance_graph,
-            encode_document,
-            Word2Vec, Doc2Vec)
-
         if request.method == "GET":
             userId = request.args["userId"]
-            model = request.args["model"]
+            performance = request.args["performance"].upper()
 
             user = User(userId=userId)
             if not user:
@@ -206,26 +194,49 @@ def process_corpus():
 
             user.generate_index()
             corpus = user.corpus
-            user.doc_model = model
 
-            # # TRAIN WORD VECTORS
-            user.fast_text = FastText(user)
+            if performance == "HIGH":
+                # SETTINGS
+                user.doc_model = "S-BERT"
+                user.word_model = "FastText"
+                
+                embeddings = []
+                svg = []
+                
+                user.fast_text = Fast_Text(user)
 
-            if model == "S-BERT":
-                embeddings = [
-                    encode_document(doc.processed)
-                    for doc in corpus]
+                nlp = spacy.load("en_core_web_lg")
+
+                for doc in corpus:
+                    embeddings.append(
+                        encode_document(doc.processed))
+                    svg.append(
+                        displaCy_NER(nlp(doc.processed)))
             else:
-                # TRAIN PARAGRAPH VECTORS
-                model = Doc2Vec(user)
+                # SETTINGS
+                user.doc_model = "Doc2Vec"
+                user.word_model = "Word2Vec"
+
+                user.word2vec = Word_2_Vec(user)
+
+                model = Doc_2_Vec(user)
                 user.doc2vec = model
                 embeddings = [
                     vec.tolist()
                     for vec in model.docvecs.vectors_docs_norm]
+
+                nlp = spacy.load("en_core_web_sm")
+                svg = [
+                    displaCy_NER(nlp(
+                        process_text(doc.content,deep=False)
+                    )) for doc in corpus]
+
                 del model
+            del nlp
             
             for doc in corpus:
                 doc.embedding = embeddings.pop(0)
+                doc.svg = svg.pop(0)
 
             user.graph  = distance_graph(corpus)
             user.tsne   = t_SNE(corpus)
@@ -336,10 +347,21 @@ def cluster():
             userId = request.form["userId"]
 
             user = User(userId=userId)
-            session = user.sessionData(sessionId=None)
+            
+            if "session" in request.form:
+                session = json.loads(request.form["session"])
+                seed = session["clusters"]
+                k = seed["cluster_k"]
+            else:
+                session = user.sessionData(sessionId=None)
+                seed = None
+                k = int(request.form["cluster_k"])
 
-            k = int(request.form["cluster_k"])
-            clusterer = Clusterer(user=user, k=k)
+            clusterer = Clusterer(
+                user=user,
+                index=session["index"],
+                k=k,
+                seed=seed)
 
             session["clusters"] = {
                 "cluster_k":        clusterer.k,
@@ -375,9 +397,24 @@ def word_similarity():
         if request.method == "POST":
             userId = request.form["userId"]
 
+            query = request.form["query"].split(",")
+
             user = User(userId=userId)
+            word_sim = most_similar(user, query)
 
-
+            return {
+                "status": "success",
+                "most_similar": word_sim
+            }, 200
+    except Exception as e:
+        print(e)
+        return {
+            "status": "Fail",
+            "message": {
+                "title": str(type(e)),
+                "content": str(e)
+            }
+        }, 500
 
 if __name__ == "Vis-Kt":
     app.run(debug=True)

@@ -204,7 +204,7 @@ export default {
 					link.value <= this.$session.controls.n_neighbors
 				);
 			} else {
-				return this.$session.graph.dist.filter((link) => 
+				return this.$session.graph.distance.filter((link) => 
 					link.value <= this.$session.controls.distance);
 			}
 		},

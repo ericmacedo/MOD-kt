@@ -23,16 +23,16 @@
         </b-col>
         <b-col cols="12" sm="6" md="6" lg="4">
           <cluster-manager id="clusterManagerView"
-            class="component h-50 w-100"></cluster-manager>
+            class="component w-100"></cluster-manager>
             <word-similarity id="wordSimilarityView"
-              class="component h-50 w-100"></word-similarity>
+              class="component w-100"></word-similarity>
         </b-col>
       </b-row>
 		</b-container>
 	</template>
 	<template v-slot:rejected>
-      <p>oops, something went wrong!</p>
-    </template>
+    <p>oops, something went wrong!</p>
+  </template>
 	</Promised>
 
 	<b-modal
@@ -67,7 +67,7 @@
 					@click="getSession(session.id)"
 					class="flex-column align-items-start">
 					<div class="d-flex w-100 justify-content-between">
-						<h5 class="mb-1">{{ session.name }}</h5>
+						<h5 class="mb-1">{{ session.name.text }}</h5>
 						<small>{{ session.date }}</small>
 					</div>
 					<p class="mb-1">
@@ -122,17 +122,15 @@ export default {
 
 			this.sessionData.then((result) => {
 				const session = result.data.sessionData;
-				objRef.$session.name 			= session.name;
-				objRef.$session.notes			= session.notes;
-				objRef.$session.index			= session.index;
-				objRef.$session.graph			= session.graph;
-				objRef.$session.tsne			= session.tsne;
-				objRef.$session.clusters	= session.clusters;
-				objRef.$session.controls	= session.controls;
-				objRef.$session.focused		= session.focused;
-				objRef.$session.date 			= session.date;
-
-				objRef.$parent.updateSessionName(session.name);
+				objRef.$session.name.text 			= session.name;
+				objRef.$session.notes.text			= session.notes;
+				objRef.$session.index			      = session.index;
+				objRef.$session.graph			      = session.graph;
+				objRef.$session.tsne			      = session.tsne;
+				objRef.$session.clusters	      = session.clusters;
+				objRef.$session.controls	      = session.controls;
+				objRef.$session.focused		      = session.focused;
+				objRef.$session.date 			      = session.date;
 			});
 		},
 		cluster() {
@@ -140,7 +138,7 @@ export default {
 			
 			this.$bvModal.hide('dashboard-sessions-modal');
 
-			const cluster_k = prompt("Please, inform the number of clusters you want to find:")
+			const cluster_k = prompt("Please, inform the number of clusters you want to find:");
 		
 			const formData = new FormData();
 			formData.set("userId", this.$userData.userId);
@@ -194,17 +192,21 @@ export default {
 		height: 25px
 
 #documentView
-  max-height: 300px !important
+  max-height: 325px !important
   #displaCy
     padding: 5px
 
 #wordCloudView
-  max-height: 300px !important
+  max-height: 325px !important
 
 #graphView
   margin: 0
 
 #clusterManagerView
-  max-height: 300px !important
+  height: 35%
+  max-height: 250px !important
 
+#wordSimilarityView
+  height: 65%
+  max-height: 400px !important
 </style>
