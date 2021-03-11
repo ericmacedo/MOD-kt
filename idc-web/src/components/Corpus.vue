@@ -71,7 +71,7 @@
 				<b-button-group size="sm" class="mx-1">
 					<b-button disabled
 						variant="outline-secondary">
-							{{$userData.corpus.length}}
+							{{ corpus_size }}
 						</b-button>
 					<b-button @click="reloadTable">
 						<font-awesome-icon :icon="['fas', 'sync']"/>
@@ -80,7 +80,7 @@
 				<b-button-group class="mx-1">
 					<b-button
 						size="sm"
-						:disabled="$userData.corpus.length==0"
+						:disabled="corpus_size==0"
 						@click="selectAllRows">
 						Select all
 					</b-button>
@@ -106,7 +106,7 @@
 					variant="info"
 					text="Process corpus"
           right
-					:disabled="$userData.corpus.length == 0 || processingCorpus">
+					:disabled="corpus_size == 0 || processingCorpus">
 					<b-dropdown-item-button
 						@click="processCorpus('HIGH')">
             <font-awesome-icon :icon="['fas', 'server']"/>&nbsp;High performance<br/>
@@ -133,7 +133,7 @@
 				id="corpusTable"
 				hover selectable show-empty
 				:fields="table.fields"
-				:items="table.items"
+				:items="$store.state.userData.corpus"
 				select-mode="multi"
 				responsive="sm"
 				ref="corpusTable"
@@ -198,13 +198,14 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'Corpus',
 	data: function() {
 		return {
 			table: {
 				fields: ["selected", "file_name", "uploaded_on", "show_details"],
-				items: this.$userData.corpus,
 				selection: []
 			},
 			upload: {
@@ -223,8 +224,9 @@ export default {
 	},
 	computed: {
 		all_selected: function () {
-			return (this.table.selection.length == this.$userData.corpus.length);
-		}
+			return (this.table.selection.length == this.corpus_size);
+		},
+    ...mapGetters('userData', ["corpus_size", "userId"])
 	},
 	methods: {
 		makeToast(
@@ -253,30 +255,24 @@ export default {
 				});
 		},
 		get_userData() {
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-
 			let objRef = this;
-			this.$axios.post(this.$server+"/auth", formData, {
-				headers: { "Content-Type": "multipart/form-data" }
-			}).then(function(result) {
-				objRef.$userData.userId = result.data.userData.userId;
-				objRef.$userData.corpus	= result.data.userData.corpus;
-				objRef.$userData.newDocs = result.data.userData.newData;
+      
+      this.userData = this.$store.dispatch("getUserData", this.userId);
 
-				objRef.makeToast(
-					"Success",					// title
-					"User data reloaded",		// content
-					"success");					// variant
-			}).catch(function() {
-				objRef.makeToast(
-					"Oops, something went wrong!",	// title
-					"Try reloading the page",		// content
-					"danger");						// variant
-			});
+      this.userData.then(function() {
+        objRef.makeToast(
+					"Success",					  // title
+					"User data reloaded",	// content
+					"success");					  // variant
+      }).catch(function() {
+        objRef.makeToast(
+					"Oops, something went wrong!",// title
+					"Try reloading the page",	  	// content
+					"danger");						        // variant
+      });
 		},
 		reloadTable() {
-			this.table.items = this.$userData.corpus;
+			this.get_userData();
 			this.table.selection = [];
 		},
 		onRowSelected: function (selection) {
@@ -331,12 +327,6 @@ export default {
 		},
 		uploadFiles: async function() {
 			let objRef = this;
-			
-			async function PUT(objRef, formData) {
-				return objRef.$axios.put(objRef.$server+"/corpus", formData, {
-					headers: { "Content-Type": "multipart/form-data" }
-				})
-			}
 
 			const promises = this.upload.files.map(async function(file, index){
 				var format = objRef.upload.queue[index].format;
@@ -347,17 +337,15 @@ export default {
 				
 				// FORM
 				const formData = new FormData();
-				formData.set("userId", objRef.$userData.userId);
+				formData.set("userId", objRef.userId);
 				formData.set("file", file);
 				formData.set("fileName", file.name);
 				formData.set("format", format);
 				formData.set("fields", fields);
 				
-				const result = await PUT(objRef, formData);
+				const result = await objRef.$store.dispatch("uploadDocument", formData);
 				
 				if (result.status == 200) {
-					objRef.$userData.newDocs = result.data.newData;
-					objRef.$userData.corpus.concat(result.data.newData);
 					objRef.upload.queue[index].status = objRef.upload.STATUS["SUCCESS"];
 				} else {
 					objRef.upload.queue[index].status = objRef.upload.STATUS["ERROR"];
@@ -374,29 +362,18 @@ export default {
 				"warning",				// variant
 				"upload_documents");	// id
 			
-			Promise.all(promises).then(() => {
-				objRef.$bvToast.hide("upload_documents");
-				objRef.get_userData();});
+			Promise.all(promises).then(() => objRef.$bvToast.hide("upload_documents"));
+				// objRef.get_userData();});
 		},
 		deleteFiles: async function() {
 			let objRef = this;
 
 			const to_remove = this.table.selection.map((d) => d.id);
-
-			// FORM
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-			formData.set("ids", to_remove);
-			formData.set("RESET_FLAG", this.all_selected);
-
-			this.$axios.post(this.$server+"/corpus", formData, {
-				headers: { "Content-Type": "multipart/form-data" }
-			}).then(function() {
-				objRef.$userData.corpus	= objRef.$userData.corpus.filter((doc) => {
-					!to_remove.includes(doc.id);
-				});
-				objRef.$userData.newDocs = [];
-				
+      
+      this.$store.dispatch("deleteDocument", {
+        to_remove: to_remove,
+        RESET_FLAG: this.all_selected
+      }).then(function() {
 				objRef.makeToast(
 					"Success!",						// title
 					"Files deleted successfully!",	// content
@@ -410,30 +387,25 @@ export default {
 		},
 		processCorpus: async function(performance) {
 			let objRef = this;
-			// FORM
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-			this.makeToast(
+			
+      this.makeToast(
 				"Processing corpus",	// title
 				"Please wait...",		// content
 				"warning",				// variant
 				"process_corpus");		// id
-			
 			this.processingCorpus = true;
-			this.$axios.get(this.$server+"/process_corpus", {
-				params: { 
-					userId: this.$userData.userId,
-					performance: performance}
-			}).then(function() {
-				objRef.$bvModal.show('dashboard-redirect-modal');
-			}).catch(function() {
-				objRef.makeToast(
-					"Oops, something went wrong",	// title
-					"Internal error",				// content
-					"danger");						// variant
-			}).then(() => {
-				objRef.$bvToast.hide("process_corpus");
-				objRef.processingCorpus = false;});
+			
+      this.$store.dispatch("processCorpus", performance)
+        .then(function() {
+          objRef.$bvModal.show('dashboard-redirect-modal');
+        }).catch(function() {
+          objRef.makeToast(
+            "Oops, something went wrong",	// title
+            "Internal error",				// content
+            "danger");						// variant
+        }).then(() => {
+          objRef.$bvToast.hide("process_corpus");
+          objRef.processingCorpus = false;});
 		}
 	}
 }

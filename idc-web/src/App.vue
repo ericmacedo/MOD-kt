@@ -55,7 +55,7 @@
                   <b-button disabled
                     id="sessionLabel"
                     variant="dark">
-                    {{ session_name.text }}
+                    {{ $store.state.session.name }}
                   </b-button>
                   <b-button
                     title="Delete the current session"
@@ -85,7 +85,7 @@
             <!-- Using 'button-content' slot -->
             <template #button-content>
               <font-awesome-icon :icon="['fas', 'user-circle']"/> &nbsp;
-              <em>{{ $userData.userId }}</em>
+              <em>{{ $store.state.userData.userId }}</em>
             </template>
             <!-- TODO add "clear user data" with modal confirm -->
             <b-dropdown-item @click="clearUserData">
@@ -142,7 +142,6 @@ export default {
     return {
       title: "Vis-Kt",
       userData: undefined,
-      session_name: this.$session.name,
       Height: 500,
       Width: 500,
       navbar: {
@@ -169,27 +168,6 @@ export default {
   },
   created() {
     let objRef = this;
-    // this.$userData.userId = prompt("Please enter your Username");
-
-    // const formData = new FormData();
-		// formData.set("userId", this.$userData.userId);
-
-    // let objRef = this;
-    // this.userData = this.$axios.post(this.$server+"/auth", formData, {
-    //   headers: { "Content-Type": "multipart/form-data" }
-    // }).then(function(result) {
-    //   objRef.$userData.userId = result.data.userData.userId;
-    //   objRef.$userData.corpus	= result.data.userData.corpus ?? [];
-    //   objRef.$userData.sessions	= result.data.userData.sessions ?? [];
-
-    //   objRef.makeToast(
-    //     "success",
-    //     "Logged in successfully!",
-    //     "Welcome, "+objRef.$userData.userId );
-    // }).catch(function() {
-    //   alert("No such user exists!");
-    //   window.location.reload();
-    // });
 
     const userId = prompt("Please enter your Username");
 
@@ -197,9 +175,9 @@ export default {
 
     this.userData.then(function() {
       objRef.makeToast(
-        "success",
         "Logged in successfully!",
-        "Welcome, "+objRef.$store.state.userData.userId);
+        "Welcome, "+objRef.$store.state.userData.userId,
+        "success");
     }).catch(function() {
       // console.log(error);
       alert("No such user exists!");
@@ -207,120 +185,88 @@ export default {
     });
   },
   methods: {
-    makeToast(variant = null, title, content) {
-      this.$bvToast.toast(content, {
-        variant: variant,
-        title: title,
-        toaster: "b-toaster-bottom-right",
-        solid: false,
-        autoHideDelay: 5000,
-      })
-    },
+    makeToast(
+				title,
+				content,
+				variant,
+				id=null) {
+			// Use a shorter name for this.$createElement
+			const h = this.$createElement
+			// Create the message
+			const vProgressToast = h(
+				'p', { class: ['mb-0'] },
+				[h('b-spinner', { props: { small: true } }), ` ${content}`]);
+			this.$bvToast.toast(
+				(id) ? vProgressToast : content,
+				{
+					id: (id) ? id : null,
+					variant: variant,
+					title: title,
+					toaster: "b-toaster-bottom-right",
+					solid: false,
+					autoHideDelay: 5000,
+					noAutoHide: (id) ? true : false,
+					noCloseButton: (id) ? true : false,
+					appendToast: true
+				});
+		},
     updateUserData() {
-      const formData = new FormData();
-
-      formData.set("userId", this.$userData.userId);
-
       let objRef = this;
-      this.$axios.post(this.$server+"/auth", formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      }).then(function(result) {
-        objRef.$userData.userId = result.data.userData.userId;
-        objRef.$userData.corpus	= result.data.userData.corpus;
-        
+      
+      this.userData = this.$store.dispatch(
+        "getUserData",
+        this.$store.state.userData.userId);
+
+      this.userData.then(function() {
         objRef.makeToast(
-          "success",
           "Success!",
-          "User data reloaded!");
+          "User data reloaded!",
+          "success");
       }).catch(function() {
         objRef.makeToast(
-          "danger",
           "Oops, somethings went wrong!",
-          "Try reloading the page");
+          "Try reloading the page",
+          "danger");
       });
     },
     clearUserData() {
       let objRef = this;
 
       if(confirm("You're about to erase all of your data, are you sure?")) {
-        // FORM
-        const formData = new FormData();
-        formData.set("userId", this.$userData.userId);
-        formData.set("ids", []);
-        formData.set("RESET_FLAG", true);
-
-        this.$axios.post(this.$server+"/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
-        }).then(function() {
-          objRef.makeToast(
-            "success",
-            "Success!",
-            "User data cleared!");
-        }).catch(function() {
-          objRef.makeToast(
-            "danger",
-            "Oops, something went wrong!",
-            "Try reloading the page");
-        });
+        this.$store.dispatch("clearUserData")
+          .then(function() {
+            objRef.makeToast(
+              "Success!",
+              "User data cleared!",
+              "success");
+          }).catch(function() {
+            objRef.makeToast(
+              "Oops, something went wrong!",
+              "Try reloading the page",
+              "danger");
+          });
       }
     },
     toggleRowActive(index) {
       this.navbar.activeIndex = index;
     },
     cluster() {
-      let objRef = this,
-          session = this.$session;
-		
-			const formData = new FormData();
-			formData.set("userId", this.$userData.userId);
-			formData.set("cluster_k", session.clusters.cluster_k);
-      formData.set("session", JSON.stringify({
-        name: session.name.text,
-        notes: session.notes.text,
-        index: session.index,
-        graph: session.graph,
-        tsne: session.tsne,
-        clusters: session.clusters,
-        controls: session.controls,
-        date: session.date,
-        selected: session.selected,
-        focused: session.focused.id,
-        highlight: session.highlight.cluster_name,
-        word_similarity: session.word_similarity
-      }));
-			
-			this.sessionData = this.$axios.post(this.$server+"/cluster",
-				formData, { headers: { "Content-Type": "multipart/form-data" }
-			});
+      let objRef = this;
 
-			this.sessionData.then((result) => {
-				const session = result.data.sessionData;
-				objRef.$session.name.text	  = session.name;
-				objRef.$session.notes.text  = session.notes;
-				objRef.$session.index			  = session.index;
-				
-        objRef.$session.graph.nodes	        = session.graph.nodes;
-        objRef.$session.graph.distance      = session.graph.distance;
-        objRef.$session.graph.neighborhood	= session.graph.neighborhood;
-				
-        objRef.$session.tsne			  = session.tsne;
-				objRef.$session.clusters	  = session.clusters;
-				objRef.$session.controls	  = session.controls;
-				objRef.$session.date 			  = session.date;
-				
-				// the first document is focused and selected by default
-				objRef.$session.selected		            = session.selected;
-				objRef.$session.focused.id			        = session.focused;
-        objRef.$session.highlight.cluster_name  = session.highlight;
-        objRef.$session.word_similarity         = session.word_similarity
-        
-        objRef.$forceUpdate();
-			}).catch(() => {
+      objRef.makeToast(
+          "Clustering your data",
+          "Please wait",
+          "warning",
+          "cluster-data");
+			
+			this.sessionData = this.$store.dispatch("cluster");
+
+			this.sessionData.catch(() => {
         objRef.makeToast(
-          "danger",
           "Oops, something went wrong!",
-          "Try reloading the page");
-      });
+          "Please, try again",
+          "danger");
+      }).then(() => objRef.$bvToast.hide("cluster-data"));
     }
   }
 }
