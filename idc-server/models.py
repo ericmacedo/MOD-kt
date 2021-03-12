@@ -162,13 +162,18 @@ class User:
     @property
     def sessions(self):
         sessions = []
+        
         for file in os.listdir(self.__sessions):
             id, ext = os.path.splitext(file)
             if ext == ".json":
-                sessions.append(Session(
-                    userId=self.userId,
-                    id=id))
-        return sessions
+                sessions.append(id)
+
+        sessions.sort(key=lambda date: datetime.strptime(
+            date,
+            "{0}_%Y-%m-%d_%H:%M:%S".format(self.userId)))
+        return [
+            Session(userId=self.userId, id=id)
+            for id in sessions]
     
     def append_session(self,
                         name:str,
@@ -183,7 +188,8 @@ class User:
                         highlight:str,
                         word_similarity:dict) -> dict:
 
-        id = str(uuid4())
+        id = datetime.utcnow().strftime(
+            "{0}_%Y-%m-%d_%H:%M:%S".format(self.userId))
         session_path = f"{self.__sessions}/{id}.json"
         
         session = dict(
