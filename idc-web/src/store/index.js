@@ -85,6 +85,7 @@ export default new Vuex.Store({
         }).then(({data}) => {
           const session = data.sessionData;
           
+          commit("session/setId",             session.id);
           commit("session/setName",           session.name);
           commit("session/setNotes",          session.notes);
           commit("session/setIndex",          session.index);
@@ -125,6 +126,7 @@ export default new Vuex.Store({
         }).then(({data})=> {
           const session = data.sessionData;
           
+          commit("session/setId",             session.id);
           commit("session/setName",           session.name);
           commit("session/setNotes",          session.notes);
           commit("session/setIndex",          session.index);
@@ -146,14 +148,15 @@ export default new Vuex.Store({
       const formData = new FormData();
 
 			formData.set("userId", state.userData.userId);
-			formData.set("projection", state.controls.projection);
+			formData.set("projection", state.session.controls.projection);
 			formData.set("index", state.session.index);
-			formData.set("perplexity", state.controls.tsne.perplexity);
+			formData.set("perplexity", state.session.controls.tsne.perplexity);
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/projection", formData, {
           headers: { "Content-Type": "multipart/form-data" }
-        }).then((data) => {
+        }).then(({data}) => {
+
           commit("session/setTsne", data.projection);
           resolve(data);
         }).catch(error => reject(error));
@@ -174,6 +177,36 @@ export default new Vuex.Store({
           });
           resolve(data)
         }).catch(error => reject(error));
+      });
+    },
+    async saveSession({commit, getters, state}) {
+      const formData = new FormData();
+      let session = getters["session/session"];
+      
+      formData.set("userId", state.userData.userId);
+      formData.set("sessionData", JSON.stringify(session));
+      
+      return new Promise((resolve, reject) => {
+        axios.put(state.SERVER+"/session", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        }).then(({data}) => {
+          commit("session/setId",   data.sessionData.id);
+          commit("session/setDate", data.sessionData.date);
+          resolve(data)
+        }).catch(error => reject(error));
+      });
+    },
+    async deleteSession({state}, sessionId) {
+      const formData = new FormData();
+      
+      formData.set("userId", state.userData.userId);
+      formData.set("sessionId", sessionId);
+      
+      return new Promise((resolve, reject) => {
+        axios.post(state.SERVER+"/session", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        }).then(result => resolve(result))
+          .catch(error => reject(error));
       });
     }
   }

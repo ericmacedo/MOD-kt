@@ -8,11 +8,11 @@
 * spaCy model
 
     `python -m spacy download en_core_web_sm`
+    `python -m spacy download en_core_web_lg`
 
 ## To do
 
 *   [ ] Index Tutorial page (Component Index.vue)
-*   [ ] Word Similarity View
 *   [ ] Incremental upload (with FAB button on Dashboard page)
 *   [ ] Session save and load
 *   [ ] Session manager (Sankey diagram)

@@ -1,4 +1,5 @@
 const state = {
+  id: undefined,
   name: "Default",
   notes: "",
   index: [],
@@ -31,6 +32,9 @@ const state = {
 };
 
 const mutations = {
+  setId(state, id) {
+    state.id = id;
+  },
   setName(state, name) {
     state.name = name;
   },
@@ -126,6 +130,7 @@ const mutations = {
 const getters = {
   session(state) {
     return {
+      id:               state.id,
       name:             state.name,
       notes:            state.notes,
       index:            state.index,

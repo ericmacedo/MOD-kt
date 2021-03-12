@@ -175,21 +175,31 @@ class User:
                         notes:str,
                         index:list,
                         graph:dict,
+                        clusters:dict,
                         tsne:list,
-                        controls:dict) -> dict:
+                        controls:dict,
+                        selected:list,
+                        focused:str,
+                        highlight:str,
+                        word_similarity:dict) -> dict:
 
-        sessionId = str(uuid4())
-        session_path = f"{self.__sessions}/{sessionId}.json"
+        id = str(uuid4())
+        session_path = f"{self.__sessions}/{id}.json"
         
         session = dict(
-            id          = sessionId,
-            name        = name,
-            notes       = notes,
-            index       = index,
-            graph       = graph,
-            tsne        = tsne,
-            controls    = controls,
-            date        = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC"))
+            id              = id,
+            name            = name,
+            notes           = notes,
+            index           = index,
+            graph           = graph,
+            clusters        = clusters,
+            tsne            = tsne,
+            controls        = controls,
+            selected        = selected,
+            focused         = focused,
+            highlight       = highlight,
+            word_similarity = word_similarity,
+            date            = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC"))
 
         with open(session_path, "w", encoding="utf-8") as s_file:
             json.dump(session, s_file)
@@ -309,20 +319,28 @@ class User:
             "sessions":     self.session_list(),
             "isProcessed":  self.isProcessed}
 
-    def sessionData(self, sessionId:str=None) -> dict:
-        if sessionId:
+    def sessionData(self, id:str=None) -> dict:
+        if id:
             session = Session(
                 userId=self.userId,
-                sessionId=sessionId
+                id=id
             ).as_dict()
             session["sessions"] = self.session_list()
         else:
             session = {
+                "id":       None,
                 "userId":   self.userId,
                 "name":     "Default",
                 "notes":    "",
                 "index":    self.index,
                 "graph":    self.graph,
+                "clusters": {
+                    "cluster_names": [],
+                    "colors": [],
+                    "cluster_words": [],
+                    "cluster_docs": [],
+                    "cluster_k": None
+                },
                 "tsne":     self.tsne,
                 "controls": {
                     "projection": "t-SNE",
@@ -465,10 +483,12 @@ class Session:
             return None
         with open(self.__path, "r") as jsonFile:
             session = json.load(jsonFile)
+            self.id                 = session["id"]
             self.name               = session["name"]
             self.notes              = session["notes"]
             self.index              = session["index"]
             self.graph              = session["graph"]
+            self.clusters           = session["clusters"]
             self.tsne               = session["tsne"]
             self.controls           = session["controls"]
             self.selected           = session["selected"]
@@ -484,6 +504,7 @@ class Session:
             notes               = self.notes,
             index               = self.index,
             graph               = self.graph,
+            clusters            = self.clusters,
             tsne                = self.tsne,
             controls            = self.controls,
             selected            = self.selected,

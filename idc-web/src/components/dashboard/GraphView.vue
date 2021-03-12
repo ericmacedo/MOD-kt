@@ -2,7 +2,7 @@
 <b-card no-body footer-tag="footer">
 	<b-form-group id="projectionSwitcher">
       <b-form-radio-group
-        v-model="controls.projection"
+        v-model="projection"
 				:options="projection_list"
 				button-variant="outline-dark"
 				class="ml-auto"
@@ -18,16 +18,16 @@
 			<b-row h-align="center">
 				<b-col col-sm-6>
 					<b-row>
-						<template v-if="controls.projection == 't-SNE'">
+						<template v-if="projection == 't-SNE'">
 							<b-input-group
 								prepend="Neighborhood"
 								size="sm">
 								<b-form-input
 										class="col-9"
-										v-model="controls.n_neighbors"
+										v-model="n_neighbors"
 										size="sm"
 										@change="updateLayout"
-										:state="parameterState(controls.n_neighbors, 0, index_size)"
+										:state="parameterState(n_neighbors, 0, index_size)"
 										type="number" step="1"
 										min="0" :max="index_size"></b-form-input>
 							</b-input-group>
@@ -38,17 +38,17 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="controls.distance"
+									v-model="distance"
 									type="range"
 									step="0.01" min="0.0" max="1.0"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="controls.distance"
+										v-model="distance"
 										size="sm"
 										@change="updateLayout"
-										:state="parameterState(controls.distance, 0.0, 1.0)"
+										:state="parameterState(distance, 0.0, 1.0)"
 										type="number" step="0.01"
 										min="0.0" max="1.0"></b-form-input>
 								</b-input-group-append>
@@ -71,15 +71,15 @@
 					</b-row>
 				</b-col>
 				<b-col sm="6">
-					<template v-if="controls.projection == 't-SNE'">
+					<template v-if="projection == 't-SNE'">
 						<b-input-group
 							prepend="Perplexity"
 							size="sm">
 								<b-form-input
 									class="col-9"
-									v-model="controls.tsne.perplexity"
+									v-model="perplexity"
 									size="sm"
-									:state="parameterState(controls.tsne.perplexity, 5, 50)"
+									:state="parameterState(perplexity, 5, 50)"
 									type="number"
 									min="5" max="50"></b-form-input>
 							<b-input-group-append>
@@ -98,16 +98,16 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="controls.charge"
+									v-model="charge"
 									type="range"
 									min="-200" max=50 step="1"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="controls.charge"
+										v-model="charge"
 										size="sm"
-										:state="parameterState(controls.charge, -200, 50)"
+										:state="parameterState(charge, -200, 50)"
 										type="number"
 										min="-200" max=50 step="1"></b-form-input>
 								</b-input-group-append>
@@ -119,16 +119,16 @@
 								size="sm">
 								<b-form-input
 									size="sm"
-									v-model="controls.linkDistance"
+									v-model="linkDistance"
 									type="range"
 									step="1" min="0" max="200"
 									@change="updateLayout"></b-form-input>
 								<b-input-group-append>
 									<b-form-input
 										class="col-9"
-										v-model="controls.linkDistance"
+										v-model="linkDistance"
 										size="sm"
-										:state="parameterState(controls.linkDistance, 0, 200)"
+										:state="parameterState(linkDistance, 0, 200)"
 										type="number"
 										step="1" min="0" max="200"></b-form-input>
 								</b-input-group-append>
@@ -143,7 +143,7 @@
 </template>
 
 <script>
-import { mapState, mapGetters, mapMutations } from  "vuex";
+import { mapState, mapGetters, mapMutations, mapActions } from  "vuex";
 
 export default {
   name: "GraphView",
@@ -190,6 +190,42 @@ export default {
     }
 	},
 	computed: {
+    projection: {
+      get() { return this.controls.projection },
+      set(projection) {
+        this.$store.state.session.controls.projection = projection;
+      }
+    },
+    n_neighbors: {
+      get() { return this.controls.n_neighbors },
+      set(n_neighbors) {
+        this.$store.state.session.controls.n_neighbors = n_neighbors;
+      }
+    },
+    distance: {
+      get() { return this.controls.distance },
+      set(distance) {
+        this.$store.state.session.controls.distance = distance;
+      }
+    },
+    perplexity: {
+      get() { return this.controls.tsne.perplexity },
+      set(perplexity) {
+        this.$store.state.session.controls.tsne.perplexity = perplexity;
+      }
+    },
+    charge: {
+      get() { return this.controls.charge },
+      set(charge) {
+        this.$store.state.session.controls.charge = charge;
+      }
+    },
+    linkDistance: {
+      get() { return this.controls.linkDistance },
+      set(linkDistance) {
+        this.$store.state.session.controls.linkDistance = linkDistance;
+      }
+    },
     ...mapState("session", [
       "controls", "highlight", "selected",
       "clusters", "tsne"]),
@@ -384,7 +420,7 @@ export default {
 					"warning",															// variant
 					"request_projection");									// id
           
-			this.getProjection.then(() => {
+			this.getProjection().then(() => {
 				objRef.$bvToast.hide("request_projection");
 				objRef.updateLayout();
 			}).catch(() => {
@@ -395,7 +431,8 @@ export default {
 					"danger");
       });
     },
-    ...mapMutations("session", ["updateSelected"])
+    ...mapMutations("session", ["updateSelected"]),
+    ...mapActions(["getProjection"])
 	},
 }
 </script>

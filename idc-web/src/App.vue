@@ -58,12 +58,7 @@
                     {{ session_name }}
                   </b-button>
                   <b-button
-                    title="Delete the current session"
-                    variant="outline-danger">
-                    <font-awesome-icon :icon="['fas', 'trash']"/>
-                    Delete
-                  </b-button>
-                  <b-button
+                    v-b-modal.session-save-modal
                     title="Save the current session"
                     variant="outline-success">
                     <font-awesome-icon :icon="['fas', 'save']"/>
@@ -127,6 +122,36 @@
       <p>oops, something went wrong!</p>
     </template>
   </Promised>
+  
+  <b-modal
+		ref="session-save-modal"
+		id="session-save-modal"
+		size="lg"
+		header-bg-variant="dark"
+		header-text-variant="light"
+		:title="'Saving session '+session_name+'...'"
+		centered
+    scrollable
+		no-close-on-backdrop
+		no-close-on-esc
+    @ok="callSaveSession">
+		<div class="d-block">
+      <label for="session-name">Name:</label>
+      <b-form-input
+        id="session-name"
+        v-model="session_name"
+        placeholder="Enter a name for your session"></b-form-input>
+      <label
+        class="mt-2"
+        for="session-notes">Notes:</label>
+      <b-form-textarea
+        v-model="notes"
+        rows="10"
+				max-rows="10"
+        size="md"
+        placeholder="Notes"></b-form-textarea>
+		</div>
+	</b-modal>
 </div>
 </template>
 
@@ -168,9 +193,24 @@ export default {
     }
   },
   computed: {
+    session_name: {
+      get() {
+        return this.$store.state.session.name;
+      },
+      set(name) {
+        this.$store.commit("session/setName", name);
+      }
+    },
+    notes: {
+      get() {
+        return this.$store.state.session.notes;
+      },
+      set(notes) {
+        this.$store.commit("session/setNotes", notes);
+      }
+    },
     ...mapState({
-      userId: state => state.userData.userId,
-      session_name: state => state.session.name
+      userId: state => state.userData.userId
     })
   },
   created() {
@@ -272,7 +312,32 @@ export default {
           "danger");
       }).then(() => objRef.$bvToast.hide("cluster-data"));
     },
-    ...mapActions(["clusterData", "getUserData", "clearUserData"])
+    callSaveSession() {
+      let objRef = this;
+
+      this.makeToast(
+        `Saving session "${this.session_name}"`,
+        "Please wait",
+        "warning",
+        "save-session");
+			
+			this.saveSession()
+        .then(() => {
+          objRef.makeToast(
+            "Success",
+            "Your session was successfully saved",
+            "success");
+            objRef.getUserData(objRef.userId);
+        })
+        .catch(() => {
+          objRef.makeToast(
+            "Oops, something went wrong!",
+            "Please, try again",
+            "danger");
+        }).then(() => objRef.$bvToast.hide("save-session"));
+    },
+    ...mapActions([
+      "clusterData", "getUserData", "clearUserData", "saveSession"])
   }
 }
 </script>

@@ -54,21 +54,40 @@
 					class="text-center"
 					button
 					variant="success"
-					@click="cluster">
+					@click="callCluster">
 					<font-awesome-icon :icon="['fas', 'plus']"/>&nbsp;
 					Start a new session
 				</b-list-group-item>
+      </b-list-group>
+      <br/>
+      <b-list-group>
 				<!-- LOADED SESSIONS -->
 				<b-list-group-item
 					v-for="(session, index) of sessions"
 					:key="index"
 					button
 					variant="dark"
-					@click="getSession(session.id)"
 					class="flex-column align-items-start">
 					<div class="d-flex w-100 justify-content-between">
 						<h5 class="mb-1">{{ session.name }}</h5>
-						<small>{{ session.date }}</small>
+						<small>
+              {{ session.date }}
+              <b-button-group size="sm">
+                <b-button
+                  class="ml-2"
+                  variant="outline-success"
+                  @click="callGetSession(session.id)">
+                  <font-awesome-icon :icon="['fas', 'download']"/>&nbsp;
+                  Load session
+                </b-button>
+                <b-button
+                  class="ml-2"
+                  variant="outline-danger"
+                  @click="callDeleteSession(session)">
+                  <font-awesome-icon :icon="['fas', 'trash']"/>
+                </b-button>
+              </b-button-group>
+            </small>
 					</div>
 					<p class="mb-1">
 						{{ session.notes }}
@@ -110,7 +129,7 @@ import DocumentView from './dashboard/DocumentView';
 import ClusterManager from './dashboard/ClusterManager';
 import WordCloud from './dashboard/WordCloudView';
 import WordSimilarity from './dashboard/WordSimilarityView';
-import { mapState } from "vuex";
+import { mapState, mapActions } from "vuex";
 
 export default {
 	name: 'Dashboard',
@@ -128,6 +147,7 @@ export default {
 	},
   computed: {
     ...mapState({
+      userId: state => state.userData.userId,
       sessions: state => state.userData.sessions,
       isProcessed: state => state.userData.isProcessed
     })
@@ -165,12 +185,12 @@ export default {
 					appendToast: true
 				});
 		},
-		getSession(id) {
+		callGetSession(id) {
 			let objRef = this;
 			
 			this.$bvModal.hide('dashboard-sessions-modal');
 
-			this.sessionData = this.$store.dispatch("getSessionById", id);
+			this.sessionData = this.getSessionById(id);
 
 			this.sessionData.then(() => {
 				objRef.makeToast(
@@ -184,7 +204,7 @@ export default {
           "danger");
       });
 		},
-		cluster() {
+		callCluster() {
 			let objRef = this;
 			
 			this.$bvModal.hide('dashboard-sessions-modal');
@@ -197,7 +217,7 @@ export default {
           "warning",
           "cluster-data");
 			
-			this.sessionData = this.$store.dispatch("cluster", cluster_k);
+			this.sessionData = this.cluster(cluster_k);
 
 			this.sessionData.catch(() => {
         objRef.makeToast(
@@ -205,7 +225,28 @@ export default {
           "Please, try again",
           "danger");
       }).then(() => objRef.$bvToast.hide("cluster-data"));
-		}
+		},
+    callDeleteSession(session) {
+      let objRef = this;
+      
+      if (confirm(`You're about to delete session "${session.name}", are you sure?`)) {
+        this.deleteSession(session.id)
+          .then(() => {
+            objRef.makeToast(
+              "Success",
+              "Your session was successfully deleted",
+              "success");
+            objRef.getUserData(objRef.userId);
+          })
+          .catch(() => {
+            objRef.makeToast(
+              "Oops, something went wrong!",
+              "Please, try again",
+              "danger");
+          });
+      }
+    },
+    ...mapActions(["getSessionById", "cluster", "deleteSession", "getUserData"])
 	}
 }
 </script>

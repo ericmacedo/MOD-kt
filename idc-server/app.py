@@ -291,43 +291,59 @@ def projection():
             }
         }, 500
 
-
-@app.route("/session", methods=["GET", "PUT"])
+@app.route("/session", methods=["GET", "PUT", "POST"])
 def session():
     try:
+        session = None
         if request.method == "GET":
             userId = request.args["userId"]
+            user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+            
             sessionId = request.args["sessionId"] if (
                 "sessionId" in request.args) else None
 
             if not sessionId:
-                raise Exception("No such sessione exists")
+                raise Exception("No such session exists")
 
             user = User(userId=userId)
-            session = user.sessionData(sessionId=sessionId)
-            
-            return {
-                "status": "success",
-                "sessionData": session
-            }, 200
+            session = user.sessionData(id=sessionId)
+
         elif request.method == "PUT":
             userId = request.form["userId"]
-            session = request.form["sessionData"]
-
             user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+            
+            session = json.loads(request.form["sessionData"])
             session = user.append_session(
-                name        = session["name"],
-                notes       = session["notes"],
-                index       = session["index"],
-                clusters    = session["clusters"],
-                graph       = session["graph"],
-                tsne        = session["tsne"],
-                controls    = session["controls"])
+                name            = session["name"],
+                notes           = session["notes"],
+                index           = session["index"],
+                clusters        = session["clusters"],
+                graph           = session["graph"],
+                tsne            = session["tsne"],
+                controls        = session["controls"],
+                selected        = session["selected"],
+                focused         = session["focused"],
+                highlight       = session["highlight"],
+                word_similarity = session["word_similarity"])
 
-            return {
-                "status": "success",
-                "sessionData": session
-            }, 200
+        elif request.method == "POST":
+            userId = request.form["userId"]
+            user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+
+            sessionId = request.form["sessionId"]
+
+            user.delete_sessions([sessionId])
+
+        return {
+            "status": "success",
+            "sessionData": session
+        }, 200
 
     except Exception as e:
         print(e)
@@ -352,7 +368,7 @@ def cluster():
                 seed = session["clusters"]
                 k = seed["cluster_k"]
             else:
-                session = user.sessionData(sessionId=None)
+                session = user.sessionData(id=None)
                 seed = None
                 k = int(request.form["cluster_k"])
 
