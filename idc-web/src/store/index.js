@@ -90,6 +90,7 @@ export default new Vuex.Store({
           commit("session/setNotes",          session.notes);
           commit("session/setIndex",          session.index);
           commit("session/setGraph",          session.graph);
+          commit("session/setLinkSelector",   session.link_selector);
           commit("session/setTsne",           session.tsne);
           commit("session/setClusters",       session.clusters);
           commit("session/setControls",       session.controls);
@@ -131,6 +132,7 @@ export default new Vuex.Store({
           commit("session/setNotes",          session.notes);
           commit("session/setIndex",          session.index);
           commit("session/setGraph",          session.graph);
+          commit("session/setLinkSelector",   session.link_selector);
           commit("session/setTsne",           session.tsne);
           commit("session/setClusters",       session.clusters);
           commit("session/setControls",       session.controls);

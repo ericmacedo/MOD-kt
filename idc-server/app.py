@@ -13,7 +13,7 @@ from clusterer import Clusterer
 from utils import (
     process_text, term_frequency,
     t_SNE, displaCy_NER, most_similar,
-    distance_graph,
+    similarity_graph,
     encode_document, Doc_2_Vec,
     Fast_Text, Word_2_Vec)
 
@@ -235,7 +235,7 @@ def process_corpus():
                 doc.embedding = embeddings.pop(0)
                 doc.svg = svg.pop(0)
 
-            user.graph  = distance_graph(corpus)
+            user.graph  = similarity_graph(corpus)
             user.tsne   = t_SNE(corpus)
 
             user.isProcessed = True
@@ -323,6 +323,7 @@ def session():
                 index           = session["index"],
                 clusters        = session["clusters"],
                 graph           = session["graph"],
+                link_selector   = session["link_selector"],
                 tsne            = session["tsne"],
                 controls        = session["controls"],
                 selected        = session["selected"],

@@ -180,6 +180,7 @@ class User:
                         notes:str,
                         index:list,
                         graph:dict,
+                        link_selector:str,
                         clusters:dict,
                         tsne:list,
                         controls:dict,
@@ -198,6 +199,7 @@ class User:
             notes           = notes,
             index           = index,
             graph           = graph,
+            link_selector   = link_selector,
             clusters        = clusters,
             tsne            = tsne,
             controls        = controls,
@@ -340,6 +342,7 @@ class User:
                 "notes":    "",
                 "index":    self.index,
                 "graph":    self.graph,
+                "link_selector": "Distance fn",
                 "clusters": {
                     "cluster_names": [],
                     "colors": [],
@@ -494,6 +497,7 @@ class Session:
             self.notes              = session["notes"]
             self.index              = session["index"]
             self.graph              = session["graph"]
+            self.link_selector      = session["link_selector"]
             self.clusters           = session["clusters"]
             self.tsne               = session["tsne"]
             self.controls           = session["controls"]
@@ -510,6 +514,7 @@ class Session:
             notes               = self.notes,
             index               = self.index,
             graph               = self.graph,
+            link_selector       = self.link_selector,
             clusters            = self.clusters,
             tsne                = self.tsne,
             controls            = self.controls,

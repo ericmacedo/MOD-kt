@@ -16,6 +16,7 @@ const state = {
   controls: {
     projection: undefined,
     tsne: { perplexity: undefined },
+    link_selector: "Distance fn",
     distance: undefined,
     n_neighbors: undefined,
     linkDistance: undefined,
@@ -48,6 +49,9 @@ const mutations = {
     graph.nodes = nodes;
     graph.distance = distance;
     graph.neighborhood = neighborhood;
+  },
+  setLinkSelector({controls}, link_selector) {
+    controls.link_selector = link_selector;
   },
   setTsne(state, tsne) {
     state.tsne = tsne;
@@ -135,6 +139,7 @@ const getters = {
       notes:            state.notes,
       index:            state.index,
       graph:            state.graph,
+      link_selector:    state.link_selector,
       tsne:             state.tsne,
       clusters:         state.clusters,
       controls:         state.controls,
@@ -149,7 +154,7 @@ const getters = {
     return state.graph.nodes;
   },
   links(state) {
-    if (state.controls.projection == "t-SNE") {
+    if (state.controls.link_selector == "Neighborhood") {
       return state.graph.neighborhood.filter((link) => 
         link.value <= state.controls.n_neighbors
       );

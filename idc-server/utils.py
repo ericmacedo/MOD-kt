@@ -75,9 +75,11 @@ def term_frequency(text:str) -> dict:
     tf = {}
     for word in text.split(" "):
         tf[word] = (tf[word] + 1) if (word in tf) else 1
-    return tf
 
-def distance_graph(corpus:list) -> dict:
+    return { k: v
+        for k, v in sorted(tf.items(), key=lambda item: item[1], reverse=True)}
+
+def similarity_graph(corpus:list) -> dict:
     import numpy as np
     from sklearn.metrics import pairwise_distances
     from sklearn.preprocessing import MinMaxScaler
@@ -104,13 +106,13 @@ def distance_graph(corpus:list) -> dict:
         for j in range(len(corpus)):
             if j < i:
                 graph["distance"].append({
-                    "source": i,
-                    "target": j,
+                    "source": corpus[i].id,
+                    "target": corpus[j].id,
                     "value": float(dist_norm[i][j])})
             if j > 0:
                 graph["neighborhood"].append({
-                    "source": i,
-                    "target": int(indices[j]),
+                    "source": corpus[i].id,
+                    "target": corpus[int(indices[j])].id,
                     "value": j})
     return graph
 

@@ -16,44 +16,63 @@
 	<template id="graphViewControls" #footer>
 		<b-container fluid>
 			<b-row h-align="center">
-				<b-col col-sm-6>
+				<b-col class="w-50">
 					<b-row>
-						<template v-if="projection == 't-SNE'">
-							<b-input-group
-								prepend="Neighborhood"
-								size="sm">
-								<b-form-input
-										class="col-9"
-										v-model="n_neighbors"
-										size="sm"
-										@change="updateLayout"
-										:state="parameterState(n_neighbors, 0, index_size)"
-										type="number" step="1"
-										min="0" :max="index_size"></b-form-input>
-							</b-input-group>
-						</template>
-						<template v-else>
-							<b-input-group
-								prepend="Distance"
-								size="sm">
-								<b-form-input
-									size="sm"
-									v-model="distance"
-									type="range"
-									step="0.01" min="0.0" max="1.0"
-									@change="updateLayout"></b-form-input>
-								<b-input-group-append>
-									<b-form-input
-										class="col-9"
-										v-model="distance"
-										size="sm"
-										@change="updateLayout"
-										:state="parameterState(distance, 0.0, 1.0)"
-										type="number" step="0.01"
-										min="0.0" max="1.0"></b-form-input>
-								</b-input-group-append>
-							</b-input-group>
-						</template>
+            <b-input-group size="sm">
+              <!-- LINK FUNCTION SELECTOR -->
+              <template #prepend>
+                <b-dropdown
+                  id="link-selector"
+                  size="sm"
+                  no-caret
+                  variant="secondary">
+                  <template #button-content>{{link_selector}}</template>
+                  <b-dropdown-item
+                    @click="link_selector = 'Distance fn'; updateLayout()">
+                    Distance fn
+                    {{ link_selector == "Distance fn" ? " &check;" : "" }}
+                  </b-dropdown-item>
+                  <b-dropdown-item
+                    @click="link_selector = 'Neighborhood'; updateLayout()">
+                    Neighborhood
+                    {{ link_selector == "Neighborhood" ? " &check;" : "" }}
+                  </b-dropdown-item>
+                </b-dropdown>
+              </template>
+
+              <!-- LINK BY NEIGHBORHOOD -->
+              <template v-if="link_selector == 'Neighborhood'">
+                <b-form-input
+                  class="col-9"
+                  v-model="n_neighbors"
+                  size="sm"
+                  @change="updateLayout"
+                  :state="parameterState(n_neighbors, 0, index_size)"
+                  type="number" step="1"
+                  min="0" :max="index_size"></b-form-input>
+              </template>
+
+              <!-- LINK BY DISTANCE FN -->
+              <template v-else>
+                <b-form-input
+                  size="sm"
+                  v-model="distance"
+                  type="range"
+                  step="0.01" min="0.0" max="1.0"
+                  @change="updateLayout"></b-form-input>
+                <b-input-group-append>
+                  <b-form-input
+                    class="col-9"
+                    v-model="distance"
+                    size="sm"
+                    @change="updateLayout"
+                    :state="parameterState(distance, 0.0, 1.0)"
+                    type="number" step="0.01"
+                    min="0.0" max="1.0"></b-form-input>
+                </b-input-group-append>
+              </template>
+
+            </b-input-group>
 					</b-row>
 					<b-row id="graph_counter">
 						<b-button-toolbar>
@@ -70,7 +89,7 @@
 						</b-button-toolbar>
 					</b-row>
 				</b-col>
-				<b-col sm="6">
+				<b-col class="w-50">
 					<template v-if="projection == 't-SNE'">
 						<b-input-group
 							prepend="Perplexity"
@@ -144,6 +163,7 @@
 
 <script>
 import { mapState, mapGetters, mapMutations, mapActions } from  "vuex";
+import * as d3 from "d3";
 
 export default {
   name: "GraphView",
@@ -155,7 +175,8 @@ export default {
 			simulation: undefined,
 			canvas: undefined,
 			node: undefined,
-			link: undefined
+			link: undefined,
+      tooltip: undefined
 		}
 	},
 	watch: {
@@ -175,16 +196,24 @@ export default {
     'highlight':{
       deep: true,
       handler () {
-        const normal  = 0.9,
-              faded   = 0.3;
+        const node_normal  = 0.9,
+              node_faded   = 0.3,
+              link_normal  = 0.5,
+              link_faded   = 0.1;
 
         if(this.highlight == "") {
-          this.node.attr("opacity", normal);
+          this.node.attr("opacity", node_normal);
+          this.link.attr("opacity", link_normal);
         } else {
           const doc_ids = this.clusters.cluster_docs[this.highlight];
           
           this.node.attr("opacity", 
-            d => doc_ids.includes(d.id) ? normal : faded);
+            d => doc_ids.includes(d.id) ? node_normal : node_faded);
+          
+          this.link.attr("opacity",
+            d => doc_ids.includes(d.source.id) ||
+                doc_ids.includes(d.target.id) ?
+                link_normal : link_faded);
         }
       }
     }
@@ -194,6 +223,12 @@ export default {
       get() { return this.controls.projection },
       set(projection) {
         this.$store.state.session.controls.projection = projection;
+      }
+    },
+    link_selector: {
+      get() { return this.controls.link_selector },
+      set(link_selector) {
+        this.$store.state.session.controls.link_selector = link_selector;
       }
     },
     n_neighbors: {
@@ -228,18 +263,19 @@ export default {
     },
     ...mapState("session", [
       "controls", "highlight", "selected",
-      "clusters", "tsne"]),
+      "clusters", "tsne", "index"]),
+    ...mapState("userData", ["corpus"]),
     ...mapGetters("session", ["nodes", "links", "index_size"])
 	},
 	mounted() {
 		let objRef = this;
 		// SIMULATION ENGINE
-		this.simulation = 	this.$d3.forceSimulation()
-			.force('link', 		this.$d3.forceLink())
-			.force("charge", 	this.$d3.forceManyBody())
-			.force("center", 	this.$d3.forceCenter())
-			.force("forceX",	this.$d3.forceX())
-			.force("forceY",	this.$d3.forceY())
+		this.simulation = 	d3.forceSimulation()
+			.force('link', 		d3.forceLink())
+			.force("charge", 	d3.forceManyBody())
+			.force("center", 	d3.forceCenter())
+			.force("forceX",	d3.forceX())
+			.force("forceY",	d3.forceY())
 			.on("tick", function() {
 				objRef.node
 					.attr("cx", d => d.x)
@@ -253,11 +289,11 @@ export default {
 			});
 
 		// CANVAS
-		this.canvas = this.$d3.select("#graphViewCanvas")
+		this.canvas = d3.select("#graphViewCanvas")
 			.attr("width", this.width)
 			.attr("height", this.height)
 			.attr("viewBox", [0, 0, this.width, this.height])
-			.call(this.$d3.zoom()
+			.call(d3.zoom()
 				.scaleExtent([0.1, 8])
 				.on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
 			.append("g");
@@ -273,6 +309,14 @@ export default {
 		this.node = this.canvas.append("g")
 			.attr("class", "node")
 			.selectAll("circle");
+
+    this.tooltip = d3.select('body')
+      .append('div')
+      .attr('id', 'node-tooltip')
+      .style("opacity", .9)
+      .style("position", "absolute")
+      .style("z-index", "10")
+      .style("visibility", "hidden");
 		
 		this.updateLayout();
 	},
@@ -326,10 +370,37 @@ export default {
 				.on("click", function(e, d) {
 					objRef.updateSelected(d.id);
 					
-					let _ref = objRef.$d3.select(this);
+					let _ref = d3.select(this);
 					_ref.classed("selected", !_ref.classed("selected"));
 				})
-				.call(this.$d3.drag()
+        .on("mouseover", () => 
+          objRef.tooltip.transition()
+            .duration(500)
+            .style("visibility", "visible"))
+        .on("mousemove", (event, node) => {
+          const doc = objRef.corpus.find(doc => doc.id == node.id);
+          const index = objRef.index.indexOf(doc.id),
+                label = objRef.clusters.labels[index],
+                // cluster_name = objRef.clusters.cluster_names[label],
+                color = objRef.clusters.colors[label];
+
+          let tooltip_html =
+            `<strong style="color:${color};">${node.name}</strong><br/>` +
+            `<br/>`;
+
+          Object.keys(doc.term_frequency).slice(0,5).forEach((term) => tooltip_html += `${term}<br/>`);
+
+          objRef.tooltip	
+            .html(tooltip_html)
+              .style("border", `2px solid ${color}`)
+              .style("left", (event.pageX) + "px")		
+              .style("top", (event.pageY - 28) + "px");	
+          })					
+        .on("mouseout", () =>
+          objRef.tooltip.transition()
+            .duration(500)
+            .style("visibility", "hidden"))
+				.call(d3.drag()
 					.on("start", function(e, d) {
 						if (_projection) {
 							if (!e.active) objRef.simulation.alpha(1).restart();
@@ -347,18 +418,20 @@ export default {
 							d.fx = null;
 							d.fy = null;
 					}}));
-			this.node.append("title").text(d => d.name);
-			
+
 			// LINKS
 			this.link = this.link.data(_links).join("line")
 				.attr("stroke", "#999")
 				.attr("opacity", 0.7);
-			this.link.append("title").text(d => `${d.source.name} -> ${d.target.name}`);
 
 			// SIMULATION FORCES
 			this.simulation
 				.nodes(_nodes)
-				.force("link").links(_links);
+				.force("link")
+          .id(d => d.id)
+          .links(_links);
+
+			this.link.append("title").text(d => `${d.source.name} → ${d.target.name}`);
 
 			if(!_projection) {
 				const _emb = this.tsne;
@@ -377,8 +450,6 @@ export default {
 					.attr("y1", d => (_emb[d.source.index][1] + this.height/11) * 6)
 					.attr("x2", d => (_emb[d.target.index][0] + this.width/11) * 6)
 					.attr("y2", d => (_emb[d.target.index][1] + this.height/11) * 6);
-			} else {
-				this.link.attr("stroke-width", (d) => 1 - d.value)
 			}
 
 			// FORCE CENTER
@@ -484,4 +555,15 @@ svg
 
 #projectionSwitcher
 	margin: 5px 0 5px 5px
+
+#node-tooltip
+  padding: 1px
+  font-size: smaller
+  opacity: 0.8
+  background: #f7f7f7
+  text-align: center
+  border-radius: 5px
+  pointer-events: none
+  white-space: normal
+  word-wrap: break-word
 </style>

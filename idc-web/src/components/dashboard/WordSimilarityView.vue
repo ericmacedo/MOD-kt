@@ -20,6 +20,13 @@
         @click="requestMostSimilar">
         <font-awesome-icon :icon="['fas', 'search']"/>
       </b-button>
+      <b-button
+        size="sm"
+        title="Clear query"
+        variant="outline-danger"
+        @click="word_similarity.query = []; word_similarity.most_similar = []">
+        <font-awesome-icon :icon="['fas', 'times']"/>
+      </b-button>
     </b-input-group>
     <div
       v-for="(item, index) in word_similarity.most_similar"

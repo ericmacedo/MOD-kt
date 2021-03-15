@@ -75,7 +75,7 @@
 						size="md"
 						title="Delete this cluster"
 						variant="outline-danger"
-						:disabled="modal.index == clusters.cluster_k"
+						:disabled="modal.index == clusters.cluster_k && validClusterName(modal.cluster_name)"
 						@click="callDeleteCluster">
 						<font-awesome-icon :icon="['fas', 'trash']"/>
 					</b-button></small>
@@ -128,6 +128,7 @@
 
 <script>
 import { mapState, mapMutations } from "vuex";
+import * as d3 from "d3";
 
 export default {
 	name: "ClusterManager",
@@ -198,7 +199,7 @@ export default {
 		submitChanges() {
 			this.updateClusters(this.modal);
 
-			this.$d3.select(`#cluster_card_${this.modal.index} header`)
+			d3.select(`#cluster_card_${this.modal.index} header`)
 				.style("background", this.modal.color);
 
 			this.$forceUpdate();

@@ -5,13 +5,16 @@
 	</b-card-header>
 	<div class="d-block">
 		<b-input-group size="sm">
-			<b-form-select v-model="selected">
+			<b-form-select v-model="option">
         <b-form-select-option
           :disabled="highlight == ''"
           value="cluster">Cluster Word Cloud</b-form-select-option>
         <b-form-select-option
           :disabled="focused == null"
           value="document">Document Word Cloud</b-form-select-option>
+        <b-form-select-option
+          :disabled="focused == null"
+          value="selection">Selection Word Cloud</b-form-select-option>
       </b-form-select>
 		</b-input-group>
     <template v-if="words.length > 0">
@@ -30,7 +33,7 @@
     <template v-else>
       <div class="mx-auto">
         <center> 
-          {{ (selected == "document") ? "Select a document" : "Highlight a cluster" }} to view its WordCloud
+          {{ (option == "document") ? "Select a document" : "Highlight a cluster" }} to view its WordCloud
         </center>
       </div>
     </template>
@@ -41,6 +44,7 @@
 <script>
 import wordcloud from 'vue-wordcloud';
 import { mapState } from "vuex";
+import * as d3 from "d3";
  
 export default {
   name: "WordCloud",
@@ -49,11 +53,10 @@ export default {
   },
   data: function(){
     return {
-      selected: "document",
+      option: "document",
       canvas: undefined,
       width: 485,
       height: 230,
-
       settings: {
         rotate: {
           from: 0, to: 0,
@@ -68,48 +71,57 @@ export default {
       }
     }
   },
-  mounted() {
-    let objRef = this;
-    
+  mounted() {    
     // CANVAS
-		this.canvas = this.$d3.select("#wordCloudCanvas svg")
+		this.canvas = d3.select("#wordCloudCanvas svg")
 			.attr("width", this.width)
 			.attr("height", this.height)
 			.attr("viewBox", [0, 0, this.width, this.height])
-			.call(this.$d3.zoom()
+			.call(d3.zoom()
 				.scaleExtent([0.1, 8])
 				.on("zoom", (e) => {
-          objRef.$d3.select("#wordCloudCanvas svg g").attr("transform", e.transform)}));
+          d3.select("#wordCloudCanvas svg g").attr("transform", e.transform)}));
   },
   computed: {
     words() {
       let objRef = this,
           vocab  = {};
 
-      if(this.selected == "cluster" && this.highlight != "") {
-        const _cluster = this.cluster_docs[this.highlight];
-        const docs_tf = _cluster.map(id =>
-          objRef.corpus.find(doc => doc.id == id)?.term_frequency);
+      if(this.option == "document") {
+        vocab = this.corpus
+          .find(doc => doc.id == objRef.focused)?.term_frequency;
+      } else {
+        let docs_tf = undefined;
+        if(this.option == "cluster" && this.highlight != "") {
+          docs_tf = this.cluster_docs[this.highlight].map(id =>
+            objRef.corpus.find(doc => doc.id == id)?.term_frequency);
+        } else {
+           docs_tf = this.corpus.filter(
+            doc => objRef.selected.includes(doc.id)
+          ).map(doc => doc?.term_frequency);
+        }
 
         for (let doc of docs_tf) {
           for (let word of Object.keys(doc)) {
             vocab[word] = doc[word] + (word in vocab ? vocab[word] : 0);
           }
         }
-      } else {
-        vocab = this.corpus
-          .find(doc => doc.id == objRef.focused)?.term_frequency;
+      }
+
+      if(Object.keys(vocab).length == 0) {
+        vocab = null;
       }
 
       return vocab ? Object.keys(vocab).map(word => {
         return {name: word, value: vocab[word]}})
         .sort((a, b) => b.value - a.value)
         .slice(0, 50)
-      : [ {word: "", value: 0}];
+      : [ {word: "", value: 0} ];
     },
     ...mapState({
       corpus: state => state.userData.corpus,
       focused: state => state.session.focused,
+      selected: state => state.session.selected,
       highlight: state => state.session.highlight,
       cluster_docs: state => state.session.clusters.cluster_docs
     })

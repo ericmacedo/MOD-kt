@@ -10,7 +10,7 @@
     </template>
     <template v-slot:default>
 		<b-container fluid>
-      <b-row>
+      <b-row no-gutters>
         <b-col cols="12" sm="6" md="6" lg="4">
           <document-view id="documentView"
             class="component h-50"></document-view>
