@@ -167,9 +167,6 @@ export default {
     }),
     ...mapGetters('userData', ["corpus_size"])
 	},
-  mounted() {
-    console.log(this);
-  },
 	methods: {
 		makeToast(
 				title,

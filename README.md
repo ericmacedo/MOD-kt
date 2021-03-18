@@ -13,6 +13,5 @@
 ## To do
 
 *   [ ] Index Tutorial page (Component Index.vue)
-*   [ ] Incremental upload (with FAB button on Dashboard page)
 *   [ ] Session manager (Sankey diagram)
 *   [ ] Lasso selection on graph view

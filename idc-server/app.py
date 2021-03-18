@@ -202,8 +202,9 @@ def process_corpus():
                 nlp = spacy.load("en_core_web_lg")
 
                 for doc in corpus:
-                    doc.embedding = encode_document(doc.processed)
-                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
+                    text = process_text(doc.content,deep=False)
+                    doc.embedding = encode_document(text)
+                    doc.svg = displaCy_NER(nlp(text))
             else:
                 # SETTINGS
                 user.doc_model = "Doc2Vec"
@@ -252,16 +253,17 @@ def process_corpus():
             corpus = user.corpus
 
             if user.word_model == "FastText":
-                user.fast_text = Fast_Text(user=user, newData=docs)
+                user.fast_text = Fast_Text(user=user)
             else:
-                user.word2vec = Word_2_Vec(user=user, newData=docs)
+                user.word2vec = Word_2_Vec(user=user)
 
             if user.doc_model == "S-BERT":
                 nlp = spacy.load("en_core_web_lg")
 
                 for doc in docs:
-                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
-                    doc.embedding = encode_document(doc.processed)
+                    text = process_text(doc.content,deep=False)
+                    doc.svg = displaCy_NER(nlp(text))
+                    doc.embedding = encode_document(text)
             else:
                 nlp = spacy.load("en_core_web_sm")
                 

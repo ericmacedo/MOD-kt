@@ -133,7 +133,7 @@
 		no-close-on-backdrop
 		no-close-on-esc>
 		<upload-component
-      v-on:re-render="$forceUpdate()"
+      v-on:re-render="incremented()"
       context="MODAL"></upload-component>
 	</b-modal>
 
@@ -181,6 +181,7 @@ export default {
     })
   },
 	mounted() {
+    console.log(this);
     if(this.isProcessed) {
       this.$bvModal.show('dashboard-sessions-modal');
     } else {
@@ -273,6 +274,11 @@ export default {
               "danger");
           });
       }
+    },
+    incremented(){
+      this.$forceUpdate();
+      
+      this.$refs.graphView.updateLayout();
     },
     ...mapActions(["getSessionById", "cluster", "deleteSession", "getUserData"])
 	}

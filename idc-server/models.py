@@ -99,6 +99,14 @@ class User:
                 dtype=str).tolist()
             return [index] if type(index) == str else index
         return self.generate_index()
+    
+    @index.setter
+    def index(self, index:list):
+        np.savetxt(self.__index,
+            index,
+            encoding="utf-8",
+            fmt="%s",
+            newline="\n")
 
     def generate_index(self) -> list:
         ids = []
@@ -106,6 +114,7 @@ class User:
             id, ext = os.path.splitext(file)
             if ext == ".json":
                 ids.append(id)
+        ids.sort()
         
         np.savetxt(self.__index,
             ids,
@@ -157,9 +166,36 @@ class User:
             id, ext = os.path.splitext(f_path)
             if ext == ".json" and id in ids:
                 os.remove(f"{self.__corpus}/{f_path}")
+        
+        index = self.index
+        
+        idx_to_remove = [ i for i, id in enumerate(index) if id in ids ]
 
-        # TODO refactor graph and tsne on delete
-        self.generate_index()
+        # INDEX UPDATE
+        self.index = [
+            item for idx, item in enumerate(index)
+            if not idx in idx_to_remove]
+        del index
+        
+        # TSNE UPDATE
+        tsne = self.tsne
+        self.tsne = [
+            item for idx, item in enumerate(tsne)
+            if not idx in idx_to_remove]
+        del tsne
+
+        # GRAPH UPDATE
+        graph = self.graph
+        graph["nodes"] = [
+            node for node in graph["nodes"]
+            if not node["id"] in ids]
+        graph["distance"] = [
+            link for link in graph["distance"]
+            if not (link["source"] in ids or link["target"] in ids)]
+        graph["neighborhood"] = [
+            link for link in graph["neighborhood"]
+            if not (link["source"] in ids or link["target"] in ids)]
+        self.graph = graph
 
     # SESSIONS
     @property

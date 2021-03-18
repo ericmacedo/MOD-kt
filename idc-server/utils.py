@@ -45,33 +45,35 @@ def process_text(text:str, deep:bool=False) -> str:
 
     stop_words = stopwords.words("english")
 
-    # 1st lowercase
+    # Lowercase
     text = text.lower() if deep else text
     
-    # strip tags
+    # Strip tags
     text = strip_tags(text)
     
-    # 3th symbols 
+    # Symbols 
     text = re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ', text)
 
-    # 4th line breaks
+    # Links
+    text = re.sub(r'https?:\/\/.*[\r\n]*', '', text)
+
+    # line breaks
     text = re.sub('-\n', r'', text)
     
-    # 5th Punctuation
+    # Punctuation
     text = re.sub(punctuation, " ", text) if deep else text
 
-    # 6th numerics
+    # Numerics
     tokens = [
         re.sub(r"^\d+$", r"", i)
         for i in re.findall(r"\S+", text)
     ] if deep else re.findall(r"\S+", text)
 
-    # 7th extra whitespaces
-    tokens = [*filter(lambda x: x != "", tokens)]
+    # Remove extra characteres
+    tokens = [*filter(lambda x: len(x) > 2, tokens)]
 
     tokens = [
-        token
-        for token in tokens
+        token for token in tokens
         if not token in stop_words] if deep else tokens
 
     return " ".join(tokens).strip()
@@ -154,11 +156,11 @@ def calculateSample(corpus_size:int) -> float:
 def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
     sentences = [
         doc.processed.split(" ")
-        for doc in (newData if newData else user.corpus)]
+        for doc in user.corpus]
 
     corpus_size = len(user.corpus)
 
-    model = user.word2vec if newData else Word2Vec(
+    model = Word2Vec(
         min_count=5,
         window=8,
         size=100,
@@ -172,9 +174,7 @@ def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
         workers=cpu_count(),
         iter=40)
 
-    model.build_vocab(
-        sentences=sentences,
-        update=(True if newData else False))
+    model.build_vocab(sentences=sentences)
     
     model.train(
         shuffle(sentences),
@@ -187,11 +187,11 @@ def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
 def Fast_Text(user:User, newData:list=None) -> FastText:
     sentences = [
         doc.processed.split(" ")
-        for doc in (newData if newData else user.corpus)]
+        for doc in user.corpus]
 
     corpus_size = len(user.corpus)
 
-    model = user.fast_text if newData else FastText(
+    model = FastText(
         min_count=5,
         window=8,
         size=100,
@@ -205,9 +205,7 @@ def Fast_Text(user:User, newData:list=None) -> FastText:
         workers=cpu_count(),
         iter=40)
 
-    model.build_vocab(
-        sentences=sentences,
-        update=(True if newData else False))
+    model.build_vocab(sentences=sentences)
     
     model.train(
         shuffle(sentences),
