@@ -117,7 +117,7 @@ class Clusterer:
 
         if self.doc_model == "Doc2Vec":
             doc_seeds = np.array([
-                self.doc2vec.infer_vector(paragraph)
+                self.doc2vec.infer_vector(paragraph, steps=5)
                 for paragraph in self.seed_paragraphs
             ])
             doc_seeds = l2_norm(doc_seeds)

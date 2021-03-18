@@ -1,10 +1,15 @@
 from models import User, Document
 from werkzeug.datastructures import FileStorage
-from gensim.models.doc2vec import Doc2Vec
 from gensim.models import FastText, Word2Vec
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from multiprocessing import cpu_count
+from sklearn.utils import shuffle
 from spacy.tokens.doc import Doc
 from spacy import displacy
-
+from openTSNE import TSNE
+from sklearn.metrics import pairwise_distances
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 def pdf_to_string(file:FileStorage):
     from io import StringIO
@@ -80,10 +85,6 @@ def term_frequency(text:str) -> dict:
         for k, v in sorted(tf.items(), key=lambda item: item[1], reverse=True)}
 
 def similarity_graph(corpus:list) -> dict:
-    import numpy as np
-    from sklearn.metrics import pairwise_distances
-    from sklearn.preprocessing import MinMaxScaler
-
     graph = {
         "nodes":        [],
         "distance":     [],
@@ -99,7 +100,7 @@ def similarity_graph(corpus:list) -> dict:
         metric="euclidean",
         n_jobs=-1)
 
-    dist_norm = MinMaxScaler([1e-5, 1]).fit_transform(dist)
+    dist_norm = MinMaxScaler([0.01, 1]).fit_transform(dist)
 
     for i in range(len(corpus)):
         indices = np.argsort(dist[i])
@@ -136,13 +137,10 @@ def l2_norm(data: list):
     return data / dist
 
 def t_SNE(corpus:list, perplexity:int=30) -> list:
-    from openTSNE import TSNE
-    import numpy as np
-
     tsne = TSNE(
         n_components = 2,
         perplexity=perplexity,
-        metric="cosine",
+        metric="euclidean",
         n_jobs=-1
     ).fit(np.array([doc.embedding for doc in corpus]))
     return tsne.tolist()
@@ -153,17 +151,14 @@ def calculateSample(corpus_size:int) -> float:
     
     return 1 * (1.0/ (10 ** int(corpus_size/100)))
 
-def Word_2_Vec(user:User) -> Word2Vec:
-    from multiprocessing import cpu_count
-    from sklearn.utils import shuffle
-
+def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
     sentences = [
         doc.processed.split(" ")
-        for doc in user.corpus]
+        for doc in (newData if newData else user.corpus)]
 
     corpus_size = len(user.corpus)
 
-    model = Word2Vec(
+    model = user.word2vec if newData else Word2Vec(
         min_count=5,
         window=8,
         size=100,
@@ -177,27 +172,26 @@ def Word_2_Vec(user:User) -> Word2Vec:
         workers=cpu_count(),
         iter=40)
 
-    model.build_vocab(sentences=sentences)
+    model.build_vocab(
+        sentences=sentences,
+        update=(True if newData else False))
     
     model.train(
         shuffle(sentences),
-        total_examples=model.corpus_count, 
+        total_examples=corpus_size, 
         epochs=40)
 
     model.wv.init_sims()
     return model
 
-def Fast_Text(user:User) -> FastText:
-    from multiprocessing import cpu_count
-    from sklearn.utils import shuffle
-
+def Fast_Text(user:User, newData:list=None) -> FastText:
     sentences = [
         doc.processed.split(" ")
-        for doc in user.corpus]
+        for doc in (newData if newData else user.corpus)]
 
     corpus_size = len(user.corpus)
 
-    model = FastText(
+    model = user.fast_text if newData else FastText(
         min_count=5,
         window=8,
         size=100,
@@ -211,29 +205,26 @@ def Fast_Text(user:User) -> FastText:
         workers=cpu_count(),
         iter=40)
 
-    model.build_vocab(sentences=sentences)
+    model.build_vocab(
+        sentences=sentences,
+        update=(True if newData else False))
     
     model.train(
         shuffle(sentences),
-        total_examples=model.corpus_count, 
+        total_examples=corpus_size, 
         epochs=40)
 
     model.wv.init_sims()
     return model
 
 def Doc_2_Vec(user:User) -> Doc2Vec:
-    from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-    from multiprocessing import cpu_count
-    from sklearn.utils import shuffle
-    from tempfile import NamedTemporaryFile
-
     tagged_data = [
         TaggedDocument(
             doc.processed.split(" "),
             tags=[doc.id]
         ) for doc in user.corpus]
 
-    corpus_size = len(tagged_data)
+    corpus_size = len(user.corpus)
 
     model = Doc2Vec(
         dm=1,

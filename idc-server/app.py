@@ -6,20 +6,23 @@ from flask import (
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from models import User
+from models import User, Document
 
 from clusterer import Clusterer
 
 from utils import (
     process_text, term_frequency,
     t_SNE, displaCy_NER, most_similar,
-    similarity_graph,
+    similarity_graph, l2_norm,
     encode_document, Doc_2_Vec,
     Fast_Text, Word_2_Vec)
 
 import spacy
 
 import json
+
+import faulthandler
+faulthandler.enable()
 
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
@@ -87,7 +90,7 @@ def corpus():
                 content.append(process_text(
                     pdf_to_string(f_file)))
                 processed.append(
-                    process_text(content[0]))
+                    process_text(content[0], deep=True))
                 tf.append(
                     term_frequency(processed[0]))
 
@@ -143,9 +146,6 @@ def corpus():
                 newData.append(doc)
                 del doc
 
-            # TODO UPDATE FASTTEXT MODEL
-            #   Only runs if the corpus is processed
-
             del file_name, content, processed, tf, n_entries
 
         elif request.method == "POST":
@@ -173,7 +173,7 @@ def corpus():
             }
         }, 500
 
-@app.route("/process_corpus", methods=["GET"])
+@app.route("/process_corpus", methods=["GET", "POST"])
 # Operation to process the corpus
 #   It computes:
 #       * FastText vectors
@@ -181,7 +181,7 @@ def corpus():
 #       * Distance matrix (graph representation)
 def process_corpus():
     try:
-        if request.method == "GET":
+        if request.method == "GET": # ground up processing
             userId = request.args["userId"]
             performance = request.args["performance"].upper()
 
@@ -197,18 +197,13 @@ def process_corpus():
                 user.doc_model = "S-BERT"
                 user.word_model = "FastText"
                 
-                embeddings = []
-                svg = []
-                
                 user.fast_text = Fast_Text(user)
 
                 nlp = spacy.load("en_core_web_lg")
 
                 for doc in corpus:
-                    embeddings.append(
-                        encode_document(doc.processed))
-                    svg.append(
-                        displaCy_NER(nlp(doc.processed)))
+                    doc.embedding = encode_document(doc.processed)
+                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
             else:
                 # SETTINGS
                 user.doc_model = "Doc2Vec"
@@ -218,24 +213,19 @@ def process_corpus():
 
                 model = Doc_2_Vec(user)
                 user.doc2vec = model
-                embeddings = [
-                    vec.tolist()
-                    for vec in model.docvecs.vectors_docs_norm]
 
                 nlp = spacy.load("en_core_web_sm")
-                svg = [
-                    displaCy_NER(nlp(
-                        process_text(doc.content,deep=False)
-                    )) for doc in corpus]
+                for index, doc in enumerate(corpus):
+                    doc.embedding = l2_norm(
+                        model.infer_vector(doc.processed.split(" "), steps=5)
+                    ).tolist()
+                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
 
                 del model
             del nlp
             
-            for doc in corpus:
-                doc.embedding = embeddings.pop(0)
-                doc.svg = svg.pop(0)
-
-            user.graph  = similarity_graph(corpus)
+            graph  = similarity_graph(corpus)
+            user.graph = graph
             user.tsne   = t_SNE(corpus)
 
             user.isProcessed = True
@@ -245,6 +235,83 @@ def process_corpus():
                 "userData": user.userData()
             }, 200
 
+        elif request.method == "POST": # Increment processing
+            userId = request.form["userId"]
+
+            user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+
+            new_docs = request.form["new_docs"].split(",")
+            
+            docs = [
+                Document(userId=userId, id=id)
+                for id in new_docs]
+
+            user.generate_index()
+            corpus = user.corpus
+
+            if user.word_model == "FastText":
+                user.fast_text = Fast_Text(user=user, newData=docs)
+            else:
+                user.word2vec = Word_2_Vec(user=user, newData=docs)
+
+            if user.doc_model == "S-BERT":
+                nlp = spacy.load("en_core_web_lg")
+
+                for doc in docs:
+                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
+                    doc.embedding = encode_document(doc.processed)
+            else:
+                nlp = spacy.load("en_core_web_sm")
+                
+                doc2vec = user.doc2vec
+
+                for doc in docs:
+                    doc.embedding = l2_norm(
+                        doc2vec.infer_vector(doc.processed.split(" "), steps=5)
+                    ).tolist()
+                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
+
+            corpus = user.corpus # refresh corpus reference
+            
+            graph  = similarity_graph(corpus)
+            user.graph = graph
+            
+            tsne  = t_SNE(corpus)
+            user.tsne = tsne
+
+            seed = json.loads(request.form["clusters"])
+            k = seed["cluster_k"]
+
+            clusterer = Clusterer(
+                user=user,
+                index=user.index,
+                k=k,
+                seed=seed)
+
+            return {
+                "status": "success",
+                "newData": {
+                    "new_index": [doc.id for doc in docs],
+                    "index": user.index,
+                    "corpus": [doc.as_dict() for doc in user.corpus],
+                    "graph": user.graph,
+                    "tsne": user.tsne,
+                    "clusters": {
+                        "cluster_k":        clusterer.k,
+                        "labels":           clusterer.doc_labels.tolist(),
+                        "colors":           clusterer.colors,
+                        "cluster_names":    clusterer.cluster_names,
+                        "cluster_docs":     clusterer.doc_clusters,
+                        "cluster_words":    [[
+                            { "word": word, "weight": 1 }
+                            for word in paragraph[:5]
+                            ] for paragraph in clusterer.seed_paragraphs
+                        ]
+                    }
+                }
+            }, 200
     except Exception as e:
         print(e)
         return {
@@ -323,7 +390,6 @@ def session():
                 index           = session["index"],
                 clusters        = session["clusters"],
                 graph           = session["graph"],
-                link_selector   = session["link_selector"],
                 tsne            = session["tsne"],
                 controls        = session["controls"],
                 selected        = session["selected"],

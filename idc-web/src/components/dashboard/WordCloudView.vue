@@ -13,7 +13,7 @@
           :disabled="focused == null"
           value="document">Document Word Cloud</b-form-select-option>
         <b-form-select-option
-          :disabled="focused == null"
+          :disabled="selected.length == 0"
           value="selection">Selection Word Cloud</b-form-select-option>
       </b-form-select>
 		</b-input-group>
@@ -108,15 +108,14 @@ export default {
         }
       }
 
-      if(Object.keys(vocab).length == 0) {
-        vocab = null;
+      if(vocab && Object.keys(vocab).length > 0) {
+        return Object.keys(vocab).map(word => {
+          return {name: word, value: vocab[word]}})
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 50);
       }
 
-      return vocab ? Object.keys(vocab).map(word => {
-        return {name: word, value: vocab[word]}})
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 50)
-      : [ {word: "", value: 0} ];
+      return [ {word: "", value: 0} ];
     },
     ...mapState({
       corpus: state => state.userData.corpus,

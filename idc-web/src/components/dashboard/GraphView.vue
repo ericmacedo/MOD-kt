@@ -1,17 +1,26 @@
 <template>
 <b-card no-body footer-tag="footer">
-	<b-form-group id="projectionSwitcher">
+	<div
+    id="projectionSwitcher"
+    class="d-flex w-100 justify-content-between">
       <b-form-radio-group
         v-model="projection"
 				:options="projection_list"
 				button-variant="outline-dark"
-				class="ml-auto"
 				no-key-nav
 				size="sm"
 				buttons
 				@change="updateLayout"
       ></b-form-radio-group>
-	</b-form-group>
+      <b-button-group size="sm" class="ml-auto mr-2">
+        <b-button
+          size="sm"
+          variant="secondary"
+          title="Press it to recalculate the silhouette score"
+          @click="silhouette_score = callSilhouette()">Silhouette</b-button>
+        <b-button variant="outline-secondary" disabled>{{silhouette_score}}</b-button>
+      </b-button-group>
+	</div>
 	<svg id="graphViewCanvas"></svg>
 	<template id="graphViewControls" #footer>
 		<b-container fluid>
@@ -164,6 +173,13 @@
 <script>
 import { mapState, mapGetters, mapMutations, mapActions } from  "vuex";
 import * as d3 from "d3";
+import silhouette from "@robzzson/silhouette";
+
+Array.prototype.pushIfNotExist = function(item) { 
+  if (!this.includes(item)) {
+    this.push(item);
+  }
+};
 
 export default {
   name: "GraphView",
@@ -173,47 +189,75 @@ export default {
 			height: 430,
 			projection_list: ["t-SNE", "DAG"],
 			simulation: undefined,
+      svg: undefined,
 			canvas: undefined,
 			node: undefined,
 			link: undefined,
-      tooltip: undefined
+      tooltip: undefined,
+      silhouette_score: 0.0
 		}
 	},
 	watch: {
 		projection() {
 			this.updateLayout();
+      this.silhouette_score = this.callSilhouette();
 		},
-		selected() {
-      let objRef = this;
-      
-      if(this.selected.length == 0) {
-        this.node.classed("selected", false);
-      } else {
-        this.node.classed("selected", d =>
-          objRef.selected.includes(d.id));
-      }
-		},
-    'highlight':{
+    highlight:{
       deep: true,
       handler () {
-        const node_normal  = 0.9,
-              node_faded   = 0.3,
-              link_normal  = 0.5,
-              link_faded   = 0.1;
-
+        this.node
+            .classed("faded", false);
+          this.link
+            .classed("faded", false);
         if(this.highlight == "") {
-          this.node.attr("opacity", node_normal);
-          this.link.attr("opacity", link_normal);
+          this.node
+            .classed("faded", false);
+          this.link
+            .classed("faded", false);
         } else {
           const doc_ids = this.clusters.cluster_docs[this.highlight];
           
-          this.node.attr("opacity", 
-            d => doc_ids.includes(d.id) ? node_normal : node_faded);
+          this.node.classed("faded", d => !doc_ids.includes(d.id));
+          this.link.classed("faded",
+            d => !(doc_ids.includes(d.source.id) || doc_ids.includes(d.target.id)))
+        }
+      }
+    },
+    selected: {
+      deep: true,
+      handler() {
+        let objRef = this;
+
+        if(this.selected.length == 0) {
+          this.node
+            .classed("selected", false)
+            .classed("faded", false);
+          this.link
+            .classed("selected", false)
+            .classed("faded", false);
+        } else {
+          let nodes = this.selected.map(d => d),
+              links = [];
+
+          this.link.data().forEach((link) => {
+            if (objRef.selected.includes(link.source.id)) {
+              nodes.pushIfNotExist(link.target.id);
+              links.push(true);
+            } else if (objRef.selected.includes(link.target.id)) {
+              nodes.pushIfNotExist(link.source.id);
+              links.push(true);
+            } else {
+              links.push(false);
+            }
+          });
           
-          this.link.attr("opacity",
-            d => doc_ids.includes(d.source.id) ||
-                doc_ids.includes(d.target.id) ?
-                link_normal : link_faded);
+          this.link
+            .classed("selected", (d, i) => links[i])
+            .classed("faded", (d, i) => !links[i]);
+            
+            this.node
+              .classed("selected", d => nodes.includes(d.id))
+              .classed("faded", d => !nodes.includes(d.id));
         }
       }
     }
@@ -262,8 +306,8 @@ export default {
       }
     },
     ...mapState("session", [
-      "controls", "highlight", "selected",
-      "clusters", "tsne", "index"]),
+      "controls", "highlight", "selected", "focused",
+      "clusters", "tsne", "index", "new_docs"]),
     ...mapState("userData", ["corpus"]),
     ...mapGetters("session", ["nodes", "links", "index_size"])
 	},
@@ -289,20 +333,19 @@ export default {
 			});
 
 		// CANVAS
-		this.canvas = d3.select("#graphViewCanvas")
+		this.svg = d3.select("#graphViewCanvas")
 			.attr("width", this.width)
 			.attr("height", this.height)
 			.attr("viewBox", [0, 0, this.width, this.height])
 			.call(d3.zoom()
 				.scaleExtent([0.1, 8])
-				.on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
-			.append("g");
+				.on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}));
+
+		this.canvas = this.svg.append("g");
 
 		// 	LINKS
 		this.link = this.canvas.append("g")
 			.attr("class", "link")
-			.attr("stroke", "#999")
-			.attr("stroke-opacity", 0.5)
 			.selectAll("line");
 
 		// 	NODES
@@ -312,11 +355,7 @@ export default {
 
     this.tooltip = d3.select('body')
       .append('div')
-      .attr('id', 'node-tooltip')
-      .style("opacity", .9)
-      .style("position", "absolute")
-      .style("z-index", "10")
-      .style("visibility", "hidden");
+      .attr('id', 'node-tooltip');
 		
 		this.updateLayout();
 	},
@@ -346,6 +385,12 @@ export default {
 					appendToast: true
 				});
 		},
+    callSilhouette() {
+      const emb = this.node.data().map(d => [d.x, d.y]),
+            labels = this.clusters.labels;
+
+      return ((emb && labels) ? silhouette(emb, labels) : 0.0).toFixed(4);
+    },
 		parameterState(value, min, max) {
 			return (value > max) || (value < min) ? false : null;
 		},
@@ -357,18 +402,25 @@ export default {
 
 			// NODES
 			this.node = this.node.data(_nodes).join("circle")
-				.style("pointer-events", "all")
 				.attr("r", 4)
-				.attr("opacity", 0.9)
 				.attr("cx", d => d.x)
 				.attr("cy", d => d.y)
 				.classed("selected", d =>
 					objRef.selected.includes(d.id))
+        .classed("new_doc", d =>
+					objRef.new_docs.includes(d.id))
 				.attr("fill", (d, i) => {
 					let _label = objRef.clusters.labels[i];
 					return objRef.clusters.colors[_label];})
 				.on("click", function(e, d) {
-					objRef.updateSelected(d.id);
+          // TODO FIX selection
+          let index = objRef.selected.indexOf(d.id);
+          if(e.ctrlKey) {
+            objRef.updateSelected(d.id);
+          } else {
+            objRef.setSelected( index == -1 ? [d.id] : [] );
+            objRef.setFocused(  index == -1 ? d.id : null);
+          }
 					
 					let _ref = d3.select(this);
 					_ref.classed("selected", !_ref.classed("selected"));
@@ -381,14 +433,16 @@ export default {
           const doc = objRef.corpus.find(doc => doc.id == node.id);
           const index = objRef.index.indexOf(doc.id),
                 label = objRef.clusters.labels[index],
-                // cluster_name = objRef.clusters.cluster_names[label],
                 color = objRef.clusters.colors[label];
 
           let tooltip_html =
             `<strong style="color:${color};">${node.name}</strong><br/>` +
             `<br/>`;
 
-          Object.keys(doc.term_frequency).slice(0,5).forEach((term) => tooltip_html += `${term}<br/>`);
+          Object.keys(doc.term_frequency)
+            .sort((a, b) => doc.term_frequency[`${b}`] - doc.term_frequency[`${a}`])
+            .slice(0,5)
+            .forEach((term) => tooltip_html += `${term}<br/>`);
 
           objRef.tooltip	
             .html(tooltip_html)
@@ -420,9 +474,7 @@ export default {
 					}}));
 
 			// LINKS
-			this.link = this.link.data(_links).join("line")
-				.attr("stroke", "#999")
-				.attr("opacity", 0.7);
+			this.link = this.link.data(_links).join("line");
 
 			// SIMULATION FORCES
 			this.simulation
@@ -502,7 +554,7 @@ export default {
 					"danger");
       });
     },
-    ...mapMutations("session", ["updateSelected"]),
+    ...mapMutations("session", ["updateSelected", "setSelected", "setFocused"]),
     ...mapActions(["getProjection"])
 	},
 }
@@ -543,27 +595,52 @@ svg
 	padding-top: 5px
 
 .link
-	path
-		stroke: #999
-		stroke-opacity: 0.3
-		fill: none
+  line
+    stroke: #999999
+    stroke-opacity: 1.0
+    fill: none
+    &.selected
+      stroke: #000000
+      opacity: 1.0
+    &.faded
+      stroke: #999999
+      opacity: 0.1
 
 .node
-	circle.selected
-			stroke-width: 1px
-			stroke: red
+  circle
+    stroke-width: 0.5px
+    stroke: #999999
+    opacity: 1.0
+    pointer-events: all
+    &.selected
+      stroke-width: 0.5px
+      stroke: #000000
+      opacity: 1.0
+    &.faded
+      stroke-width: 0.5px
+      stroke: #999999
+      opacity: 0.3
+    &.new_doc
+      stroke-width: 1px
+      stroke: lime
+      opacity: 1.0
 
 #projectionSwitcher
 	margin: 5px 0 5px 5px
+  height: 20px
 
 #node-tooltip
   padding: 1px
   font-size: smaller
+  position: absolute
   opacity: 0.8
+  max-width: 150px
   background: #f7f7f7
   text-align: center
   border-radius: 5px
   pointer-events: none
   white-space: normal
   word-wrap: break-word
+  z-index: 10
+  visibility: hidden
 </style>

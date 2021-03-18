@@ -18,7 +18,7 @@
             class="component h-50 w-100"></word-cloud>
         </b-col>
         <b-col cols="12" sm="6" md="6" lg="4">
-          <graph-view id="graphView"
+          <graph-view id="graphView" ref="graphView"
             class="component h-100 w-100"></graph-view>
         </b-col>
         <b-col cols="12" sm="6" md="6" lg="4">
@@ -120,6 +120,31 @@
 				Yes, take me to <strong>Corpus</strong>!
 		</b-button>
 	</b-modal>
+  <b-modal
+		ref="upload-modal"
+		id="upload-modal"
+		size="lg"
+		header-bg-variant="dark"
+		header-text-variant="light"
+		title="Upload new documents"
+		centered
+    scrollable
+    hide-footer
+		no-close-on-backdrop
+		no-close-on-esc>
+		<upload-component
+      v-on:re-render="$forceUpdate()"
+      context="MODAL"></upload-component>
+	</b-modal>
+
+  <b-button
+    id="fab-btn"
+    size="lg"
+    variant="success"
+    v-b-modal.upload-modal
+    pill>
+    <font-awesome-icon :icon="['fas', 'plus']"/>&nbsp;
+  </b-button>
 </div>
 </template>
 
@@ -130,6 +155,8 @@ import ClusterManager from './dashboard/ClusterManager';
 import WordCloud from './dashboard/WordCloudView';
 import WordSimilarity from './dashboard/WordSimilarityView';
 import { mapState, mapActions } from "vuex";
+import UploadComponent from "./UploadComponent";
+
 
 export default {
 	name: 'Dashboard',
@@ -138,7 +165,8 @@ export default {
 		"document-view":    DocumentView,
 		"cluster-manager":  ClusterManager,
     "word-cloud":       WordCloud,
-    "word-similarity":  WordSimilarity
+    "word-similarity":  WordSimilarity,
+    "upload-component": UploadComponent
 	},
 	data() {
 		return {
@@ -285,4 +313,12 @@ export default {
 #wordSimilarityView
   height: 65%
   max-height: 400px !important
+
+#fab-btn
+  position: absolute
+  bottom: 10px
+  right: 10px
+  opacity: 0.5
+  &:hover
+    opacity: 1.0
 </style>

@@ -4,6 +4,7 @@ from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec
 from datetime import datetime
 from uuid import uuid4
+import threading
 
 class User:
     def __init__(self, userId:str):
@@ -156,6 +157,8 @@ class User:
             id, ext = os.path.splitext(f_path)
             if ext == ".json" and id in ids:
                 os.remove(f"{self.__corpus}/{f_path}")
+
+        # TODO refactor graph and tsne on delete
         self.generate_index()
 
     # SESSIONS
@@ -180,7 +183,6 @@ class User:
                         notes:str,
                         index:list,
                         graph:dict,
-                        link_selector:str,
                         clusters:dict,
                         tsne:list,
                         controls:dict,
@@ -199,7 +201,6 @@ class User:
             notes           = notes,
             index           = index,
             graph           = graph,
-            link_selector   = link_selector,
             clusters        = clusters,
             tsne            = tsne,
             controls        = controls,
@@ -209,8 +210,9 @@ class User:
             word_similarity = word_similarity,
             date            = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC"))
 
-        with open(session_path, "w", encoding="utf-8") as s_file:
-            json.dump(session, s_file)
+        # ASYNC
+        t = threading.Thread(target=User.async_write, args=(session_path, session))
+        t.start()
 
         return session
     
@@ -239,8 +241,9 @@ class User:
     
     @graph.setter
     def graph(self, graph:dict):
-        with open(self.__graph, "w", encoding="utf-8") as g_file:
-            json.dump(graph, g_file)
+        # ASYNC
+        t = threading.Thread(target=User.async_write, args=(self.__graph, graph))
+        t.start()
 
     # TSNE
     @property
@@ -293,6 +296,14 @@ class User:
         doc2vec.save(self.__doc2vec)
 
     # UTILS
+    @classmethod
+    def async_write(cls, path, graph):
+        # ASYNC FILE WRITTING
+        # As files tends to getter bigger and bigger
+        # It writes the file in background
+        with open(path, "w", encoding="utf-8") as g_file:
+            json.dump(graph, g_file)
+
     def as_dict(self) -> dict:
         return dict(
             userId          = self.userId,
@@ -319,6 +330,11 @@ class User:
             id, ext = os.path.splitext(f_path)
             if ext == ".json":
                 os.remove(f"{self.__corpus}/{f_path}")
+        
+        for f_path in os.listdir(self.__sessions):
+            id, ext = os.path.splitext(f_path)
+            if ext == ".json":
+                os.remove(f"{self.__sessions}/{f_path}")
     
     def userData(self) -> dict:
         return {
@@ -342,7 +358,6 @@ class User:
                 "notes":    "",
                 "index":    self.index,
                 "graph":    self.graph,
-                "link_selector": "Distance fn",
                 "clusters": {
                     "cluster_names": [],
                     "colors": [],
@@ -354,6 +369,7 @@ class User:
                 "controls": {
                     "projection": "t-SNE",
 		            "tsne": {"perplexity": 30},
+                    "link_selector": "Distance fn",
                     "distance": 0.1,
                     "n_neighbors": 0,
                     "linkDistance": 20,
@@ -386,8 +402,8 @@ class Document:
             self._processed      = doc["processed"]
             self._term_frequency = doc["term_frequency"]
             self._embedding      = doc["embedding"] if "embedding" in doc else None
+            self._svg            = doc["svg"] if "svg" in doc else None
             self._uploaded_on    = doc["uploaded_on"]
-            self.__svg           = doc["svg"] if "svg" in doc else None
 
     # FILE NAME
     @property
@@ -477,7 +493,7 @@ class Document:
             processed       = self._processed,
             term_frequency  = self._term_frequency,
             embedding       = self._embedding,
-            svg             = self.__svg,
+            svg             = self._svg,
             uploaded_on     = self._uploaded_on)
 
     
@@ -497,7 +513,6 @@ class Session:
             self.notes              = session["notes"]
             self.index              = session["index"]
             self.graph              = session["graph"]
-            self.link_selector      = session["link_selector"]
             self.clusters           = session["clusters"]
             self.tsne               = session["tsne"]
             self.controls           = session["controls"]
@@ -514,7 +529,6 @@ class Session:
             notes               = self.notes,
             index               = self.index,
             graph               = self.graph,
-            link_selector       = self.link_selector,
             clusters            = self.clusters,
             tsne                = self.tsne,
             controls            = self.controls,

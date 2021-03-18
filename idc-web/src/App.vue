@@ -1,5 +1,5 @@
 <template>
-<div id="app">
+<div id="app" ref="app">
   <b-navbar sticky small
     fixed="top"
     class="w-100"
@@ -162,7 +162,7 @@ import { mapState, mapActions } from "vuex";
 export default {
   name: 'App',
   components: {
-    "notes-widget": NotesWidget
+    "notes-widget": NotesWidget,
   },
   data: function() {
     return {

@@ -210,6 +210,33 @@ export default new Vuex.Store({
         }).then(result => resolve(result))
           .catch(error => reject(error));
       });
+    },
+    async updateCorpus({state, commit}, newData) {
+      const formData = new FormData();
+      
+      formData.set("userId", state.userData.userId);
+      formData.set("clusters", JSON.stringify(state.session.clusters));
+      formData.set("new_docs", newData);
+
+      return new Promise((resolve, reject) => {
+        axios.post(state.SERVER+"/process_corpus", formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        }).then(({data}) => {
+          const newData = data.newData;
+
+          // SESSION UPDATE
+          commit("session/setTsne", newData.tsne);
+          commit("session/setGraph", newData.graph);
+          commit("session/setIndex", newData.index);
+          commit("session/setNewDocs", newData.new_index);
+          commit("session/setClusters", newData.clusters);
+
+          // USER DATA UPDATE
+          commit("userData/setCorpus", newData.corpus);
+
+          resolve(data);
+        }).catch(error => reject(error));
+      });
     }
   }
 });

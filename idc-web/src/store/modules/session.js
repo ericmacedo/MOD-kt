@@ -1,6 +1,7 @@
 const state = {
   id: undefined,
   name: "Default",
+  new_docs: [],
   notes: "",
   index: [],
   graph: { nodes: [], distance: [], neighborhood: [] },
@@ -41,6 +42,9 @@ const mutations = {
   },
   setNotes(state, notes) {
     state.notes = notes;
+  },
+  setNewDocs(state, docs) {
+    state.new_docs = docs;
   },
   setIndex(state, index) {
     state.index = index;
@@ -90,10 +94,11 @@ const mutations = {
   setControls({controls}, {
                         projection, tsne, distance,
                         n_neighbors, linkDistance,
-                        charge
+                        charge, link_selector
                       }) {
     controls.projection     = projection;
     controls.tsne           = { perplexity: tsne.perplexity };
+    controls.link_selector  = link_selector;
     controls.distance       = distance;
     controls.n_neighbors    = n_neighbors;
     controls.linkDistance   = linkDistance;
@@ -139,7 +144,6 @@ const getters = {
       notes:            state.notes,
       index:            state.index,
       graph:            state.graph,
-      link_selector:    state.link_selector,
       tsne:             state.tsne,
       clusters:         state.clusters,
       controls:         state.controls,
