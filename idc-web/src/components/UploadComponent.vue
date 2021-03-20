@@ -173,7 +173,7 @@ export default {
 				formData.set("format", format);
 				formData.set("fields", fields);
 				
-				const result = await objRef.uploadDocument(formData);
+				let result = await objRef.uploadDocument(formData);
 				
 				if (result.status == 200) {
 					objRef.queue[index].status = objRef.STATUS["SUCCESS"];
@@ -184,11 +184,14 @@ export default {
 				// SCROLLS TO CURRENT ITEM
 				objRef.$refs.uploadQueue.children[index].scrollIntoView(
 					{behavior: 'smooth'});
+        
+        const ids = result.data.newData.map(d => d.id);
 
+        result = null;
         if(objRef.context == "MODAL") {
-          return result.data.newData.map(d => d.id);
+          return ids;
         }
-			});				
+			});
 			
 			this.makeToast(
 				"Uploading files",		// title

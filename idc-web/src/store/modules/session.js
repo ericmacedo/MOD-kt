@@ -35,42 +35,65 @@ const state = {
 
 const mutations = {
   setId(state, id) {
+    state.id = null;
     state.id = id;
   },
   setName(state, name) {
+    state.name = null;
     state.name = name;
   },
   setNotes(state, notes) {
+    state.notes = null;
     state.notes = notes;
   },
   setNewDocs(state, docs) {
+    state.new_docs = null;
     state.new_docs = docs;
   },
   setIndex(state, index) {
+    state.index = null;
     state.index = index;
   },
   setGraph({graph}, {nodes, distance, neighborhood}) {
+    graph.nodes = null;
     graph.nodes = nodes;
+    
+    graph.distance = null;
     graph.distance = distance;
+
+    graph.neighborhood = null;
     graph.neighborhood = neighborhood;
   },
   setLinkSelector({controls}, link_selector) {
+    controls.link_selector = null;
     controls.link_selector = link_selector;
   },
   setTsne(state, tsne) {
+    state.tsne = null;
     state.tsne = tsne;
   },
   setClusters({clusters}, {
-                        cluster_k, cluster_names,
-                        colors, cluster_docs, labels,
-                        cluster_words
-                      }) {
-    clusters.cluster_k      = cluster_k;
-    clusters.cluster_names  = cluster_names;
-    clusters.colors         = colors;
-    clusters.cluster_docs   = cluster_docs;
-    clusters.cluster_words  = cluster_words;
-    clusters.labels         = labels;
+    cluster_k, cluster_names,
+    colors, cluster_docs, labels,
+    cluster_words
+  }) {
+    clusters.cluster_k = null;
+    clusters.cluster_k = cluster_k;
+    
+    clusters.cluster_names = null;
+    clusters.cluster_names = cluster_names;
+
+    clusters.colors = null;
+    clusters.colors = colors;
+
+    clusters.cluster_docs = null;
+    clusters.cluster_docs = cluster_docs;
+
+    clusters.cluster_words = null;
+    clusters.cluster_words = cluster_words;
+    
+    clusters.labels = null;
+    clusters.labels = labels;
   },
   updateClusters({clusters}, cluster) {
     if (cluster.index == clusters.cluster_k) {
@@ -92,22 +115,37 @@ const mutations = {
     clusters.cluster_words.pop(index);
   },
   setControls({controls}, {
-                        projection, tsne, distance,
-                        n_neighbors, linkDistance,
-                        charge, link_selector
-                      }) {
-    controls.projection     = projection;
-    controls.tsne           = { perplexity: tsne.perplexity };
-    controls.link_selector  = link_selector;
-    controls.distance       = distance;
-    controls.n_neighbors    = n_neighbors;
-    controls.linkDistance   = linkDistance;
-    controls.charge         = charge;
+    projection, tsne, distance,
+    n_neighbors, linkDistance,
+    charge, link_selector
+  }) {
+    controls.projection = null;
+    controls.projection = projection;
+    
+    controls.tsne = null;
+    controls.tsne = { perplexity: tsne.perplexity };
+
+    controls.link_selector = null;
+    controls.link_selector = link_selector;
+
+    controls.distance = null;
+    controls.distance = distance;
+
+    controls.n_neighbors = null;
+    controls.n_neighbors = n_neighbors;
+
+    controls.linkDistance = null;
+    controls.linkDistance = linkDistance;
+
+    controls.charge = null;
+    controls.charge = charge;
   },
   setDate(state, date) {
+    state.date = null;
     state.date = date;
   },
   setSelected(state, selected) {
+    state.selected = null;
     state.selected = selected;
   },
   updateSelected(state, id) {
@@ -122,17 +160,22 @@ const mutations = {
     }
   },
   setHighlight(state, cluster_name) {
+    state.highlight = null;
     state.highlight = cluster_name;
   },
   updateHighlight(state, cluster_name) {
     state.highlight = (state.highlight == cluster_name) ? "" : cluster_name;
   },
   setFocused(state, focused) {
+    state.focused = null;
     state.focused = focused;
   },
   setWordSimilarity({word_similarity}, {query, most_similar}) {
-    word_similarity.query         = query;
-    word_similarity.most_similar  = most_similar;
+    word_similarity.query = null;
+    word_similarity.query = query;
+
+    word_similarity.most_similar = null;
+    word_similarity.most_similar = most_similar;
   }
 };
 

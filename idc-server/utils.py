@@ -267,3 +267,44 @@ def most_similar(user:User, positive:list, topn:int=10) -> list:
     return [
         {"word": word[0], "value": word[1]}
         for word in sim_wors]
+
+def sankey_graph(user:User) -> dict:
+    sessions = user.sessions
+
+    graph = {
+        "sessions": [],
+        "nodes": [],
+        "links": []}
+
+    for i, session in enumerate(sessions):
+        graph["sessions"].append({
+            "id": session.id,
+            "name": session.name,
+            "clusters": []})
+        for j in range(session.clusters["cluster_k"]):
+            cluster_id = f"session{i}_cluster{j}"
+            graph["nodes"].append({
+                "id": cluster_id,
+                "name": session.clusters["cluster_names"][j],
+                "color": session.clusters["colors"][j],
+                "order": j,
+                "session": session.id,
+                "docs": session.clusters["cluster_docs"][j]})
+            graph["sessions"][i]["clusters"].append(cluster_id)
+
+            if i == (len(sessions) - 1):
+                continue
+            
+            next_session = sessions[i+1]
+            for k in range(next_session.clusters["cluster_k"]):
+                intersection = set(
+                    session.clusters["cluster_docs"][j]
+                ).intersection(set(next_session.clusters["cluster_docs"][k]))
+                if len(intersection) > 0:
+                    graph["links"].append({
+                        "id": f"link_{j}_{k}",
+                        "source": cluster_id,
+                        "target": f"session{i+1}_cluster{k}",
+                        "value": len(intersection)})
+
+    return graph

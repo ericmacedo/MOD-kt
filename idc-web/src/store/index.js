@@ -28,6 +28,7 @@ export default new Vuex.Store({
           commit("userData/setSessions",    data.userData.sessions);
           commit("userData/setIsProcessed", data.userData.isProcessed);
           resolve(data);
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -42,6 +43,7 @@ export default new Vuex.Store({
         }).then(({data}) =>  {
           commit("userData/clearUserData");
           resolve(data);
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -52,6 +54,7 @@ export default new Vuex.Store({
         }).then((result) => {
           commit("userData/pushCorpus", result.data.newData)
           resolve(result);
+          result = null;
         }).catch(error => reject(error));
       });
     },
@@ -101,6 +104,7 @@ export default new Vuex.Store({
           commit("session/setWordSimilarity", session.word_similarity);
 
           resolve(data);
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -115,6 +119,8 @@ export default new Vuex.Store({
           commit("userData/setCorpus",    data.userData.corpus);
           commit("userData/setSessions",  data.userData.sessions);
           resolve(data);
+          
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -143,6 +149,7 @@ export default new Vuex.Store({
           commit("session/setWordSimilarity", session.word_similarity);
 
           resolve(data);
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -161,6 +168,8 @@ export default new Vuex.Store({
 
           commit("session/setTsne", data.projection);
           resolve(data);
+
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -178,6 +187,8 @@ export default new Vuex.Store({
             most_similar: data.most_similar
           });
           resolve(data)
+
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -194,7 +205,9 @@ export default new Vuex.Store({
         }).then(({data}) => {
           commit("session/setId",   data.sessionData.id);
           commit("session/setDate", data.sessionData.date);
-          resolve(data)
+          resolve(data);
+
+          data = null;
         }).catch(error => reject(error));
       });
     },
@@ -207,8 +220,11 @@ export default new Vuex.Store({
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/session", formData, {
           headers: { "Content-Type": "multipart/form-data" }
-        }).then(result => resolve(result))
-          .catch(error => reject(error));
+        }).then(result => {
+          resolve(result);
+
+          result = null;
+        }).catch(error => reject(error));
       });
     },
     async updateCorpus({state, commit}, newData) {
@@ -235,7 +251,19 @@ export default new Vuex.Store({
           commit("userData/setCorpus", newData.corpus);
 
           resolve(data);
+
+          data = null;
         }).catch(error => reject(error));
+      });
+    },
+    async requestSankeyGraph({state}, userId) {
+      return new Promise((resolve, reject) => {
+        axios.get(state.SERVER+"/sankey", {params: {userId: userId}})
+          .then(({data}) => {
+            resolve(data);
+
+            data = null;
+          }).catch(error => reject(error));
       });
     }
   }

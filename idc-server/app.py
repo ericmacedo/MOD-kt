@@ -15,7 +15,7 @@ from utils import (
     t_SNE, displaCy_NER, most_similar,
     similarity_graph, l2_norm,
     encode_document, Doc_2_Vec,
-    Fast_Text, Word_2_Vec)
+    Fast_Text, Word_2_Vec, sankey_graph)
 
 import spacy
 
@@ -491,6 +491,27 @@ def word_similarity():
                 "query": query,
                 "most_similar": word_sim
             }, 200
+    except Exception as e:
+        print(e)
+        return {
+            "status": "Fail",
+            "message": {
+                "title": str(type(e)),
+                "content": str(e)
+            }
+        }, 500
+
+@app.route("/sankey", methods=["GET"])
+def sankey():
+    try:
+        if request.method == "GET":
+            userId = request.args["userId"]
+            
+            user = User(userId=userId)
+            if not user:
+                raise Exception("No such user exists!")
+
+            return sankey_graph(user=user), 200
     except Exception as e:
         print(e)
         return {

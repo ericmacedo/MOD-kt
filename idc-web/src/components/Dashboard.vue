@@ -181,7 +181,6 @@ export default {
     })
   },
 	mounted() {
-    console.log(this);
     if(this.isProcessed) {
       this.$bvModal.show('dashboard-sessions-modal');
     } else {

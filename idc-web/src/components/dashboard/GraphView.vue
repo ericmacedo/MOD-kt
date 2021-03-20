@@ -215,11 +215,13 @@ export default {
           this.link
             .classed("faded", false);
         } else {
-          const doc_ids = this.clusters.cluster_docs[this.highlight];
+          let doc_ids = this.clusters.cluster_docs[this.highlight];
           
           this.node.classed("faded", d => !doc_ids.includes(d.id));
           this.link.classed("faded",
-            d => !(doc_ids.includes(d.source.id) || doc_ids.includes(d.target.id)))
+            d => !(doc_ids.includes(d.source.id) || doc_ids.includes(d.target.id)));
+
+          doc_ids = null;
         }
       }
     },
@@ -255,9 +257,12 @@ export default {
             .classed("selected", (d, i) => links[i])
             .classed("faded", (d, i) => !links[i]);
             
-            this.node
-              .classed("selected", d => nodes.includes(d.id))
-              .classed("faded", d => !nodes.includes(d.id));
+          this.node
+            .classed("selected", d => nodes.includes(d.id))
+            .classed("faded", d => !nodes.includes(d.id));
+
+          nodes = null;
+          links = null;
         }
       }
     }
@@ -386,8 +391,8 @@ export default {
 				});
 		},
     callSilhouette() {
-      const emb = this.node.data().map(d => [d.x, d.y]),
-            labels = this.clusters.labels;
+      let emb = this.node.data().map(d => [d.x, d.y]),
+          labels = this.clusters.labels;
 
       return ((emb && labels) ? silhouette(emb, labels) : 0.0).toFixed(4);
     },
@@ -395,10 +400,10 @@ export default {
 			return (value > max) || (value < min) ? false : null;
 		},
 		updateLayout() {
-			const objRef = this,
-						_links = this.links,
-						_nodes = this.nodes,
-						_projection = (this.controls.projection == "DAG");
+			let objRef = this,
+          _links = this.links,
+          _nodes = this.nodes,
+          _projection = (this.controls.projection == "DAG");
 
 			// NODES
 			this.node = this.node.data(_nodes).join("circle")
@@ -486,7 +491,7 @@ export default {
 			this.link.append("title").text(d => `${d.source.name} → ${d.target.name}`);
 
 			if(!_projection) {
-				const _emb = this.tsne;
+				let _emb = this.tsne;
 
 				_emb.forEach((row, index) => {
 					_nodes[index].x = (row[0] + objRef.width/11) * 6;
@@ -502,6 +507,8 @@ export default {
 					.attr("y1", d => (_emb[d.source.index][1] + this.height/11) * 6)
 					.attr("x2", d => (_emb[d.target.index][0] + this.width/11) * 6)
 					.attr("y2", d => (_emb[d.target.index][1] + this.height/11) * 6);
+
+        _emb = null;
 			}
 
 			// FORCE CENTER
@@ -533,6 +540,9 @@ export default {
 			} else {
 				this.simulation.alpha(0).stop();
 			}
+
+      _links = null;
+      _nodes = null;
 		},
 		requestProjection(projection) {
 			let objRef = this;
