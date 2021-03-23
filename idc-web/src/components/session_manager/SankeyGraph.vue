@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="sankeyViewComponent">
     <svg id="graphViewCanvas"></svg>
   </div>
 </template>
@@ -7,6 +7,8 @@
 <script>
 import * as d3 from "d3";
 import * as sankey from "d3-sankey";
+import * as cloud from "d3-cloud";
+import { mapState } from 'vuex';
 
 Array.prototype.pushToggle = function(item) { 
   const index = this.indexOf(item);
@@ -55,6 +57,7 @@ export default{
       link: undefined,
       gradients: undefined,
       session: undefined,
+      wordClouds: {},
       selection: {
         session: [],
         node: [],
@@ -85,8 +88,16 @@ export default{
           (value.length == 0) ? false : d => value.includes(d.id));
     }
   },
+  computed: {
+    ...mapState({
+      corpus: ({userData}) => userData.corpus
+    })
+  },
   mounted() {
     let objRef = this;
+    const width = 200,
+          height = 200;
+    var color = d3.scaleSequential(d3.interpolateRainbow);
 
     // // CANVAS
     this.canvas = d3.select("#graphViewCanvas")
@@ -126,9 +137,74 @@ export default{
       .attr("height", d => d.y1 - d.y0)
       .attr("width", d => d.x1 - d.x0)
       .attr("fill", d => d.color)
-      .on("click", this.clickNode);
+      .on("click", this.clickNode)
+      .on("mouseover", this.hover)
+      .on("mousemove", this.hoverMove)
+      .on("mouseout", this.hoverOut);
 
-    // console.log(this.gra)
+    this.node.data().forEach(node => {
+      let words = objRef.words(node.docs);
+      var xScale = d3.scaleLinear()
+        .domain([0, d3.max(words, d => d.size)])
+        .range([10,100]);
+      
+      words = words.map(d => {
+        return {
+          text: d.text,
+          size: xScale(d.size),
+          color: color(Math.random())}
+      });
+
+      cloud()
+        .size([width - 10, height - 10])
+        .words(words)
+        .fontSize(d => d.size)
+        .padding(5)
+        .rotate(0)
+        .spiral("rectangular")
+        .font("Impact")
+        .on("end", (wordCloud) => {
+          objRef.wordClouds[node.id] = d3.select("#sankeyViewComponent").append("svg")
+            .attr('id', `wordCloud-${node.id}`)
+            .classed("wordCloud-popover", true)
+            .attr("width", width)
+            .attr("height", height + 20)
+            .style("visibility", "hidden");
+
+          objRef.wordClouds[node.id]
+            .append("text")
+            .style("font-size", "18px")
+            .style("font-weight", "bold")
+            .attr("text-anchor", "middle")
+            .attr("transform", `translate(${width/2}, 20)`)
+            .attr("fill", node.color)
+            .text(`${node.name}`)
+
+          objRef.wordClouds[node.id]
+            .append("rect")
+            .attr("width", width - 20)
+            .attr("height", height - 20)
+            .attr("fill", "#FFFFFF")
+            .attr("rx", "20")
+            .attr("ry", "20")
+            .attr("transform", "translate(10, 30)")
+            .style("stroke", `${node.color}`)
+            .style("stroke-width", "5px")
+
+          objRef.wordClouds[node.id]
+            .append("g")
+            .attr("transform", `translate(${width/2}, ${height/2 + 30})`)
+            .selectAll("text")
+            .data(wordCloud).join("text")
+              .style("font-size", d => `${d.size}px`)
+              .style("font-family", "Impact")
+              .attr("text-anchor", "middle")
+              .attr("transform", d => `translate(${d.x}, ${d.y + 10}) rotate(${d.rotate})`)
+              .attr("fill", d => d.color)
+              .text(d => d.text);
+        }).start();
+    });
+
     // LINKS
     this.link = this.canvas.append("g")
       .classed("links", true)
@@ -158,9 +234,75 @@ export default{
       .attr("fill", "none")
       .attr("stroke", d => `url(#gradient_${d.source.id}_${d.target.id})`)
       .attr("stroke-width", d => Math.max(1.0, d.width))
-      .on("click", this.clickLink);
+      .on("click", this.clickLink)
+      .on("mouseover", this.hover)
+      .on("mousemove", this.hoverMove)
+      .on("mouseout", this.hoverOut);
 
-    this.link.append("title").text(d => `${d.source.name} → ${d.target.name}`);
+    this.link.data().forEach(link => {
+      // TODO THIS
+      let words = objRef.words([
+        ...new Set(link.source.docs.concat(link.target.docs))
+      ]);
+      var xScale = d3.scaleLinear()
+        .domain([0, d3.max(words, d => d.size)])
+        .range([10,100]);
+      
+      words = words.map(d => {
+        return {
+          text: d.text,
+          size: xScale(d.size),
+          color: color(Math.random())}
+      });
+
+      cloud()
+        .size([width - 10, height - 10])
+        .words(words)
+        .fontSize(d => d.size)
+        .padding(5)
+        .rotate(0)
+        .spiral("rectangular")
+        .font("Impact")
+        .on("end", (wordCloud) => {
+          objRef.wordClouds[link.id] = d3.select("#sankeyViewComponent").append("svg")
+            .attr('id', `wordCloud-${link.id}`)
+            .classed("wordCloud-popover", true)
+            .attr("width", width)
+            .attr("height", height + 20);
+
+          objRef.wordClouds[link.id]
+            .append("text")
+            .style("font-size", "18px")
+            .style("font-weight", "bold")
+            .attr("text-anchor", "middle")
+            .attr("transform", `translate(${width/2}, 20)`)
+            .attr("fill", `url(#gradient_${link.source.id}_${link.target.id})`)
+            .text(`${link.source.name} → ${link.target.name}`)
+
+          objRef.wordClouds[link.id]
+            .append("rect")
+            .attr("width", width - 20)
+            .attr("height", height - 20)
+            .attr("fill", "#FFFFFF")
+            .attr("rx", "20")
+            .attr("ry", "20")
+            .attr("transform", "translate(10, 30)")
+            .attr("stroke", `url(#gradient_${link.source.id}_${link.target.id})`)
+            .style("stroke-width", "5px");
+          
+          objRef.wordClouds[link.id]
+            .append("g")
+            .attr("transform", `translate(${width/2}, ${height/2 + 30})`)
+            .selectAll("text")
+            .data(wordCloud).join("text")
+              .style("font-size", d => `${d.size}px`)
+              .style("font-family", "Impact")
+              .attr("text-anchor", "middle")
+              .attr("transform", d => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
+              .attr("fill", d => d.color)
+              .text(d => d.text);
+        }).start();
+    });
 
     // SESSIONS
     this.session = this.canvas.append("g")
@@ -170,15 +312,51 @@ export default{
       .classed("session", true)
       .attr("transform", function(d, i) {
         return `translate(${(objRef.width / (objRef.graphData.sessions.length - 1) - 5) * i}, 0)`;
-      });
+      })
+      .on("click", this.clickSession);
 
     this.session.append("text")
       .classed("session-label", true)
-      .attr("transform", "translate(5,-20)")
-      .text(d => d.name)
-      .on("click", this.clickSession);
+      .attr("transform", "translate(5, -40)")
+      .text(d => d.name);
+    
+    this.session.append("text")
+      .classed("session-label", true)
+      .attr("transform", "translate(5, -20)")
+      .text(d => d.size);
   },
   methods: {
+    words(docs) {
+      let vocab  = {},
+          docs_tf = this.corpus.filter(
+            doc => docs.includes(doc.id)
+          ).map(doc => doc?.term_frequency);
+
+      for (let doc of docs_tf) {
+        for (let word of Object.keys(doc)) {
+          vocab[word] = doc[word] + (word in vocab ? vocab[word] : 0);
+        }
+      }
+      return Object.keys(vocab).map(word => {
+        return {text: word, size: vocab[word]}})
+        .sort((a, b) => b.size - a.size)
+        .slice(0, 50);
+    },
+    hover(event, element) {
+      this.wordClouds[element.id]
+        .classed("visible", true)
+        .style("left", `${event.pageX}px`)
+        .style("top", `${event.pageY-10}px`);
+    },
+    hoverMove (event, element) {
+      this.wordClouds[element.id]
+        .style("left", `${event.pageX}px`)
+        .style("top", `${event.pageY-10}px`);	
+    },
+    hoverOut(event, element) {
+      this.wordClouds[element.id]
+        .classed("visible", false);
+    },
     // NODE METHODS
     clickNode(event, node) {
       event.stopPropagation();
@@ -223,6 +401,7 @@ export default{
           objRef.selection.node.pushIfNotExist(d.target.id);
         });
     },
+    // SESSION EVENTS
     clickSession(event, session) {
       event.stopPropagation();
       const index = this.selection.session.indexOf(session.id);
@@ -242,7 +421,7 @@ export default{
       }
       console.log(this.selection.session);
     }
-  }
+  },
 }
 </script>
 
@@ -307,10 +486,26 @@ $session-selected: 1.0
       font-size: 18px
       text-anchor: middle
       cursor: pointer
+    .session-counter
+      font-weight: normal
+      color: "#313131"
+      font-size: 14px
+      text-anchor: middle
+      cursor: pointer
     &.faded
       opacity: $session-faded
     &.selected
       opacity: $session-selected
       .session-label
         font-weight: bold
+
+.wordCloud-popover
+  position: absolute
+  opacity: 0.8
+  text-align: center
+  pointer-events: none
+  z-index: 10
+  visibility: hidden
+  .visible
+    visibility: visible
 </style>

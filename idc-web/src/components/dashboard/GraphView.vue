@@ -578,7 +578,7 @@ export default {
   justify-items: center
   align-content: center
   align-items: center
-  padding: 10px 5px 5px 5px
+  padding: 5px
   z-index: 2
 
 #graphViewCanvas

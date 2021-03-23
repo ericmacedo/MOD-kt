@@ -35,117 +35,79 @@ const state = {
 
 const mutations = {
   setId(state, id) {
-    state.id = null;
     state.id = id;
   },
   setName(state, name) {
-    state.name = null;
     state.name = name;
   },
   setNotes(state, notes) {
-    state.notes = null;
     state.notes = notes;
   },
   setNewDocs(state, docs) {
-    state.new_docs = null;
     state.new_docs = docs;
   },
   setIndex(state, index) {
-    state.index = null;
     state.index = index;
   },
-  setGraph({graph}, {nodes, distance, neighborhood}) {
-    graph.nodes = null;
-    graph.nodes = nodes;
-    
-    graph.distance = null;
-    graph.distance = distance;
-
-    graph.neighborhood = null;
-    graph.neighborhood = neighborhood;
+  setGraph(state, {nodes, distance, neighborhood}) {
+    state.graph.nodes = nodes;
+    state.graph.distance = distance;
+    state.graph.neighborhood = neighborhood;
   },
-  setLinkSelector({controls}, link_selector) {
-    controls.link_selector = null;
-    controls.link_selector = link_selector;
+  setLinkSelector(state, link_selector) {
+    state.controls.link_selector = link_selector;
   },
   setTsne(state, tsne) {
-    state.tsne = null;
     state.tsne = tsne;
   },
-  setClusters({clusters}, {
+  setClusters(state, {
     cluster_k, cluster_names,
     colors, cluster_docs, labels,
     cluster_words
   }) {
-    clusters.cluster_k = null;
-    clusters.cluster_k = cluster_k;
-    
-    clusters.cluster_names = null;
-    clusters.cluster_names = cluster_names;
-
-    clusters.colors = null;
-    clusters.colors = colors;
-
-    clusters.cluster_docs = null;
-    clusters.cluster_docs = cluster_docs;
-
-    clusters.cluster_words = null;
-    clusters.cluster_words = cluster_words;
-    
-    clusters.labels = null;
-    clusters.labels = labels;
+    state.clusters.cluster_k = cluster_k;
+    state.clusters.cluster_names = cluster_names;
+    state.clusters.colors = colors;
+    state.clusters.cluster_docs = cluster_docs;
+    state.clusters.cluster_words = cluster_words;
+    state.clusters.labels = labels;
   },
-  updateClusters({clusters}, cluster) {
-    if (cluster.index == clusters.cluster_k) {
-      ++clusters.cluster_k;
+  updateClusters(state, cluster) {
+    if (cluster.index == state.clusters.cluster_k) {
+      ++state.clusters.cluster_k;
       
-      clusters.colors.push(cluster.color);
-      clusters.cluster_names.push(cluster.cluster_name);
-      clusters.cluster_words.push(cluster.words);
+      state.clusters.colors.push(cluster.color);
+      state.clusters.cluster_names.push(cluster.cluster_name);
+      state.clusters.cluster_words.push(cluster.words);
     } else {
-      clusters.colors[cluster.index] = cluster.color;
-      clusters.cluster_names[cluster.index] = cluster.cluster_name;
-      clusters.cluster_words[cluster.index] = cluster.words;
+      state.clusters.colors[cluster.index] = cluster.color;
+      state.clusters.cluster_names[cluster.index] = cluster.cluster_name;
+      state.clusters.cluster_words[cluster.index] = cluster.words;
     }
   },
-  deleteCluster({clusters}, index) {
-    --clusters.cluster_k;
-    clusters.cluster_names.pop(index);
-    clusters.colors.pop(index);
-    clusters.cluster_words.pop(index);
+  deleteCluster(state, index) {
+    --state.clusters.cluster_k;
+    state.clusters.cluster_names.pop(index);
+    state.clusters.colors.pop(index);
+    state.clusters.cluster_words.pop(index);
   },
-  setControls({controls}, {
+  setControls(state, {
     projection, tsne, distance,
     n_neighbors, linkDistance,
     charge, link_selector
   }) {
-    controls.projection = null;
-    controls.projection = projection;
-    
-    controls.tsne = null;
-    controls.tsne = { perplexity: tsne.perplexity };
-
-    controls.link_selector = null;
-    controls.link_selector = link_selector;
-
-    controls.distance = null;
-    controls.distance = distance;
-
-    controls.n_neighbors = null;
-    controls.n_neighbors = n_neighbors;
-
-    controls.linkDistance = null;
-    controls.linkDistance = linkDistance;
-
-    controls.charge = null;
-    controls.charge = charge;
+    state.controls.projection = projection;
+    state.controls.tsne = { perplexity: tsne.perplexity };
+    state.controls.link_selector = link_selector;
+    state.controls.distance = distance;
+    state.controls.n_neighbors = n_neighbors;
+    state.controls.linkDistance = linkDistance;
+    state.controls.charge = charge;
   },
   setDate(state, date) {
-    state.date = null;
     state.date = date;
   },
   setSelected(state, selected) {
-    state.selected = null;
     state.selected = selected;
   },
   updateSelected(state, id) {
@@ -160,22 +122,17 @@ const mutations = {
     }
   },
   setHighlight(state, cluster_name) {
-    state.highlight = null;
     state.highlight = cluster_name;
   },
   updateHighlight(state, cluster_name) {
     state.highlight = (state.highlight == cluster_name) ? "" : cluster_name;
   },
-  setFocused(state, focused) {
-    state.focused = null;
-    state.focused = focused;
+  setFocused(state, id) {
+    state.focused = id;
   },
-  setWordSimilarity({word_similarity}, {query, most_similar}) {
-    word_similarity.query = null;
-    word_similarity.query = query;
-
-    word_similarity.most_similar = null;
-    word_similarity.most_similar = most_similar;
+  setWordSimilarity(state, {query, most_similar}) {
+    state.word_similarity.query = query;
+    state.word_similarity.most_similar = most_similar;
   }
 };
 
@@ -197,21 +154,21 @@ const getters = {
       word_similarity:  state.word_similarity
     }
   },
-  nodes(state) {
-    return state.graph.nodes;
+  nodes({graph}) {
+    return graph.nodes;
   },
-  links(state) {
-    if (state.controls.link_selector == "Neighborhood") {
-      return state.graph.neighborhood.filter((link) => 
-        link.value <= state.controls.n_neighbors
+  links({controls, graph}) {
+    if (controls.link_selector == "Neighborhood") {
+      return graph.neighborhood.filter((link) => 
+        link.value <= controls.n_neighbors
       );
     } else {
-      return state.graph.distance.filter((link) => 
-        link.value <= state.controls.distance);
+      return graph.distance.filter((link) => 
+        link.value <= controls.distance);
     }
   },
-  index_size(state) {
-    return state.index.length;
+  index_size({index}) {
+    return index.length;
   },
 };
 

@@ -5,13 +5,19 @@ const state = {
   isProcessed: false
 };
 
+const getters = {
+  corpus_size({corpus}) {
+    return corpus.length;
+  }
+};
+
+const actions = {};
+
 const mutations = {
   setUserId (state, userId) {
-    state.userId = null;
     state.userId = userId;
   },
   setCorpus (state, corpus) {
-    state.corpus = null;
     state.corpus = corpus;
   },
   pushCorpus (state, newData) {
@@ -22,26 +28,16 @@ const mutations = {
       doc => !to_remove.includes(doc.id));
   },
   setSessions (state, sessions) {
-    state.sessions = null;
     state.sessions = sessions;
   },
   clearUserData(state) {
-    state.corpus = [];
-    state.sessions = [];
+    state.corpus = state.corpus.splice(0, state.corpus.length);
+    state.sessions = state.sessions.splice(0, state.sessions.length);
   },
-  setIsProcessed(state, isProcessed) {
-    state.isProcessed = null;
-    state.isProcessed = isProcessed;
+  setIsProcessed(state, value) {
+    state.isProcessed = value;
   }
 };
-
-const getters = {
-  corpus_size({corpus}) {
-    return corpus.length;
-  }
-};
-
-const actions = {};
 
 export default {
   namespaced: true,
