@@ -1,4 +1,4 @@
-from models import User, Document
+from server.models import User, Document
 from werkzeug.datastructures import FileStorage
 from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument

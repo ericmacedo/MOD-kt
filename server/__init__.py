@@ -6,11 +6,11 @@ from flask import (
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from models import User, Document
+from server.models import User, Document
 
-from clusterer import Clusterer
+from server.clusterer import Clusterer
 
-from utils import (
+from server.utils import (
     process_text, term_frequency,
     t_SNE, displaCy_NER, most_similar,
     similarity_graph, l2_norm,
@@ -27,11 +27,13 @@ faulthandler.enable()
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
 
-ALLOWED_EXTENSIONS = {"csv", "pdf", "txt"}
-
-app = Flask("Vis-Kt")
-app.config['SECRET_KEY'] = b'_5#y2L"F4Q8z\n\xec]/'
+app = Flask(__name__, static_url_path="")
+app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 CORS(app)
+
+@app.route("/", methods=["GET"])
+def index():
+    return app.send_static_file("index.html")
 
 @app.route("/auth", methods=["POST"])
 # Authetication
@@ -522,5 +524,8 @@ def sankey():
             }
         }, 500
 
-if __name__ == "Vis-Kt":
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(
+        host=os.environ.get("FLASK_HOST"),
+        port=os.environ.get("FLASK_PORT"),
+        debug=os.environ.get("DEBUG"))

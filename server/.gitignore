@@ -1,8 +1,8 @@
 # created by virtualenv automatically
 __pycache__/
-users/*
 bin/
 share/
 lib/
 pyvenv.cfg
 pre-trained/
+static/
