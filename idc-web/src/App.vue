@@ -1,6 +1,6 @@
 <template>
 <div id="app" ref="app" class="w-100 h-100">
-  <b-navbar sticky small
+  <b-navbar small
     id="navbar"
     fixed="top"
     class="w-100"
@@ -32,15 +32,23 @@
           v-if="$route.name === 'Dashboard'"
           class="justify-content-md-center">
           <b-nav-item align="start">
-            <!-- TODO implement clustering function -->
-            <b-button pill
-              size="sm"
-              title="Cluster the corpus with the given configuration on 'Cluster Manager'"
-              variant="success"
-              @click="callCluster">
-              <strong>Cluster</strong>&nbsp;
-              <font-awesome-icon :icon="['fas', 'play']"/>
-            </b-button>
+            <b-button-group size="sm">
+              <b-button
+                id="fab-btn"
+                class="mr-1"
+                variant="info"
+                v-b-modal.upload-modal>
+                <font-awesome-icon :icon="['fas', 'plus']"/>&nbsp;
+              </b-button>
+              <b-button
+                size="sm"
+                title="Cluster the corpus with the given configuration on 'Cluster Manager'"
+                variant="success"
+                @click="callCluster">
+                <strong>Cluster</strong>&nbsp;
+                <font-awesome-icon :icon="['fas', 'play']"/>
+              </b-button>
+            </b-button-group>
           </b-nav-item>
         </b-navbar-nav>
       </b-col>
@@ -153,17 +161,36 @@
         placeholder="Notes"></b-form-textarea>
 		</div>
 	</b-modal>
+
+  <b-modal
+		ref="upload-modal"
+		id="upload-modal"
+		size="lg"
+		header-bg-variant="dark"
+		header-text-variant="light"
+		title="Upload new documents"
+		centered
+    scrollable
+    hide-footer
+		no-close-on-backdrop
+		no-close-on-esc>
+		<upload-component
+      v-on:re-render="incremented()"
+      context="MODAL"></upload-component>
+	</b-modal>
 </div>
 </template>
 
 <script>
 import NotesWidget from './components/dashboard/NotesWidget';
+import UploadComponent from "./components/UploadComponent";
 import { mapState, mapActions } from "vuex";
 
 export default {
   name: 'App',
   components: {
     "notes-widget": NotesWidget,
+    "upload-component": UploadComponent
   },
   data: function() {
     return {
@@ -337,6 +364,11 @@ export default {
             "danger");
         }).then(() => objRef.$bvToast.hide("save-session"));
     },
+    incremented(){
+      this.$forceUpdate();
+      
+      this.$refs.graphView.updateLayout();
+    },
     ...mapActions([
       "clusterData", "getUserData", "clearUserData", "saveSession"])
   }
@@ -345,8 +377,9 @@ export default {
 
 <style lang="sass">
 body, html
-  height: 100%
-  width: 100%
+  padding-top: 30px
+  height: 100% !important
+  width: 100% !important
 
 #app
   position: relative

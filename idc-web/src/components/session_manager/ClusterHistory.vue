@@ -68,6 +68,8 @@ export default {
 
 <style lang="sass">
 #doc_list
+  height: 90vh
+  overflow-y: auto
   .doc_list_item
     background: none
     &.active

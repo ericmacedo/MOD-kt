@@ -13,7 +13,7 @@ export default new Vuex.Store({
     userData, session, sankey
   },
   state: {
-    SERVER: "http://localhost:5000"
+    SERVER: `${process.env.VUE_APP_SERVER_URL}:${process.env.VUE_APP_SERVER_PORT}`
   },
   actions: {
     async getUserData({commit, state}, userId) {

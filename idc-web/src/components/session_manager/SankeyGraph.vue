@@ -153,9 +153,10 @@ export default{
 
     // // CANVAS
     this.canvas = d3.select("#graphViewCanvas")
-      .attr("width", this.width)
-      .attr("height", this.height)
-      .attr("viewBox", [0, 0, this.width, this.height])
+      .attr("width", "100%")
+			.attr("height", "100%")
+			.attr("viewBox", [0, 0, this.width, this.height])
+      .attr('preserveAspectRatio','xMinYMin')
       .call(d3.zoom()
         .scaleExtent([0.1, 8])
         .on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
@@ -567,5 +568,5 @@ $session-selected: 1.0
   z-index: 10
   visibility: hidden
   .visible
-    visibility: visible
+    visibility: visible !important
 </style>

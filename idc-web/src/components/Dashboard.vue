@@ -1,5 +1,5 @@
 <template>
-<div class="dashboard h-100 w-100">
+<div class="dashboard">
 	<Promised :promise="sessionData">
 	<template v-slot:pending>
 		<div class="h-100 text-center">
@@ -11,21 +11,21 @@
     <template v-slot:default>
 		<b-container fluid>
       <b-row no-gutters>
-        <b-col cols="12" sm="6" md="6" lg="4">
+        <b-col cols="12" sm="12" md="6" lg="4">
           <document-view id="documentView"
-            class="component h-50"></document-view>
+            class="component h-50 w-100"></document-view>
           <word-cloud id="wordCloudView"
             class="component h-50 w-100"></word-cloud>
         </b-col>
-        <b-col cols="12" sm="6" md="6" lg="4">
+        <b-col cols="12" sm="12" md="6" lg="4">
           <graph-view id="graphView" ref="graphView"
-            class="component h-100 w-100"></graph-view>
+            class="component w-100"></graph-view>
         </b-col>
-        <b-col cols="12" sm="6" md="6" lg="4">
+        <b-col cols="12" sm="12" md="6" lg="4">
           <cluster-manager id="clusterManagerView"
-            class="component w-100"></cluster-manager>
+            class="component h-50 w-100"></cluster-manager>
             <word-similarity id="wordSimilarityView"
-              class="component w-100"></word-similarity>
+              class="component h-50 w-100"></word-similarity>
         </b-col>
       </b-row>
 		</b-container>
@@ -120,31 +120,6 @@
 				Yes, take me to <strong>Corpus</strong>!
 		</b-button>
 	</b-modal>
-  <b-modal
-		ref="upload-modal"
-		id="upload-modal"
-		size="lg"
-		header-bg-variant="dark"
-		header-text-variant="light"
-		title="Upload new documents"
-		centered
-    scrollable
-    hide-footer
-		no-close-on-backdrop
-		no-close-on-esc>
-		<upload-component
-      v-on:re-render="incremented()"
-      context="MODAL"></upload-component>
-	</b-modal>
-
-  <b-button
-    id="fab-btn"
-    size="lg"
-    variant="success"
-    v-b-modal.upload-modal
-    pill>
-    <font-awesome-icon :icon="['fas', 'plus']"/>&nbsp;
-  </b-button>
 </div>
 </template>
 
@@ -155,8 +130,6 @@ import ClusterManager from './dashboard/ClusterManager';
 import WordCloud from './dashboard/WordCloudView';
 import WordSimilarity from './dashboard/WordSimilarityView';
 import { mapState, mapActions } from "vuex";
-import UploadComponent from "./UploadComponent";
-
 
 export default {
 	name: 'Dashboard',
@@ -165,9 +138,8 @@ export default {
 		"document-view":    DocumentView,
 		"cluster-manager":  ClusterManager,
     "word-cloud":       WordCloud,
-    "word-similarity":  WordSimilarity,
-    "upload-component": UploadComponent
-	},
+    "word-similarity":  WordSimilarity
+  },
 	data() {
 		return {
 			sessionData: undefined
@@ -274,11 +246,6 @@ export default {
           });
       }
     },
-    incremented(){
-      this.$forceUpdate();
-      
-      this.$refs.graphView.updateLayout();
-    },
     ...mapActions(["getSessionById", "cluster", "deleteSession", "getUserData"])
 	}
 }
@@ -301,29 +268,18 @@ export default {
 		height: 25px
 
 #documentView
-  max-height: 325px !important
-  #displaCy
-    padding: 5px
+  height: 45vh !important
 
 #wordCloudView
-  max-height: 325px !important
+  height: 45vh !important
 
 #graphView
   margin: 0
+  height: 90vh !important
 
 #clusterManagerView
-  height: 35%
-  max-height: 250px !important
+  height: 40vh !important
 
 #wordSimilarityView
-  height: 65%
-  max-height: 400px !important
-
-#fab-btn
-  position: absolute
-  bottom: 10px
-  right: 10px
-  opacity: 0.5
-  &:hover
-    opacity: 1.0
+  height: 50vh !important
 </style>

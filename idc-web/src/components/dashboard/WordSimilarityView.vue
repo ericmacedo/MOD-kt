@@ -1,5 +1,5 @@
 <template>
-<b-card no-body>
+<b-card no-body class="w-100">
     <b-card-header header-tag="header" class="text-center">
 		Word Similarity
 	</b-card-header>
@@ -28,19 +28,21 @@
         <font-awesome-icon :icon="['fas', 'times']"/>
       </b-button>
     </b-input-group>
-    <div
-      v-for="(item, index) in word_similarity.most_similar"
-      :key="index"
-      class="d-flex w-100 pr-1"
-      :style="{'align-items': 'flex-end'}"
-      @click="copyToClipboard(item.word)">
+    <div class="similarity-list">
       <div
-        class="bar mt-2 ml-1 mr-1 pl-2"
-        :style="{'width': ''+(width * item.value * 0.9)+'px'}"
-        >{{ item.word }}</div>
-      <span class="ml-1 percentage">
-        {{ (item.value * 100).toFixed(2) }}%
-      </span>
+        v-for="(item, index) in word_similarity.most_similar"
+        :key="index"
+        class="d-flex w-100 pr-1 similarity-list"
+        :style="{'align-items': 'flex-end'}"
+        @click="copyToClipboard(item.word)">
+        <div
+          class="bar mt-2 ml-1 mr-1 pl-2"
+          :style="{'width': ''+(width * item.value * 0.9)+'px'}"
+          >{{ item.word }}</div>
+        <span class="ml-1 percentage">
+          {{ (item.value * 100).toFixed(2) }}%
+        </span>
+      </div>
     </div>
 	</div>
 </b-card>
@@ -159,4 +161,7 @@ export default {
 .percentage
   color: steelblue
   font-size: smaller
+
+.similarity-list
+  overflow-y: auto
 </style>

@@ -20,11 +20,12 @@
     <template v-if="words.length > 0">
       <cloud
         id="wordCloudCanvas"
+        class="mt-1"
         valueKey="value"
         nameKey="name"
-        :data="words"
-        :width="width"
         :height="height"
+        :width="width"
+        :data="words"
         :rotate="settings.rotate"
         :margin="settings.margin"
         :wordClick="copyToClipboard"
@@ -55,8 +56,8 @@ export default {
     return {
       option: "document",
       canvas: undefined,
-      width: 485,
-      height: 230,
+      width: 400,
+      height: 200,
       settings: {
         rotate: {
           from: 0, to: 0,
@@ -74,13 +75,16 @@ export default {
   mounted() {    
     // CANVAS
 		this.canvas = d3.select("#wordCloudCanvas svg")
-			.attr("width", this.width)
-			.attr("height", this.height)
+			.attr("width", "100%")
+			.attr("height", "100%")
+      .attr('preserveAspectRatio','xMinYMin')
 			.attr("viewBox", [0, 0, this.width, this.height])
 			.call(d3.zoom()
 				.scaleExtent([0.1, 8])
 				.on("zoom", (e) => {
           d3.select("#wordCloudCanvas svg g").attr("transform", e.transform)}));
+    
+    this.updateWords();
   },
   computed: {
     words() {
@@ -118,11 +122,11 @@ export default {
       return [ {word: "", value: 0} ];
     },
     ...mapState({
-      corpus: state => state.userData.corpus,
-      focused: state => state.session.focused,
-      selected: state => state.session.selected,
-      highlight: state => state.session.highlight,
-      cluster_docs: state => state.session.clusters.cluster_docs
+      corpus: ({userData}) => userData.corpus,
+      focused: ({session}) => session.focused,
+      selected: ({session}) => session.selected,
+      highlight: ({session}) => session.highlight,
+      cluster_docs: ({session}) => session.clusters.cluster_docs
     })
   },
   methods: {
@@ -174,4 +178,5 @@ export default {
 <style lang="sass">
 #wordCloudCanvas
   cursor: default
+  height: 37vh !important
 </style>

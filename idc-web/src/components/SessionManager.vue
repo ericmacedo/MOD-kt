@@ -2,9 +2,11 @@
 <div class="session-manager h-100 w-100">
   <Promised :promise="sankeyData">
     <template v-slot:pending>
-      <b-col id="Spinner" col>
-        <b-spinner variant="primary" label="Spinning"></b-spinner>
-      </b-col>
+      <div class="h-100 text-center">
+        <b-spinner
+          class="m-5"
+          variant="primary"></b-spinner>
+      </div>
     </template>
     <template v-slot:default>
       <b-container fluid>

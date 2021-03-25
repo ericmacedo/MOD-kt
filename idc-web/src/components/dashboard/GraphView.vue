@@ -185,8 +185,8 @@ export default {
   name: "GraphView",
 	data() {
 		return {
-			width: 485,
-			height: 430,
+			width: 499,
+			height: 499,
 			projection_list: ["t-SNE", "DAG"],
 			simulation: undefined,
       svg: undefined,
@@ -339,9 +339,10 @@ export default {
 
 		// CANVAS
 		this.svg = d3.select("#graphViewCanvas")
-			.attr("width", this.width)
-			.attr("height", this.height)
+			.attr("width", "100%")
+			.attr("height", "100%")
 			.attr("viewBox", [0, 0, this.width, this.height])
+      .attr('preserveAspectRatio','xMinYMin')
 			.call(d3.zoom()
 				.scaleExtent([0.1, 8])
 				.on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}));
@@ -365,6 +366,9 @@ export default {
 		this.updateLayout();
 	},
 	methods: {
+    onResize(obj) {
+      console.log(obj); 
+    },
 		makeToast(
 				title,
 				content,

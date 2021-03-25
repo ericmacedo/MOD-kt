@@ -62,7 +62,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="sass">
 #displaCy
-	overflow-y: auto
+	overflow-y: scroll
 	padding: 5px
 	font-size: small
 	word-break: normal
