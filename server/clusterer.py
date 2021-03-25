@@ -1,4 +1,4 @@
-from server.models import User, Document
+from models import User, Document
 from sklearn.cluster import KMeans
 import seaborn as sns
 import os, pickle

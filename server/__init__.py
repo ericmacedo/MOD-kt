@@ -6,11 +6,11 @@ from flask import (
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-from server.models import User, Document
+from models import User, Document
 
-from server.clusterer import Clusterer
+from clusterer import Clusterer
 
-from server.utils import (
+from utils import (
     process_text, term_frequency,
     t_SNE, displaCy_NER, most_similar,
     similarity_graph, l2_norm,
