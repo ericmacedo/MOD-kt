@@ -259,7 +259,7 @@ export default {
 	margin: 0!important
 
 .component
-	border: 2px solid #161616
+	border: 1px solid #c3c3c3
 
 .card
 	header

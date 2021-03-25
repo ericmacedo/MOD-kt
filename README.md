@@ -15,10 +15,20 @@
   * `FLASK_RUN_PORT`: `5000`
   * `FLASK_SECRET_KEY`: YOUR_SECRET_KEY
 
+1. `cd ./server`
+2. `virtualenv --python=python3.6 .`
+3. `source ./bin/activate`
+4. `pip install -r requirements.txt`
+5. Serve it with some Python WSGI HTTP Server for UNIX, such as Gunicorn
+
 ## Web
 * Set Vue configs on './web/.env.production' file:
   * `VUE_APP_SERVER_URL`: YOUR_URL
   * `VUE_APP_SERVER_PORT`: YOUR_PORT
+
+1. `cd ./web`
+2. `npm install`
+3. `npm run build` 
 
 # To do
 *   [ ] Index Tutorial page (Component Index.vue)

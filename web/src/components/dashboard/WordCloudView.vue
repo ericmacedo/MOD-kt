@@ -83,8 +83,6 @@ export default {
 				.scaleExtent([0.1, 8])
 				.on("zoom", (e) => {
           d3.select("#wordCloudCanvas svg g").attr("transform", e.transform)}));
-    
-    this.updateWords();
   },
   computed: {
     words() {
