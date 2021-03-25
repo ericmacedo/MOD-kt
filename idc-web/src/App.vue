@@ -1,6 +1,7 @@
 <template>
-<div id="app" ref="app">
+<div id="app" ref="app" class="w-100 h-100">
   <b-navbar sticky small
+    id="navbar"
     fixed="top"
     class="w-100"
     toggleable="lg"
@@ -343,9 +344,12 @@ export default {
 </script>
 
 <style lang="sass">
-#app
+body, html
   height: 100%
   width: 100%
+
+#app
+  position: relative
   margin: 0
   padding: 0
   border: 0

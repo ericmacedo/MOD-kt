@@ -1,5 +1,5 @@
 <template>
-  <div id="sankeyViewComponent">
+  <div id="sankeyGraph">
     <svg id="graphViewCanvas"></svg>
   </div>
 </template>
@@ -8,29 +8,38 @@
 import * as d3 from "d3";
 import * as sankey from "d3-sankey";
 import * as cloud from "d3-cloud";
-import { mapState } from 'vuex';
+import { mapState, mapMutations } from 'vuex';
 
-Array.prototype.pushToggle = function(item) { 
-  const index = this.indexOf(item);
-  if (index == -1) {
-    this.push(item);
-  } else {
-    this.pop(index);
+Object.defineProperty(Array.prototype, "pushToggle", {
+  enumerable: false,
+  value: function(item) {
+    const index = this.indexOf(item);
+    if (index == -1) {
+      this.push(item);
+    } else {
+      this.pop(index);
+    }
   }
-};
+});
 
-Array.prototype.pushIfNotExist = function(item) { 
-  if (!this.includes(item)) {
-    this.push(item);
+Object.defineProperty(Array.prototype, "pushIfNotExist", {
+  enumerable: false,
+  value: function(item) { 
+    if (!this.includes(item)) {
+      this.push(item);
+    }
   }
-};
+});
 
-Array.prototype.popIfExist = function(item) { 
-  const index = this.indexOf(item);
-  if (index != -1) {
-    this.pop(index);
+Object.defineProperty(Array.prototype, "popIfExist", {
+  enumerable: false,
+  value: function(item) { 
+    const index = this.indexOf(item);
+    if (index != -1) {
+      this.pop(index);
+    }
   }
-};
+});
 
 export default{
   name: "SankeyGraph",
@@ -42,10 +51,6 @@ export default{
     height: {
       required: true,
       type: Number
-    },
-    graphData: {
-      required: true,
-      type:Object
     }
   },
   data() {
@@ -57,15 +62,10 @@ export default{
       link: undefined,
       gradients: undefined,
       session: undefined,
-      wordClouds: {},
-      selection: {
-        session: [],
-        node: [],
-        link: []
-      }
+      wordClouds: {}
     }
   },
-  watch:{
+  watch: {
     'selection.node': function(value) {
       this.node
         .classed("selected",
@@ -86,11 +86,63 @@ export default{
           (value.length == 0) ? false : d => !value.includes(d.id))
         .classed("selected",
           (value.length == 0) ? false : d => value.includes(d.id));
-    }
+    },
+    'selection.document' : function(value) {
+      if(value != null) {
+        this.session
+          .classed("faded", true)
+          .classed("selected", false);
+        this.node
+          .classed("selected", d => d.docs.includes(value))
+          .classed("faded", d => !d.docs.includes(value));
+        this.link
+          .classed("selected", d => 
+            d.source.docs.includes(value) && d.target.docs.includes(value))
+          .classed("faded", d => 
+            !d.source.docs.includes(value) || !d.target.docs.includes(value));
+      } else {
+        const _node = this.selection.node,
+              _link = this.selection.link,
+              _session = this.selection.session;
+        
+        this.node
+          .classed("selected",
+            (_node.length == 0) ? false : d => _node.includes(d.id))
+          .classed("faded",
+            (_node.length == 0) ? false : d => !_node.includes(d.id));
+        this.link
+          .classed("selected",
+            (_link.length == 0) ? false : d => _link.includes(d.id))
+          .classed("faded",
+            (_link.length == 0) ? false : d => !_link.includes(d.id));
+        this.session
+          .classed("selected",
+            (_session.length == 0) ? false : d => _session.includes(d.id))
+          .classed("faded",
+            (_session.length == 0) ? false : d => !_session.includes(d.id));
+      }
+    },
   },
   computed: {
+    selected_ids(){
+      const _nodes = this.graphData.nodes;
+      const _clusters = [...new Set(
+        this.selection.node.concat(
+          this.graphData.links.filter(
+            d => this.selection.link.includes(d.id)
+          ).flatMap(d => [d.source.id, d.target.id]))
+      )];
+
+      return [...new Set(
+        _clusters.map(
+          cluster_id => _nodes.find(d => d.id == cluster_id).docs
+        ).flat(2)
+      )];
+    },
     ...mapState({
-      corpus: ({userData}) => userData.corpus
+      corpus: ({userData}) => userData.corpus,
+      graphData: ({sankey}) => sankey.graph,
+      selection: ({sankey}) => sankey.selection
     })
   },
   mounted() {
@@ -164,7 +216,7 @@ export default{
         .spiral("rectangular")
         .font("Impact")
         .on("end", (wordCloud) => {
-          objRef.wordClouds[node.id] = d3.select("#sankeyViewComponent").append("svg")
+          objRef.wordClouds[node.id] = d3.select("#sankeyGraph").append("svg")
             .attr('id', `wordCloud-${node.id}`)
             .classed("wordCloud-popover", true)
             .attr("width", width)
@@ -176,24 +228,24 @@ export default{
             .style("font-size", "18px")
             .style("font-weight", "bold")
             .attr("text-anchor", "middle")
-            .attr("transform", `translate(${width/2}, 20)`)
+            .attr("transform", `translate(${width/2}, 15)`)
             .attr("fill", node.color)
             .text(`${node.name}`)
 
           objRef.wordClouds[node.id]
             .append("rect")
-            .attr("width", width - 20)
-            .attr("height", height - 20)
+            .attr("width", width - 10)
+            .attr("height", height - 10)
             .attr("fill", "#FFFFFF")
             .attr("rx", "20")
             .attr("ry", "20")
-            .attr("transform", "translate(10, 30)")
+            .attr("transform", "translate(5, 20)")
             .style("stroke", `${node.color}`)
             .style("stroke-width", "5px")
 
           objRef.wordClouds[node.id]
             .append("g")
-            .attr("transform", `translate(${width/2}, ${height/2 + 30})`)
+            .attr("transform", `translate(${width/2}, ${height/2 + 20})`)
             .selectAll("text")
             .data(wordCloud).join("text")
               .style("font-size", d => `${d.size}px`)
@@ -264,7 +316,7 @@ export default{
         .spiral("rectangular")
         .font("Impact")
         .on("end", (wordCloud) => {
-          objRef.wordClouds[link.id] = d3.select("#sankeyViewComponent").append("svg")
+          objRef.wordClouds[link.id] = d3.select("#sankeyGraph").append("svg")
             .attr('id', `wordCloud-${link.id}`)
             .classed("wordCloud-popover", true)
             .attr("width", width)
@@ -275,24 +327,24 @@ export default{
             .style("font-size", "18px")
             .style("font-weight", "bold")
             .attr("text-anchor", "middle")
-            .attr("transform", `translate(${width/2}, 20)`)
+            .attr("transform", `translate(${width/2}, 15)`)
             .attr("fill", `url(#gradient_${link.source.id}_${link.target.id})`)
             .text(`${link.source.name} → ${link.target.name}`)
 
           objRef.wordClouds[link.id]
             .append("rect")
-            .attr("width", width - 20)
-            .attr("height", height - 20)
+            .attr("width", width - 10)
+            .attr("height", height - 10)
             .attr("fill", "#FFFFFF")
             .attr("rx", "20")
             .attr("ry", "20")
-            .attr("transform", "translate(10, 30)")
+            .attr("transform", "translate(5, 20)")
             .attr("stroke", `url(#gradient_${link.source.id}_${link.target.id})`)
             .style("stroke-width", "5px");
           
           objRef.wordClouds[link.id]
             .append("g")
-            .attr("transform", `translate(${width/2}, ${height/2 + 30})`)
+            .attr("transform", `translate(${width/2}, ${height/2 + 20})`)
             .selectAll("text")
             .data(wordCloud).join("text")
               .style("font-size", d => `${d.size}px`)
@@ -346,12 +398,12 @@ export default{
       this.wordClouds[element.id]
         .classed("visible", true)
         .style("left", `${event.pageX}px`)
-        .style("top", `${event.pageY-10}px`);
+        .style("top", `${event.pageY-50}px`);
     },
     hoverMove (event, element) {
       this.wordClouds[element.id]
         .style("left", `${event.pageX}px`)
-        .style("top", `${event.pageY-10}px`);	
+        .style("top", `${event.pageY-50}px`);	
     },
     hoverOut(event, element) {
       this.wordClouds[element.id]
@@ -365,6 +417,8 @@ export default{
       } else {
         this.selection.node = this.selection.node.includes(node.id) ? [] : [node.id];
       }
+
+      this.setIndexSelection(this.selected_ids);
     },
     // LINK METHODS
     clickLink(event, link) {
@@ -400,6 +454,8 @@ export default{
           objRef.selection.node.pushIfNotExist(d.source.id);
           objRef.selection.node.pushIfNotExist(d.target.id);
         });
+
+      this.setIndexSelection(this.selected_ids);
     },
     // SESSION EVENTS
     clickSession(event, session) {
@@ -413,14 +469,18 @@ export default{
           index == -1 ? "pushIfNotExist" : "popIfExist"
         ](d));
       } else {
-        this.selection.session = index != -1  ? [] : [session.id];
-        this.selection.link.splice(0, this.selection.link.length);
-        this.selection.node.splice(0, this.selection.node.length);
-
-        session.clusters.forEach(d => objRef.selection.node.pushIfNotExist(d));
+        this.selection.session.splice(0, this.selection.session.length);
+        if (index != -1) {
+          this.selection.link.splice(0, this.selection.link.length);
+          this.selection.node.splice(0, this.selection.node.length);
+        } else {
+          this.selection.session.pushIfNotExist(session.id);
+          session.clusters.forEach(d => objRef.selection.node.pushIfNotExist(d));
+        }
       }
-      console.log(this.selection.session);
-    }
+      this.setIndexSelection(this.selected_ids);
+    },
+    ...mapMutations("sankey", ["setIndexSelection"])
   },
 }
 </script>
@@ -482,13 +542,13 @@ $session-selected: 1.0
     transition: opacity .5s ease-in-out
     .session-label
       font-weight: normal
-      color: #000
+      fill: #000000
       font-size: 18px
       text-anchor: middle
       cursor: pointer
     .session-counter
       font-weight: normal
-      color: "#313131"
+      fill: #313131
       font-size: 14px
       text-anchor: middle
       cursor: pointer

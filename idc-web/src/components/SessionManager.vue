@@ -6,17 +6,18 @@
         <b-spinner variant="primary" label="Spinning"></b-spinner>
       </b-col>
     </template>
-    <template v-slot="data">
+    <template v-slot:default>
       <b-container fluid>
         <b-row>
           <b-col cols="12" sm="12" md="9" lg="9">
             <sankey-graph
-              :graphData="data"
+              id="sankeyGraph"
               :width="width"
               :height="height"></sankey-graph>
           </b-col>
           <b-col cols="12" sm="12" md="3" lg="3">
-            
+            <cluster-history
+              ref="corpusView"></cluster-history>
           </b-col>
         </b-row>
       </b-container>
@@ -30,12 +31,14 @@
 
 <script>
 import { mapActions, mapState } from "vuex";
+import ClusterHistory from './session_manager/ClusterHistory';
 import SankeyGraph from './session_manager/SankeyGraph';
 
 export default {
   name: "SessionManager",
   components: {
-    "sankey-graph": SankeyGraph
+    "sankey-graph": SankeyGraph,
+    "cluster-history": ClusterHistory
   },
   data() {
     return {
@@ -46,7 +49,7 @@ export default {
   },
   computed:{
     ...mapState({
-      userId: state => state.userData.userId
+      userId: ({userData}) => userData.userId
     })
   },
   mounted() {
@@ -59,4 +62,10 @@ export default {
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="sass" scoped></style>
+<style lang="sass">
+#sankeyGraph
+  position: -webkit-sticky
+  position: sticky
+  top: 60px
+  left: 10px
+</style>

@@ -4,12 +4,13 @@ import axios from "axios";
 
 import userData from './modules/userData';
 import session from './modules/session';
+import sankey from './modules/sankey';
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
   modules: {
-    userData, session
+    userData, session, sankey
   },
   state: {
     SERVER: "http://localhost:5000"
@@ -253,11 +254,12 @@ export default new Vuex.Store({
         }).catch(error => reject(error));
       });
     },
-    async requestSankeyGraph({state}, userId) {
+    async requestSankeyGraph({state, commit}, userId) {
       return new Promise((resolve, reject) => {
         axios.get(state.SERVER+"/sankey", {params: {userId: userId}})
           .then(({data}) => {
-            resolve(Object.assign({}, data));
+            commit("sankey/setGraph", data);
+            resolve();
             data = null;
           }).catch(error => reject(error));
       });

@@ -274,9 +274,10 @@ def sankey_graph(user:User) -> dict:
     graph = {
         "sessions": [],
         "nodes": [],
-        "links": []}
-
-    # import pdb; pdb.set_trace()
+        "links": [],
+        "index": {
+            f"{doc.id}": [None for i in range(len(sessions))]
+            for doc in user.corpus}}
 
     for i, session in enumerate(sessions):
         graph["sessions"].append({
@@ -287,14 +288,21 @@ def sankey_graph(user:User) -> dict:
         for j in range(session.clusters["cluster_k"]):
             cluster_id = f"session{i}_cluster{j}"
             cluster_name = session.clusters["cluster_names"][j]
+            docs = session.clusters["cluster_docs"][cluster_name]
+            color = session.clusters["colors"][j]
+
             graph["nodes"].append({
                 "id": cluster_id,
                 "name": cluster_name,
-                "color": session.clusters["colors"][j],
+                "color": color,
                 "order": j,
                 "session": session.id,
-                "docs": session.clusters["cluster_docs"][cluster_name]})
+                "docs": docs})
             graph["sessions"][i]["clusters"].append(cluster_id)
+            
+            for doc in docs:
+                if doc in graph["index"]:
+                    graph["index"][doc][i] = color
 
             if i == (len(sessions) - 1):
                 continue
