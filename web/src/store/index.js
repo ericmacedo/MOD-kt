@@ -117,9 +117,10 @@ export default new Vuex.Store({
             userId: state.userData.userId,
             performance: performance}
         }).then(({data}) => {
-          commit("userData/setUserId",    data.userData.userId);
-          commit("userData/setCorpus",    data.userData.corpus.map(doc => doc));
-          commit("userData/setSessions",  data.userData.sessions.map(session => session));
+          commit("userData/setUserId",      data.userData.userId);
+          commit("userData/setCorpus",      data.userData.corpus.map(doc => doc));
+          commit("userData/setSessions",    data.userData.sessions.map(session => session));
+          commit("userData/setIsProcessed", true);
           
           data = null;
           resolve();

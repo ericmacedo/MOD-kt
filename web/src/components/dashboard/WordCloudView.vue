@@ -119,13 +119,11 @@ export default {
 
       return [ {word: "", value: 0} ];
     },
-    ...mapState({
-      corpus: ({userData}) => userData.corpus,
-      focused: ({session}) => session.focused,
-      selected: ({session}) => session.selected,
-      highlight: ({session}) => session.highlight,
-      cluster_docs: ({session}) => session.clusters.cluster_docs
-    })
+    ...mapState("userData", ["corpus"]),
+    ...mapState("session", ["focused", "selected", "highlight", "clusters"]),
+    cluster_docs() {
+      return this.clusters.cluster_docs;
+    }
   },
   methods: {
     makeToast(word) {

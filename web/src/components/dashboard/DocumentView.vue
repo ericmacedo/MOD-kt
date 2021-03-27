@@ -49,9 +49,7 @@ export default {
       let selected = this.$store.state.session.selected;
       return this.corpus.filter((doc) => selected.includes(doc.id));
     },
-    ...mapState({
-      corpus: state => state.userData.corpus
-    })
+    ...mapState("userData", ["corpus"])
 	},
   methods: {
     ...mapMutations("session", ["setFocused", "setSelected"])

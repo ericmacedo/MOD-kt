@@ -161,10 +161,7 @@ export default {
 		all_selected: function () {
 			return (this.table.selection.length == this.corpus_size);
 		},
-    ...mapState({
-      corpus: state => state.userData.corpus,
-      userId: state => state.userData.userId
-    }),
+    ...mapState("userData", ["corpus", "userId"]),
     ...mapGetters('userData', ["corpus_size"])
 	},
 	methods: {

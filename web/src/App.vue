@@ -237,9 +237,7 @@ export default {
         this.$store.commit("session/setNotes", notes);
       }
     },
-    ...mapState({
-      userId: state => state.userData.userId
-    })
+    ...mapState("userData", ["userId"])
   },
   created() {
     let objRef = this;

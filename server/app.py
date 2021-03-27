@@ -1,5 +1,3 @@
-import os
-
 from flask import (
     Flask, request, 
     redirect, render_template)
@@ -28,7 +26,6 @@ from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
 
 app = Flask(__name__, static_url_path="")
-app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 CORS(app)
 
 @app.route("/", methods=["GET"])
@@ -523,9 +520,3 @@ def sankey():
                 "content": str(e)
             }
         }, 500
-
-if __name__ == "__main__":
-    app.run(
-        host=os.environ.get("FLASK_HOST"),
-        port=os.environ.get("FLASK_PORT"),
-        debug=os.environ.get("DEBUG"))

@@ -139,10 +139,10 @@ export default{
         ).flat(2)
       )];
     },
+    ...mapState("userData", ["corpus"]),
+    ...mapState("sankey", ["selection"]),
     ...mapState({
-      corpus: ({userData}) => userData.corpus,
-      graphData: ({sankey}) => sankey.graph,
-      selection: ({sankey}) => sankey.selection
+      graphData: ({sankey}) => sankey.graph
     })
   },
   mounted() {

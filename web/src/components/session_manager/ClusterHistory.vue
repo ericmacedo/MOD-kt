@@ -49,8 +49,8 @@ export default {
       }
       return result
     },
+    ...mapState("userData", ["corpus"]),
     ...mapState({
-      corpus: ({userData}) => userData.corpus,
       index: ({sankey}) => sankey.graph.index,
       selection_index: ({sankey}) => sankey.selection.index
     })

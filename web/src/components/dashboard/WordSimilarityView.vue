@@ -60,9 +60,7 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      word_similarity: state => state.session.word_similarity
-    })
+    ...mapState("session", ["word_similarity"])
   },
   methods: {
     clipboardToast(word) {

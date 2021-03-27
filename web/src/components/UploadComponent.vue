@@ -84,9 +84,7 @@ export default {
     }
   },
   computed: {
-    ...mapState({
-      userId: state => state.userData.userId
-    })
+    ...mapState("userData", ["userId"])
   },
   methods: {
     makeToast(

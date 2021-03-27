@@ -50,9 +50,7 @@ export default {
     }
   },
   computed:{
-    ...mapState({
-      userId: ({userData}) => userData.userId
-    })
+    ...mapState("userData", ["userId"])
   },
   mounted() {
     this.sankeyData = this.requestSankeyGraph(this.userId);

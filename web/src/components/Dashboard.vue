@@ -146,11 +146,7 @@ export default {
 		}
 	},
   computed: {
-    ...mapState({
-      userId: state => state.userData.userId,
-      sessions: state => state.userData.sessions,
-      isProcessed: state => state.userData.isProcessed
-    })
+    ...mapState("userData", ["userId", "sessions", "isProcessed"])
   },
 	mounted() {
     if(this.isProcessed) {
