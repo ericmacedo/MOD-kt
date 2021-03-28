@@ -123,7 +123,7 @@ class Clusterer:
             doc_seeds = l2_norm(doc_seeds)
         else:
             doc_seeds = [
-                encode_documents([paragraph])[0]
+                encode_documents([" ".join(paragraph)])
                 for paragraph in self.seed_paragraphs]
 
         k_means = KMeans(

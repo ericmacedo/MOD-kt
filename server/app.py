@@ -26,7 +26,7 @@ from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
 
 logging.basicConfig(filename="./log/flask.log",
-    level=logging.DEBUG,
+    level=logging.ERROR,
     format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
 
 app = Flask(__name__, static_url_path="")
