@@ -12,7 +12,7 @@ from clusterer import Clusterer
 
 from utils import (
     process_text, term_frequency,
-    t_SNE, displaCy_NER, most_similar,
+    t_SNE, most_similar,
     similarity_graph, l2_norm,
     encode_documents, Doc_2_Vec,
     Fast_Text, Word_2_Vec, sankey_graph)

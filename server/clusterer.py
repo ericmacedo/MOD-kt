@@ -1,8 +1,18 @@
 from models import User, Document
 from sklearn.cluster import KMeans
-import seaborn as sns
 import os, pickle
 import numpy as np
+
+# https://medialab.github.io/iwanthue/
+# Default pre-set
+# 20 colors 
+# soft (k-means)
+# color blind setting
+color_palette = [
+    "#885fd8", "#5fb440", "#c657be", "#b6b630", "#5a78d8",
+    "#df8e28", "#8974be", "#669c4f", "#d7418f", "#4aaa86",
+    "#d54156", "#5a9fd0", "#cd542c", "#b86daf", "#ac9135",
+    "#c575a0", "#9c874a", "#b6557a", "#c2744e", "#c3666b"]
 
 class Clusterer:
     clusterer_path = "./users/{}/doc_clusterer.bin"
@@ -57,10 +67,9 @@ class Clusterer:
                 self.cluster_names.append(seed["cluster_names"][index])
                 self.colors.append(seed["colors"][index])
         else:
-            palette = sns.color_palette("tab20").as_hex()
             for i in range(self.k):
                 self.cluster_names.append(f"cluster_{i}")
-                self.colors.append(palette[i])
+                self.colors.append(color_palette[i])
 
         self.doc_clusters = dict()
         for cluster_name in self.cluster_names:

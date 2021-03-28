@@ -6,8 +6,6 @@ from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from multiprocessing import cpu_count
 from sklearn.utils import shuffle
-from spacy.tokens.doc import Doc
-from spacy import displacy
 from openTSNE import TSNE
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
@@ -249,14 +247,6 @@ def Doc_2_Vec(user:User) -> Doc2Vec:
 
     model.docvecs.init_sims()
     return model
-
-def displaCy_NER(doc: Doc) -> str:
-    return displacy.render(
-        docs=doc,
-        style="ent",
-        minify=True,
-        page=False,
-        jupyter=False)
 
 def most_similar(user:User, positive:list, topn:int=10) -> list:
     model = user.fast_text if user.word_model == "FastText" else user.word2vec
