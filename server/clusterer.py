@@ -113,7 +113,7 @@ class Clusterer:
         return k_means
 
     def cluster_documents(self) -> KMeans:
-        from utils import l2_norm, encode_document
+        from utils import l2_norm, encode_documents
 
         if self.doc_model == "Doc2Vec":
             doc_seeds = np.array([
@@ -123,7 +123,7 @@ class Clusterer:
             doc_seeds = l2_norm(doc_seeds)
         else:
             doc_seeds = [
-                encode_document([paragraph])[0]
+                encode_documents([paragraph])[0]
                 for paragraph in self.seed_paragraphs]
 
         k_means = KMeans(

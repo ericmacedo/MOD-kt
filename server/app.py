@@ -14,7 +14,7 @@ from utils import (
     process_text, term_frequency,
     t_SNE, displaCy_NER, most_similar,
     similarity_graph, l2_norm,
-    encode_document, Doc_2_Vec,
+    encode_documents, Doc_2_Vec,
     Fast_Text, Word_2_Vec, sankey_graph)
 
 import json

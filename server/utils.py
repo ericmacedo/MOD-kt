@@ -121,7 +121,7 @@ def similarity_graph(corpus:list) -> dict:
                     "value": j})
     return graph
 
-def encode_document(docs:list, model:str=None) -> list:
+def encode_documents(docs:list, model:str=None) -> list:
     model = model if model else (
         os.path.abspath("./pre-trained/allenai-specter"))
     
