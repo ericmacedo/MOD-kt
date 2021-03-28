@@ -130,7 +130,7 @@ def encode_document(docs:str, model:str=None) -> list:
     embeddings = transformer.encode(docs).tolist()
 
     del transformer
-    return embeddings.tolist()
+    return embeddings
 
 def l2_norm(data: list):
     import numpy as np
