@@ -135,7 +135,6 @@ class User:
                         content:str,
                         term_frequency:dict,
                         processed:str,
-                        svg:str=None,
                         embedding:list=None) -> dict:
 
         uuid = str(uuid4())
@@ -150,8 +149,6 @@ class User:
             "uploaded_on": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC")}
         if embedding:
             document["embedding"] = embedding
-        if svg:
-            document["svg"] = svg
 
         with open(file_path, "w", encoding="utf-8") as out_file:
             json.dump(document, out_file)
@@ -438,7 +435,6 @@ class Document:
             self._processed      = doc["processed"]
             self._term_frequency = doc["term_frequency"]
             self._embedding      = doc["embedding"] if "embedding" in doc else None
-            self._svg            = doc["svg"] if "svg" in doc else None
             self._uploaded_on    = doc["uploaded_on"]
 
     # FILE NAME
@@ -506,20 +502,6 @@ class Document:
         with open(self.__path, "w", encoding="utf-8") as out_file:
             json.dump(doc, out_file)
 
-    # SVG
-    @property
-    def svg(self):
-        return self._svg
-    
-    @svg.setter
-    def svg(self, svg:str):
-        self._svg = svg
-        doc = self.as_dict()
-        doc["svg"] = svg
-        with open(self.__path, "w", encoding="utf-8") as out_file:
-            json.dump(doc, out_file)
-
-
     # UTILS
     def as_dict(self) -> dict:
         return dict(
@@ -529,7 +511,6 @@ class Document:
             processed       = self._processed,
             term_frequency  = self._term_frequency,
             embedding       = self._embedding,
-            svg             = self._svg,
             uploaded_on     = self._uploaded_on)
 
     

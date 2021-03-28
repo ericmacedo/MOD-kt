@@ -6,7 +6,8 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build --mode production",
     "lint": "vue-cli-service lint",
-    "postbuild": "rsync -a ./dist/* ../server/static; rm -r ./dist/"
+    "postbuild": "rm -r ../server/static; mv ./dist ../server/static",
+    "clean": "rm -rf .cache .tmp lib build"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.34",

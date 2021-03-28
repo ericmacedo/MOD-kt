@@ -17,8 +17,6 @@ from utils import (
     encode_document, Doc_2_Vec,
     Fast_Text, Word_2_Vec, sankey_graph)
 
-import spacy
-
 import json
 
 import faulthandler
@@ -204,12 +202,8 @@ def process_corpus():
                 
                 user.fast_text = Fast_Text(user)
 
-                nlp = spacy.load("en_core_web_lg")
-
                 for doc in corpus:
-                    text = process_text(doc.content,deep=False)
-                    doc.embedding = encode_document(text)
-                    doc.svg = displaCy_NER(nlp(text))
+                    doc.embedding = encode_document(doc.content)
             else:
                 # SETTINGS
                 user.doc_model = "Doc2Vec"
@@ -220,15 +214,12 @@ def process_corpus():
                 model = Doc_2_Vec(user)
                 user.doc2vec = model
 
-                nlp = spacy.load("en_core_web_sm")
                 for index, doc in enumerate(corpus):
                     doc.embedding = l2_norm(
                         model.infer_vector(doc.processed.split(" "), steps=5)
                     ).tolist()
-                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
 
                 del model
-            del nlp
             
             graph  = similarity_graph(corpus)
             user.graph = graph
@@ -263,22 +254,15 @@ def process_corpus():
                 user.word2vec = Word_2_Vec(user=user)
 
             if user.doc_model == "S-BERT":
-                nlp = spacy.load("en_core_web_lg")
-
                 for doc in docs:
-                    text = process_text(doc.content,deep=False)
-                    doc.svg = displaCy_NER(nlp(text))
-                    doc.embedding = encode_document(text)
+                    doc.embedding = encode_document(doc.content)
             else:
-                nlp = spacy.load("en_core_web_sm")
-                
                 doc2vec = user.doc2vec
 
                 for doc in docs:
                     doc.embedding = l2_norm(
                         doc2vec.infer_vector(doc.processed.split(" "), steps=5)
                     ).tolist()
-                    doc.svg = displaCy_NER(nlp(process_text(doc.content,deep=False)))
 
             corpus = user.corpus # refresh corpus reference
             

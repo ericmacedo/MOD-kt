@@ -21,7 +21,7 @@
 			</b-input-group-append>
 		</b-input-group>
 	</div>
-	<div id="displaCy" class="mt-3" v-html="displaCy_NER"></div>
+	<div id="viewDocument" class="mt-3" v-html="viewDocument"></div>
 </b-card>
 </template>
 
@@ -31,11 +31,11 @@ import { mapMutations, mapState } from 'vuex';
 export default {
 	name: 'DocumentView',
 	computed: {
-		displaCy_NER: function() {
+		viewDocument: function() {
 			let objRef = this;
 			return this.corpus.find(
 				doc => doc.id == objRef.focused
-			)?.svg ?? "<center>Please select a document<center/>";
+			)?.content ?? "<center>Please select a document<center/>";
 		},
     focused: {
       get() {
@@ -59,7 +59,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="sass">
-#displaCy
+#viewDocument
 	overflow-y: scroll
 	padding: 5px
 	font-size: small

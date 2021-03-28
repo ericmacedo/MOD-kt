@@ -20,7 +20,6 @@
     <template v-if="words.length > 0">
       <cloud
         id="wordCloudCanvas"
-        class="mt-1"
         valueKey="value"
         nameKey="name"
         :height="height"

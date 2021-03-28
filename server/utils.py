@@ -1,3 +1,5 @@
+import os
+from sentence_transformers import SentenceTransformer
 from models import User, Document
 from werkzeug.datastructures import FileStorage
 from gensim.models import FastText, Word2Vec
@@ -120,9 +122,6 @@ def similarity_graph(corpus:list) -> dict:
     return graph
 
 def encode_document(docs:str, model:str=None) -> list:
-    import os
-    from sentence_transformers import SentenceTransformer
-
     model = model if model else (
         os.path.abspath("./pre-trained/allenai-specter"))
     

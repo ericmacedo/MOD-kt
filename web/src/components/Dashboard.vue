@@ -255,7 +255,7 @@ export default {
 	margin: 0!important
 
 .component
-	border: 1px solid #c3c3c3 !important
+	border: 1px solid #c3c3c3
 
 .card
 	header
