@@ -201,9 +201,10 @@ def process_corpus():
                 user.word_model = "FastText"
                 
                 user.fast_text = Fast_Text(user)
-
+                embeddings = encode_documents([
+                    doc.content for doc in corpus])
                 for doc in corpus:
-                    doc.embedding = encode_document(doc.content)
+                    doc.embedding = embeddings.pop(0)
             else:
                 # SETTINGS
                 user.doc_model = "Doc2Vec"
@@ -254,8 +255,10 @@ def process_corpus():
                 user.word2vec = Word_2_Vec(user=user)
 
             if user.doc_model == "S-BERT":
-                for doc in docs:
-                    doc.embedding = encode_document(doc.content)
+                embeddings = encode_documents([
+                    doc.content for doc in corpus])
+                for doc in corpus:
+                    doc.embedding = embeddings.pop(0)
             else:
                 doc2vec = user.doc2vec
 
