@@ -1,8 +1,10 @@
 from flask import (
-    Flask, request, 
+    Flask, request,
     redirect, render_template)
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+
+import logging
 
 from models import User, Document
 
@@ -25,11 +27,15 @@ faulthandler.enable()
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
 
+logging.basicConfig(filename="./log/flask.log",
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
+
 app = Flask(__name__, static_url_path="")
 CORS(app)
 
 @app.route("/", methods=["GET"])
-def index():
+def index(path):
     return app.send_static_file("index.html")
 
 @app.route("/auth", methods=["POST"])
@@ -49,7 +55,7 @@ def auth():
             else:
                 raise Exception("No such user exists!")
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -163,7 +169,7 @@ def corpus():
             "newData": newData
         }, 200
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -314,7 +320,7 @@ def process_corpus():
                 }
             }, 200
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -350,7 +356,7 @@ def projection():
             }, 200
 
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -414,7 +420,7 @@ def session():
         }, 200
 
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -465,7 +471,7 @@ def cluster():
             }, 200
 
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -491,7 +497,7 @@ def word_similarity():
                 "most_similar": word_sim
             }, 200
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {
@@ -512,7 +518,7 @@ def sankey():
 
             return sankey_graph(user=user), 200
     except Exception as e:
-        print(e)
+        app.logger.info(e)
         return {
             "status": "Fail",
             "message": {

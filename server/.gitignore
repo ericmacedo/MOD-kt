@@ -6,3 +6,4 @@ lib/
 pyvenv.cfg
 pre-trained/
 static/
+log/
