@@ -1,5 +1,5 @@
 from flask import (
-    Flask, request,
+    Flask, request, Response,
     redirect, render_template)
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -48,10 +48,10 @@ def auth():
 
             user = User(userId=userId)
             if user:
-                return {
+                return Response(json.dumps({
                     "status": "Success",
                     "userData": user.userData()
-                }, 200
+                }), content_type='application/json')  
             else:
                 raise Exception("No such user exists!")
     except Exception as e:
@@ -164,10 +164,10 @@ def corpus():
 
         del user
         
-        return {
+        return Response(json.dumps({
             "status": "Success",
             "newData": newData
-        }, 200
+        }), content_type='application/json')
     except Exception as e:
         app.logger.info(e)
         return {
@@ -236,10 +236,10 @@ def process_corpus():
 
             user.isProcessed = True
             
-            return {
+            return Response(json.dumps({
                 "status": "success",
                 "userData": user.userData()
-            }, 200
+            }), content_type='application/json')
 
         elif request.method == "POST": # Increment processing
             userId = request.form["userId"]
@@ -297,7 +297,7 @@ def process_corpus():
                 k=k,
                 seed=seed)
 
-            return {
+            return Response(json.dumps({
                 "status": "success",
                 "newData": {
                     "new_index": [doc.id for doc in docs],
@@ -318,7 +318,7 @@ def process_corpus():
                         ]
                     }
                 }
-            }, 200
+            }), content_type='application/json')
     except Exception as e:
         app.logger.info(e)
         return {
@@ -350,10 +350,10 @@ def projection():
                 perplexity = int(request.form["perplexity"])
                 projection = t_SNE(corpus, perplexity=perplexity)
 
-            return {
+            return Response(json.dumps({
                 "status": "success",
                 "projection": projection
-            }, 200
+            }), content_type='application/json')
 
     except Exception as e:
         app.logger.info(e)
@@ -414,10 +414,10 @@ def session():
 
             user.delete_sessions([sessionId])
 
-        return {
+        return Response(json.dumps({
             "status": "success",
             "sessionData": session
-        }, 200
+        }), content_type='application/json')
 
     except Exception as e:
         app.logger.info(e)
@@ -465,10 +465,10 @@ def cluster():
                 ]
             }
                     
-            return {
+            return Response(json.dumps({
                 "status": "success",
                 "sessionData": session
-            }, 200
+            }), content_type='application/json')
 
     except Exception as e:
         app.logger.info(e)
@@ -491,11 +491,11 @@ def word_similarity():
             user = User(userId=userId)
             word_sim = most_similar(user, query)
 
-            return {
+            return Response(json.dumps({
                 "status": "success",
                 "query": query,
                 "most_similar": word_sim
-            }, 200
+            }), content_type='application/json')
     except Exception as e:
         app.logger.info(e)
         return {
@@ -516,7 +516,9 @@ def sankey():
             if not user:
                 raise Exception("No such user exists!")
 
-            return sankey_graph(user=user), 200
+            return Response(json.dumps(
+                sankey_graph(user=user)
+            ), content_type='application/json')
     except Exception as e:
         app.logger.info(e)
         return {
