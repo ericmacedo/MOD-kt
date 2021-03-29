@@ -324,9 +324,15 @@ def make_response(data:dict) -> Response:
     content = compress(
         json.dumps(data, separators=(',', ':')).encode("utf-8"),
         4)
+    del data
+    
     response = Response(
         response=chunker(content, 1048),
         status=200)
-    response.headers['Content-length'] = len(content)
+
+    size = len(content)
+    del content
+    
+    response.headers['Content-length'] = size
     response.headers['Content-Encoding'] = 'gzip'
     return response
