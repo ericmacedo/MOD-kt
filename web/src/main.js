@@ -6,9 +6,8 @@ import router from "./router";
 // FONT AWESOME
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { fas } from "@fortawesome/free-solid-svg-icons";
-import { far } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-library.add(fas, far)
+library.add(fas)
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 
 // BOOTSTRAP
@@ -24,13 +23,6 @@ Vue.use(VuePapaParse);
 // VUE PROMISED
 import { Promised } from 'vue-promised';
 Vue.component('Promised', Promised);
-
-// VUE RESIZE
-import resize from "vue-resize-directive";
-Vue.directive("resize", resize);
-
-// SERVER REF
-Vue.prototype.$server = "http://localhost:5000";
 
 Vue.config.productionTip = false;
 
