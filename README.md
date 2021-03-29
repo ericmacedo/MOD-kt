@@ -26,7 +26,7 @@
 6. Setup logging
    1. `mkdir ./server/log`
    2. `touch ./server/log/access.log ./server/log/error.log ./server/log/flask.log`
-7. Serve it with some Python WSGI HTTP Server for UNIX, such as Gunicorn
+7. Serve it with some Python WSGI HTTP Server for UNIX, such as Gunicorn[gevent]
 
 ## Web
 * Set Vue configs on './web/.env.production' file:

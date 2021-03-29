@@ -22,8 +22,8 @@ export default new Vuex.Store({
 			
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/auth", formData, {
-          headers: { "Content-Type": "multipart/form-data"
-        }}).then(({data}) => {
+          headers: {"Content-Type": "multipart/form-data"}
+        }).then(({data}) => {
           commit("userData/setUserId", data.userData.userId);
           commit("userData/setCorpus", data.userData.corpus.map(doc => doc));
           commit("userData/setSessions", data.userData.sessions.map(session => session));
@@ -41,7 +41,7 @@ export default new Vuex.Store({
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(() =>  {
           commit("userData/clearUserData");
 
@@ -52,7 +52,7 @@ export default new Vuex.Store({
     async uploadDocument({commit, state}, formData) {
       return new Promise((resolve, reject) => {
         axios.put(state.SERVER+"/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then((result) => {
           commit("userData/pushCorpus", result.data.newData.map(d => d));
           resolve(result);
@@ -68,7 +68,7 @@ export default new Vuex.Store({
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(() => {
           commit("userData/removeFromCorpus", to_remove);
           resolve();
@@ -85,8 +85,8 @@ export default new Vuex.Store({
       }
       
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER+"/cluster", formData,
-          { headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER+"/cluster", formData,{ 
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           const session = data.sessionData;
           
@@ -167,7 +167,7 @@ export default new Vuex.Store({
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/projection", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           commit("session/setTsne", data.projection.map(d => d));
           
@@ -183,7 +183,7 @@ export default new Vuex.Store({
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/word_similarity", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           commit("session/setWordSimilarity", {
             query: data.query,
@@ -204,7 +204,7 @@ export default new Vuex.Store({
       
       return new Promise((resolve, reject) => {
         axios.put(state.SERVER+"/session", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           commit("session/setId",   data.sessionData.id);
           commit("session/setDate", data.sessionData.date);
@@ -222,7 +222,7 @@ export default new Vuex.Store({
       
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/session", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(() => {resolve()
         }).catch(error => reject(error));
       });
@@ -236,7 +236,7 @@ export default new Vuex.Store({
 
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/process_corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           const newData = data.newData;
 
@@ -257,12 +257,13 @@ export default new Vuex.Store({
     },
     async requestSankeyGraph({state, commit}, userId) {
       return new Promise((resolve, reject) => {
-        axios.get(state.SERVER+"/sankey", {params: {userId: userId}})
-          .then(({data}) => {
-            commit("sankey/setGraph", data);
-            resolve();
-            data = null;
-          }).catch(error => reject(error));
+        axios.get(state.SERVER+"/sankey", {
+          params: {userId: userId}
+        }).then(({data}) => {
+          commit("sankey/setGraph", data);
+          resolve();
+          data = null;
+        }).catch(error => reject(error));
       });
     }
   }

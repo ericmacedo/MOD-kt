@@ -1,26 +1,19 @@
-from flask import (
-    Flask, request, Response,
-    redirect, render_template)
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
-
-import logging
-
+# Application
 from models import User, Document
-
 from clusterer import Clusterer
-
 from utils import (
     process_text, term_frequency,
-    t_SNE, most_similar,
+    t_SNE, most_similar, make_response,
     similarity_graph, l2_norm,
     encode_documents, Doc_2_Vec,
     Fast_Text, Word_2_Vec, sankey_graph)
 
-import json
+# Flask
+from flask import Flask, request
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
-import faulthandler
-faulthandler.enable()
+import logging, json
 
 from nltk import download as NLTK_Downloader
 NLTK_Downloader("stopwords", quiet=True)
@@ -46,10 +39,9 @@ def auth():
 
             user = User(userId=userId)
             if user:
-                return Response(json.dumps({
+                return make_response({
                     "status": "Success",
-                    "userData": user.userData()
-                }), content_type='application/json')  
+                    "userData": user.userData()})
             else:
                 raise Exception("No such user exists!")
     except Exception as e:
@@ -162,10 +154,9 @@ def corpus():
 
         del user
         
-        return Response(json.dumps({
+        return make_response({
             "status": "Success",
-            "newData": newData
-        }), content_type='application/json')
+            "newData": newData})
     except Exception as e:
         app.logger.info(e)
         return {
@@ -228,10 +219,9 @@ def process_corpus():
 
             user.isProcessed = True
             
-            return Response(json.dumps({
+            return make_response({
                 "status": "success",
-                "userData": user.userData()
-            }), content_type='application/json')
+                "userData": user.userData()})
 
         elif request.method == "POST": # Increment processing
             userId = request.form["userId"]
@@ -284,7 +274,7 @@ def process_corpus():
                 k=k,
                 seed=seed)
 
-            return Response(json.dumps({
+            return make_response({
                 "status": "success",
                 "newData": {
                     "new_index": [doc.id for doc in docs],
@@ -305,7 +295,7 @@ def process_corpus():
                         ]
                     }
                 }
-            }), content_type='application/json')
+            })
     except Exception as e:
         app.logger.info(e)
         return {
@@ -337,10 +327,9 @@ def projection():
                 perplexity = int(request.form["perplexity"])
                 projection = t_SNE(corpus, perplexity=perplexity)
 
-            return Response(json.dumps({
+            return make_response({
                 "status": "success",
-                "projection": projection
-            }), content_type='application/json')
+                "projection": projection})
 
     except Exception as e:
         app.logger.info(e)
@@ -401,10 +390,10 @@ def session():
 
             user.delete_sessions([sessionId])
 
-        return Response(json.dumps({
+        return make_response({
             "status": "success",
             "sessionData": session
-        }), content_type='application/json')
+        })
 
     except Exception as e:
         app.logger.info(e)
@@ -452,10 +441,9 @@ def cluster():
                 ]
             }
                     
-            return Response(json.dumps({
+            return make_response({
                 "status": "success",
-                "sessionData": session
-            }), content_type='application/json')
+                "sessionData": session})
 
     except Exception as e:
         app.logger.info(e)
@@ -478,11 +466,10 @@ def word_similarity():
             user = User(userId=userId)
             word_sim = most_similar(user, query)
 
-            return Response(json.dumps({
+            return make_response({
                 "status": "success",
                 "query": query,
-                "most_similar": word_sim
-            }), content_type='application/json')
+                "most_similar": word_sim})
     except Exception as e:
         app.logger.info(e)
         return {
@@ -503,9 +490,7 @@ def sankey():
             if not user:
                 raise Exception("No such user exists!")
 
-            return Response(json.dumps(
-                sankey_graph(user=user)
-            ), content_type='application/json')
+            return make_response(sankey_graph(user=user))
     except Exception as e:
         app.logger.info(e)
         return {

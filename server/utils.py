@@ -1,4 +1,5 @@
-import os
+import os, json
+from mgzip import compress
 from sentence_transformers import SentenceTransformer
 from models import User, Document
 from werkzeug.datastructures import FileStorage
@@ -10,6 +11,7 @@ from openTSNE import TSNE
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
+from flask import Response
 
 def pdf_to_string(file:FileStorage):
     from io import StringIO
@@ -312,3 +314,10 @@ def sankey_graph(user:User) -> dict:
                         "value": len(intersection)})
 
     return graph
+
+def make_response(data:dict) -> Response:
+    content = compress(json.dumps(data).encode("utf-8"), 4)
+    response = Response(content, 200, direct_passthrough=True)
+    response.headers['Content-length'] = len(content)
+    response.headers['Content-Encoding'] = 'gzip'
+    return response
