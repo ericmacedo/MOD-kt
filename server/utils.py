@@ -315,9 +315,18 @@ def sankey_graph(user:User) -> dict:
 
     return graph
 
+def chunker(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 def make_response(data:dict) -> Response:
-    content = compress(json.dumps(data).encode("utf-8"), 4)
-    response = Response(content, 200, direct_passthrough=True)
+    content = compress(
+        json.dumps(data, separators=(',', ':')).encode("utf-8"),
+        4)
+    response = Response(
+        response=chunker(content, 1024),
+        status=200)
     response.headers['Content-length'] = len(content)
     response.headers['Content-Encoding'] = 'gzip'
     return response

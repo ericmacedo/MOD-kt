@@ -68,7 +68,6 @@ sentencepiece==0.1.95
 six==1.15.0
 smart-open==3.0.0
 sortedcontainers==2.3.0
-spacy-legacy==3.0.1
 srsly==2.4.0
 thinc==8.0.1
 threadpoolctl==2.1.0

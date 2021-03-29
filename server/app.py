@@ -25,9 +25,13 @@ logging.basicConfig(filename="./log/flask.log",
 app = Flask(__name__, static_url_path="")
 CORS(app)
 
-@app.route("/", methods=["GET"])
-def index():
-    return app.send_static_file("index.html")
+@app.route("/", defaults={"path": ""}, methods=["GET"])
+@app.route("/<path:path>", methods=["GET"])
+def index(path):
+    if path == "":
+        return app.send_static_file("index.html")
+    else:
+        return app.send_static_file(path)
 
 @app.route("/auth", methods=["POST"])
 # Authetication

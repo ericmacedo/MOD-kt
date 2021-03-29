@@ -16,4 +16,5 @@ if __name__ == "__main__":
     app.run(
         host=os.environ.get("FLASK_HOST"),
         port=os.environ.get("FLASK_PORT"),
-        debug=os.environ.get("DEBUG"))
+        debug=os.environ.get("DEBUG"),
+        threaded=True)
