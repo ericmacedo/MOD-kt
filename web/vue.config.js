@@ -1,6 +1,10 @@
 module.exports = {
   runtimeCompiler: true,
   configureWebpack: {
-    devtool: "source-map"
-  }
+    optimization: {
+      splitChunks: {
+        maxSize: 1048576
+      }
+    }
+  },
 }
