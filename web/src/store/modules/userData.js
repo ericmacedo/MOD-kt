@@ -6,8 +6,8 @@ const state = {
 };
 
 const getters = {
-  corpus_size({corpus}) {
-    return corpus.length;
+  corpus_size(state) {
+    return state.corpus.length;
   }
 };
 

@@ -16,10 +16,6 @@ import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 Vue.use(BootstrapVue);
 
-// PAPA PARSE
-import VuePapaParse from "vue-papa-parse";
-Vue.use(VuePapaParse);
-
 // VUE PROMISED
 import { Promised } from 'vue-promised';
 Vue.component('Promised', Promised);

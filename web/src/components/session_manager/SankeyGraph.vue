@@ -17,7 +17,7 @@ Object.defineProperty(Array.prototype, "pushToggle", {
     if (index == -1) {
       this.push(item);
     } else {
-      this.pop(index);
+      this.splice(index, 1);
     }
   }
 });
@@ -36,7 +36,7 @@ Object.defineProperty(Array.prototype, "popIfExist", {
   value: function(item) { 
     const index = this.indexOf(item);
     if (index != -1) {
-      this.pop(index);
+      this.splice(index, 1);
     }
   }
 });
@@ -436,7 +436,7 @@ export default{
         this.selection.node.pushIfNotExist(link.target.id);
       } else {
         if(event.ctrlKey) {
-          this.selection.link.pop(index);
+          this.selection.link.splice(index, 1);
           this.selection.node.popIfExist(link.source.id);
           this.selection.node.popIfExist(link.target.id);
         } else {

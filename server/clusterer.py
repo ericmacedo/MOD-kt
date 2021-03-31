@@ -1,5 +1,7 @@
 from models import User, Document
+from utils import synonyms, process_text
 from sklearn.cluster import KMeans
+from sklearn.utils import shuffle
 import os, pickle
 import numpy as np
 
@@ -81,6 +83,19 @@ class Clusterer:
 
         pickle.dump(doc_clusterer, open(self.__path, "wb"))
 
+    def handle_unseen_words(self, words:list) -> list:
+        words_filtered = [*filter(lambda word: word in self.word_vectors.wv, words)]
+        if len(words_filtered) == 0:
+            synonyms = []
+            for word in words:
+                synonyms += [process_text(syn) for syn in synonyms(word)]
+            synonyms = [*filter(lambda word: word in self.word_vectors.wv)]
+            if len(synonyms) == 0:
+                raise Exception("Neither the words nor its synonyms in the vocabulary")
+            else:
+                words_filtered = [*synonyms]
+
+        return words_filtered
 
     def cluster_words(self) -> KMeans:
         self.word_vectors.wv.init_sims()
@@ -95,6 +110,12 @@ class Clusterer:
                         positive.append(word["word"])
                     else:
                         negative.append(word["word"])
+                if self.word_model == "Word2Vec":
+                # Handling unseen words for Word2Vec
+                # FastText can handle unseen words
+                    positive = self.handle_unseen_words(positive)
+                    negative = self.handle_unseen_words(negative)
+
                 seed_terms = positive + [
                     term[0]
                     for term in self.word_vectors.wv.most_similar(
@@ -126,7 +147,7 @@ class Clusterer:
 
         if self.doc_model == "Doc2Vec":
             doc_seeds = np.array([
-                self.doc2vec.infer_vector(paragraph, steps=5)
+                self.doc2vec.infer_vector(shuffle(paragraph), steps=5)
                 for paragraph in self.seed_paragraphs
             ])
             doc_seeds = l2_norm(doc_seeds)

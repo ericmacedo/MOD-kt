@@ -119,13 +119,16 @@
       </div>
     </template>
     <template v-slot:default>
-      <keep-alive>
-        <router-view
-          id="mainView"
-          :width="Width"
-          :height="Height"
-          class="h-100 w-100 container-fluid"/>
-      </keep-alive>
+      <transition>
+        <keep-alive>
+          <router-view
+            id="mainView"
+            :dashboardKey="keys.dashboard"
+            :corpusKey="keys.corpus"
+            :sessionKey="keys.session"
+            class="h-100 w-100 container-fluid"/>
+        </keep-alive>
+      </transition>
     </template>
     <template v-slot:rejected>
       <p>oops, something went wrong!</p>
@@ -196,8 +199,11 @@ export default {
     return {
       title: "Vis-Kt",
       userData: undefined,
-      Height: 500,
-      Width: 500,
+      keys: {
+        corpus: 0,
+        dashboard: 0,
+        session: 0
+      },
       navbar: {
         items: [
           {
@@ -329,9 +335,11 @@ export default {
           "warning",
           "cluster-data");
 			
-			this.sessionData = this.clusterData();
+			this.sessionData = this.cluster();
 
-			this.sessionData.catch(() => {
+      this.sessionData.then(() => {
+        objRef.incremented();
+      }).catch(() => {
         objRef.makeToast(
           "Oops, something went wrong!",
           "Please, try again",
@@ -362,13 +370,11 @@ export default {
             "danger");
         }).then(() => objRef.$bvToast.hide("save-session"));
     },
-    incremented(){
-      this.$forceUpdate();
-      
-      this.$refs.graphView.updateLayout();
+    updateDashboard() {
+      this.keys.dashboard++;
     },
     ...mapActions([
-      "clusterData", "getUserData", "clearUserData", "saveSession"])
+      "cluster", "getUserData", "clearUserData", "saveSession"])
   }
 }
 </script>

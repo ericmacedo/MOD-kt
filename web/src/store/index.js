@@ -13,11 +13,11 @@ export default new Vuex.Store({
     userData, session, sankey
   },
   state: {
-    SERVER: `${process.env.VUE_APP_SERVER_URL}:${process.env.VUE_APP_SERVER_PORT}`
+    SERVER: `${process.env.VUE_APP_SERVER_URL}:${process.env.VUE_APP_SERVER_PORT}/api`
   },
   actions: {
     async getUserData({commit, state}, userId) {
-      const formData = new FormData();
+      let formData = new FormData();
       formData.set("userId", userId);
 			
       return new Promise((resolve, reject) => {
@@ -35,7 +35,7 @@ export default new Vuex.Store({
       });
     },
     async clearUserData({commit, state}) {
-      const formData = new FormData();
+      let formData = new FormData();
       formData.set("userId", state.userData.userId);
       formData.set("RESET_FLAG", true);
 
@@ -61,7 +61,7 @@ export default new Vuex.Store({
       });
     },
     async deleteDocument({commit, state}, {to_remove, RESET_FLAG}) {
-      const formData = new FormData();
+      let formData = new FormData();
 			formData.set("userId", state.userData.userId);
 			formData.set("ids", to_remove);
 			formData.set("RESET_FLAG", RESET_FLAG);
@@ -76,34 +76,36 @@ export default new Vuex.Store({
       });
     },
     async cluster({commit, getters, state}, cluster_k=null) {
-      const formData = new FormData();
+      let formData = new FormData();
 			formData.set("userId", state.userData.userId);
-      if (cluster_k){
+      if (cluster_k != null) {
         formData.set("cluster_k", cluster_k);
       } else {
-        formData.set("session", JSON.stringify(getters.session));
+        formData.set("session", JSON.stringify(getters["session/session"]));
       }
       
       return new Promise((resolve, reject) => {
         axios.post(state.SERVER+"/cluster", formData,{ 
           headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
-          const session = data.sessionData;
+          let session = data.sessionData;
+
+          commit("session/clear");
           
           commit("session/setId", session.id);
           commit("session/setName", session.name);
           commit("session/setNotes", session.notes);
           commit("session/setIndex", session.index.map(id => id));
-          commit("session/setGraph", Object.assign({}, session.graph));
+          commit("session/setGraph", session.graph);
           commit("session/setLinkSelector", session.link_selector);
           commit("session/setTsne", session.tsne.map(d => d));
-          commit("session/setClusters", Object.assign({}, session.clusters));
-          commit("session/setControls", Object.assign({}, session.controls));
+          commit("session/setClusters", session.clusters);
+          commit("session/setControls", session.controls);
           commit("session/setDate", session.date);
           commit("session/setSelected", session.selected.map(d => d));
           commit("session/setFocused", session.focused);
           commit("session/setHighlight", session.highlight);
-          commit("session/setWordSimilarity", Object.assign({}, session.word_similarity));
+          commit("session/setWordSimilarity", session.word_similarity);
 
           data = null;
           resolve();
@@ -135,6 +137,8 @@ export default new Vuex.Store({
             sessionId: sessionId}
         }).then(({data})=> {
           let session = data.sessionData;
+
+          commit("session/clear");
           
           commit("session/setId", session.id);
           commit("session/setName", session.name);
@@ -158,7 +162,7 @@ export default new Vuex.Store({
       });
     },
     async getProjection({commit, state}) {
-      const formData = new FormData();
+      let formData = new FormData();
 
 			formData.set("userId", state.userData.userId);
 			formData.set("projection", state.session.controls.projection);
@@ -177,7 +181,7 @@ export default new Vuex.Store({
       });
     },
     async getMostSimilar({state, commit}) {
-      const formData = new FormData();
+      let formData = new FormData();
       formData.set("userId", state.userData.userId);
       formData.set("query", state.session.word_similarity.query);
 
@@ -196,7 +200,7 @@ export default new Vuex.Store({
       });
     },
     async saveSession({commit, getters, state}) {
-      const formData = new FormData();
+      let formData = new FormData();
       let session = getters["session/session"];
       
       formData.set("userId", state.userData.userId);
@@ -215,7 +219,7 @@ export default new Vuex.Store({
       });
     },
     async deleteSession({state}, sessionId) {
-      const formData = new FormData();
+      let formData = new FormData();
       
       formData.set("userId", state.userData.userId);
       formData.set("sessionId", sessionId);
@@ -228,7 +232,7 @@ export default new Vuex.Store({
       });
     },
     async updateCorpus({state, commit}, newData) {
-      const formData = new FormData();
+      let formData = new FormData();
       
       formData.set("userId", state.userData.userId);
       formData.set("clusters", JSON.stringify(state.session.clusters));
@@ -238,19 +242,20 @@ export default new Vuex.Store({
         axios.post(state.SERVER+"/process_corpus", formData, {
           headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
-          const newData = data.newData;
+          let newData = data.newData;
 
           // SESSION UPDATE
           commit("session/setTsne", newData.tsne.map(d => d));
-          commit("session/setGraph", Object.assign({}, newData.graph));
+          commit("session/setGraph", newData.graph);
           commit("session/setIndex", newData.index.map(d => d));
           commit("session/setNewDocs", newData.new_index.map(d => d));
-          commit("session/setClusters", Object.assign({}, newData.clusters));
+          commit("session/setClusters", newData.clusters);
 
           // USER DATA UPDATE
           commit("userData/setCorpus", newData.corpus.map(doc => doc));
 
           data = null;
+          newData = null;
           resolve();
         }).catch(error => reject(error));
       });

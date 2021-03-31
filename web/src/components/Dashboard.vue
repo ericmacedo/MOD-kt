@@ -1,5 +1,5 @@
 <template>
-<div class="dashboard">
+<div class="dashboard" ref="dashboard" :key="dashboardKey">
 	<Promised :promise="sessionData">
 	<template v-slot:pending>
 		<div class="h-100 text-center">
@@ -140,6 +140,12 @@ export default {
     "word-cloud":       WordCloud,
     "word-similarity":  WordSimilarity
   },
+  props: {
+    dashboardKey: {
+      required: true,
+      type: Number
+    }
+  },
 	data() {
 		return {
 			sessionData: undefined
@@ -155,6 +161,9 @@ export default {
       this.$bvModal.show('process-redirect-modal');
     }
 	},
+  destroyed() {
+    this.sessionData = null;
+  },
 	methods: {
     makeToast(
 				title,
@@ -220,7 +229,9 @@ export default {
           "Oops, something went wrong!",
           "Please, try again",
           "danger");
-      }).then(() => objRef.$bvToast.hide("cluster-data"));
+      }).then(() => {
+        objRef.$bvToast.hide("cluster-data")
+      });
 		},
     callDeleteSession(session) {
       let objRef = this;

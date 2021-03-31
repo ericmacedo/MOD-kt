@@ -62,6 +62,7 @@
 
 <script>
 import { mapActions, mapState } from 'vuex';
+import Papa from 'papaparse';
 
 export default {
   name: "UploadComponent",
@@ -129,7 +130,7 @@ export default {
 					const reader = new FileReader();
 
 					reader.onload = function(event) {
-						const parsed = objRef.$papa.parse(event.target.result, {
+						const parsed = Papa.parse(event.target.result, {
 							delimiter: ",",
 							header: true,
 							skipEmptyLines: true

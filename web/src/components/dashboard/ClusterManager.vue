@@ -100,7 +100,7 @@
 								</b-button>
 								<b-button
 									variant="outline-secondary"
-									@click="modal.words.pop(index)">
+									@click="modal.words.splice(index, 1)">
 									<font-awesome-icon :icon="['fas', 'trash']"/>
 								</b-button>
 								<b-button

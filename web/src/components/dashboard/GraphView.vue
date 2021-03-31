@@ -365,10 +365,25 @@ export default {
 		
 		this.updateLayout();
 	},
+  destroyed(){
+    this.simulation = null;
+    
+    this.node.remove();
+    this.node = null;
+    
+    this.link.remove();
+    this.link = null;
+    
+    this.tooltip.remove();
+    this.tooltip = null;
+    
+    this.canvas.remove();
+    this.canvas = null;
+    
+    this.svg.remove();
+    this.svg = null;
+  },
 	methods: {
-    onResize(obj) {
-      console.log(obj); 
-    },
 		makeToast(
 				title,
 				content,
@@ -548,6 +563,10 @@ export default {
       _links = null;
       _nodes = null;
 		},
+    clearGraph() {
+      this.node.remove();
+      this.node.link();
+    },
 		requestProjection(projection) {
 			let objRef = this;
 

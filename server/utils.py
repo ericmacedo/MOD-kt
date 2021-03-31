@@ -1,4 +1,4 @@
-import os, json
+import os, json, string, re
 from mgzip import compress
 from sentence_transformers import SentenceTransformer
 from models import User, Document
@@ -12,6 +12,9 @@ from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from flask import Response
+from nltk import pos_tag
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords, wordnet
 
 def pdf_to_string(file:FileStorage):
     from io import StringIO
@@ -36,14 +39,21 @@ def pdf_to_string(file:FileStorage):
     return(output_string.getvalue())
     
 def process_text(text:str, deep:bool=False) -> str:
-    import string, re
-    from nltk.corpus import stopwords
-
     def strip_tags(text: str) -> str:
         p = re.compile(r'<.*?>')
         return p.sub('', text)
 
-    punctuation = r"[{0}]".format(re.sub(r"[-]", "", string.punctuation))
+    def get_wordnet_pos(word):
+        tag = pos_tag([word])[0][1][0].upper()
+        tag_dict = {
+            "J": wordnet.ADJ,
+            "N": wordnet.NOUN,
+            "V": wordnet.VERB,
+            "R": wordnet.ADV}
+
+        return tag_dict.get(tag, wordnet.NOUN)
+
+    punctuation = r"[{0}]".format(re.sub(r"[-']", "", string.punctuation))
 
     stop_words = stopwords.words("english")
 
@@ -74,8 +84,11 @@ def process_text(text:str, deep:bool=False) -> str:
     # Remove extra characteres
     tokens = [*filter(lambda x: len(x) > 2, tokens)]
 
+    lemmatizer = WordNetLemmatizer()
     tokens = [
-        token for token in tokens
+        lemmatizer.lemmatize(
+            token, get_wordnet_pos(token)
+        ) for token in tokens
         if not token in stop_words] if deep else tokens
 
     return " ".join(tokens).strip()
@@ -336,3 +349,11 @@ def make_response(data:dict) -> Response:
     response.headers['Content-length'] = size
     response.headers['Content-Encoding'] = 'gzip'
     return response
+
+def synonyms(word:str) -> list:
+    word = word.replace("-", "_")
+    synonyms = []
+    for syn in wordnet.synsets(word):
+        for lm in syn.lemmas():
+            synonyms.append(lm.name())
+    return [*set(synonyms)]

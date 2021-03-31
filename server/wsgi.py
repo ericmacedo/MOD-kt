@@ -1,10 +1,19 @@
 # PYTHON PATH GOES HERE
-import os
-import sys
-import logging
+import os, sys, logging, faulthandler
 from dotenv import load_dotenv
-logging.basicConfig(stream=sys.stderr)
+from nltk import download as NLTK_Downloader
+
 sys.path.insert(0, os.path.abspath("."))
+
+logging.basicConfig(filename="./log/flask.log",
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
+
+faulthandler.enable()
+
+NLTK_Downloader([
+    "stopwords", "wordnet", "averaged_perceptron_tagger"
+], quiet=True)
 
 load_dotenv('.env')
 

@@ -1,10 +1,9 @@
-import os, json
+import os, json, threading
 import numpy as np
 from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec
 from datetime import datetime
 from uuid import uuid4
-import threading
 
 class User:
     def __init__(self, userId:str):
