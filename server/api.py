@@ -266,6 +266,7 @@ def process_corpus():
                 k=k,
                 seed=seed)
 
+            # TODO SHORTEN response
             return make_response({
                 "status": "success",
                 "newData": {

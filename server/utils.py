@@ -1,4 +1,6 @@
-import os, json, string, re
+import os, string, re
+import ujson as json
+from io import BytesIO
 from mgzip import compress
 from sentence_transformers import SentenceTransformer
 from models import User, Document, WordModel
@@ -11,7 +13,7 @@ from openTSNE import TSNE
 from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-from flask import Response
+from flask import send_file
 from nltk import pos_tag, word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords, wordnet
@@ -365,27 +367,17 @@ def sankey_graph(user:User) -> dict:
 
     return graph
 
-def make_response(data:dict) -> Response:
-    def chunker(lst, n):
-        """Yield successive n-sized chunks from lst."""
-        for i in range(0, len(lst), n):
-            yield lst[i:i + n]
-
-    content = compress(
-        json.dumps(data, separators=(',', ':')).encode("utf-8"),
-        4)
-    del data
+def make_response(data:dict):
+    buffer = BytesIO(json.dumps(
+        data, ensure_ascii=False
+    ).encode("utf-8"))
     
-    response = Response(
-        response=chunker(content, 1048),
-        status=200)
-
-    size = len(content)
-    del content
-    
-    response.headers['Content-length'] = size
-    response.headers['Content-Encoding'] = 'gzip'
-    return response
+    return send_file(
+        buffer,
+        mimetype='application/json',
+        attachment_filename="response.json",
+        as_attachment=True,
+        conditional=True)
 
 def synonyms(word:str) -> list:
     word = word.replace("-", "_")
