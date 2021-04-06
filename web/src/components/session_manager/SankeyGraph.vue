@@ -10,37 +10,6 @@ import * as sankey from "d3-sankey";
 import * as cloud from "d3-cloud";
 import { mapState, mapMutations } from 'vuex';
 
-Object.defineProperty(Array.prototype, "pushToggle", {
-  enumerable: false,
-  value: function(item) {
-    const index = this.indexOf(item);
-    if (index == -1) {
-      this.push(item);
-    } else {
-      this.splice(index, 1);
-    }
-  }
-});
-
-Object.defineProperty(Array.prototype, "pushIfNotExist", {
-  enumerable: false,
-  value: function(item) { 
-    if (!this.includes(item)) {
-      this.push(item);
-    }
-  }
-});
-
-Object.defineProperty(Array.prototype, "popIfExist", {
-  enumerable: false,
-  value: function(item) { 
-    const index = this.indexOf(item);
-    if (index != -1) {
-      this.splice(index, 1);
-    }
-  }
-});
-
 export default{
   name: "SankeyGraph",
   props:{
@@ -162,6 +131,8 @@ export default{
         .on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
       .append("g");
 
+    console.log(this.graphData);
+
     // GRAPH
     this.sankeyGraph = sankey.sankey()
       .size([this.width, this.height])
@@ -178,6 +149,8 @@ export default{
       nodes: this.graphData.nodes,
       links: this.graphData.links
     });
+
+    console.log(this.sankeyGraph);
 
     // NODES
     this.node = this.canvas.append("g")

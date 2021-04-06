@@ -2,14 +2,20 @@
 <div>
 	<b-row>
 		<b-col class="upload-wrapper"
-			sm="12" md="6" lg="6">
+			cols="12" sm="12" md="6" lg="6">
 			<upload-component context="CORPUS"></upload-component>
 		</b-col>
 
 		<!-- TOOLBAR + TABLE -->
-		<b-col id="tableCol" sm="12" md="6" lg="6">
+		<b-col id="tableCol" cols="12" sm="12" md="6" lg="6">
 			<!-- TOOLBAR -->
 			<b-button-toolbar id="corpusToolbar">
+        <b-button-group size="sm" class="mx-1">
+					<b-button
+            v-b-toggle.stopwords
+            size="sm"
+            variant="outline-secondary">Stopwords</b-button>
+				</b-button-group>
 				<b-button-group size="sm" class="mx-1">
 					<b-button disabled
 						variant="outline-secondary">
@@ -19,7 +25,7 @@
 						<font-awesome-icon :icon="['fas', 'sync']"/>
 					</b-button>
 				</b-button-group>
-				<b-button-group class="mx-1">
+				<b-button-group class="mx-1" size="sm">
 					<b-button
 						size="sm"
 						:disabled="corpus_size==0"
@@ -44,6 +50,7 @@
 
 				<!-- TODO create modal to confirm redirect to Dashboard? -->
 				<b-dropdown
+          size="sm"
 					class="mx-1"
 					variant="info"
 					text="Process corpus"
@@ -67,8 +74,40 @@
             </small>
           </b-dropdown-item-button>
 				</b-dropdown>
-
 			</b-button-toolbar>
+      <b-collapse id="stopwords" class="mt-1 max-h-100">
+        <b-input-group size="sm" class="max-h-100 w-100">
+          <b-form-tags
+            size="sm"
+            id="stopwords-tags"
+            v-model="stop_words"
+            class="max-h-100 w-50"
+            input-id="stopwords"
+            separator=" "
+            placeholder="Enter new words separated by space"
+            remove-on-delete
+            no-add-on-enter>
+          </b-form-tags>
+          <b-button
+            size="sm"
+            class="mr-1"
+            title="Clear stopwords"
+            variant="outline-danger"
+            @click="stop_words = []">
+            <font-awesome-icon :icon="['fas', 'times']"/>
+          </b-button>
+          <template #append>
+            <b-form-file
+              v-model="stopwordsFile"
+              accept=".txt"
+              placeholder="Upload a 'txt' file"
+              browse-text="Browse"
+              @input="addStopwords">
+              <font-awesome-icon :icon="['fas', 'file']"/>
+            </b-form-file>
+          </template>
+        </b-input-group>
+      </b-collapse>
 
 			<!-- TABLE -->
 			<b-table
@@ -154,13 +193,20 @@ export default {
 				fields: ["selected", "file_name", "uploaded_on", "show_details"],
 				selection: []
 			},
-			processingCorpus: false
+			processingCorpus: false,
+      stopwordsFile: []
 		}
 	},
 	computed: {
 		all_selected: function () {
 			return (this.table.selection.length == this.corpus_size);
 		},
+    stop_words: {
+      get() { return this.$store.state.userData.stop_words; },
+      set(stop_words) {
+        this.$store.state.userData.stop_words = stop_words.sort();
+      }
+    },
     ...mapState("userData", ["corpus", "userId"]),
     ...mapGetters('userData', ["corpus_size"])
 	},
@@ -263,13 +309,25 @@ export default {
           objRef.$bvToast.hide("process_corpus");
           objRef.processingCorpus = false;});
 		},
+    addStopwords() {
+      let objRef = this;
+      this.stopwordsFile.text().then(txt => {
+        txt = txt.replace(/\n|\t|\r/g, " ")
+        txt = txt.replace(/[^a-zA-Z ]/g, "");
+        txt = txt.split(" ");
+        txt = txt.filter(word => word != "");
+        txt = objRef.stop_words.concat(txt);
+        txt = [...new Set(txt)];
+        objRef.stop_words = txt.sort();
+      });
+    },
     ...mapActions(["deleteDocument", "processCorpus", "getUserData"])
 	},
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style lang="sass" scoped>
+<style lang="sass">
 *
 	box-sizing: border-box
 	-moz-box-sizing: border-box
@@ -301,4 +359,19 @@ export default {
   position: -webkit-sticky
   position: sticky
   top: 60px
+
+.max-h-100
+  max-height: 100px !important
+
+$w: 0.0
+@while $w < 1.0
+  $w: $w + 0.05
+  .w-#{$w * 100}
+    width: percentage($w) !important
+    max-width: percentage($w) !important
+    min-width: percentage($w) !important
+
+#stopwords-tags
+  overflow-y: auto
+  overflow-x: hidden
 </style>

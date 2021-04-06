@@ -1,8 +1,10 @@
 from models import User, Document
-from utils import synonyms, process_text
+from utils import (
+    synonyms, process_text,
+    l2_norm, encode_documents)
 from sklearn.cluster import KMeans
 from sklearn.utils import shuffle
-import os, pickle
+import os
 import numpy as np
 
 # https://medialab.github.io/iwanthue/
@@ -81,15 +83,13 @@ class Clusterer:
             self.doc_clusters[f"{self.cluster_names[label]}"].append(
                 corpus[index].id)
 
-        pickle.dump(doc_clusterer, open(self.__path, "wb"))
-
     def handle_unseen_words(self, words:list) -> list:
         words_filtered = [*filter(lambda word: word in self.word_vectors.wv, words)]
-        if len(words_filtered) == 0:
+        if len(words) != 0 and len(words_filtered) == 0:
             synonyms = []
             for word in words:
                 synonyms += [process_text(syn) for syn in synonyms(word)]
-            synonyms = [*filter(lambda word: word in self.word_vectors.wv)]
+            synonyms = [*filter(lambda word: word in self.word_vectors.wv, synonyms)]
             if len(synonyms) == 0:
                 raise Exception("Neither the words nor its synonyms in the vocabulary")
             else:
@@ -135,7 +135,7 @@ class Clusterer:
         k_means = KMeans(
             n_clusters=self.k,
             init=init_mode,
-            n_init=1,
+            n_init=10,
             tol=1e-5
         ).fit(self.word_vectors.wv.vectors_norm)
         self.word_clusters = k_means.labels_
@@ -143,13 +143,11 @@ class Clusterer:
         return k_means
 
     def cluster_documents(self) -> KMeans:
-        from utils import l2_norm, encode_documents
-
         if self.doc_model == "Doc2Vec":
             doc_seeds = np.array([
-                self.doc2vec.infer_vector(shuffle(paragraph), steps=5)
+                self.doc2vec.infer_vector(shuffle(paragraph), steps=35)
                 for paragraph in self.seed_paragraphs
-            ])
+            ], dtype=float)
             doc_seeds = l2_norm(doc_seeds)
         else:
             doc_seeds = np.array(encode_documents([
@@ -160,7 +158,7 @@ class Clusterer:
         k_means = KMeans(
             n_clusters=self.k,
             init=doc_seeds,
-            n_init=1,
+            n_init=10,
             tol=1e-5
         ).fit(self.embeddings)
         self.doc_labels = k_means.labels_

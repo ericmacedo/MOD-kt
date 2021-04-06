@@ -13,17 +13,19 @@
     <b-collapse id="nav-collapse" is-nav>
       <!-- Right aligned nav items -->
       <b-col cols="4">
-        <b-navbar-nav>
+        <b-navbar-nav size="sm">
           <b-nav-item 
             v-for="(item, index) in navbar.items"
             :key="index"
             :to="item.path"
             :active="$route.path === item.path"
             :index="index">
-            <a @click="toggleRowActive(index)">
-              <font-awesome-icon :icon="['fas', item.icon]"/>
-              &nbsp; {{ item.name }}
-            </a>
+            <small>
+              <a @click="toggleRowActive(index)">
+                <font-awesome-icon :icon="['fas', item.icon]"/>
+                &nbsp; {{ item.name }}
+              </a>
+            </small>
           </b-nav-item>
         </b-navbar-nav>
       </b-col>
@@ -45,7 +47,7 @@
                 title="Cluster the corpus with the given configuration on 'Cluster Manager'"
                 variant="success"
                 @click="callCluster">
-                <strong>Cluster</strong>&nbsp;
+                <strong>Re-cluster</strong>&nbsp;
                 <font-awesome-icon :icon="['fas', 'play']"/>
               </b-button>
             </b-button-group>
@@ -124,8 +126,6 @@
           <router-view
             id="mainView"
             :dashboardKey="keys.dashboard"
-            :corpusKey="keys.corpus"
-            :sessionKey="keys.session"
             class="h-100 w-100 container-fluid"/>
         </keep-alive>
       </transition>
@@ -178,7 +178,7 @@
 		no-close-on-backdrop
 		no-close-on-esc>
 		<upload-component
-      v-on:re-render="incremented()"
+      v-on:re-render="updateDashboard()"
       context="MODAL"></upload-component>
 	</b-modal>
 </div>
@@ -200,9 +200,7 @@ export default {
       title: "Vis-Kt",
       userData: undefined,
       keys: {
-        corpus: 0,
-        dashboard: 0,
-        session: 0
+        dashboard: 0
       },
       navbar: {
         items: [
@@ -329,22 +327,20 @@ export default {
     callCluster() {
       let objRef = this;
 
-      objRef.makeToast(
+      this.makeToast(
           "Clustering your data",
           "Please wait",
           "warning",
           "cluster-data");
 			
-			this.sessionData = this.cluster();
-
-      this.sessionData.then(() => {
-        objRef.incremented();
-      }).catch(() => {
-        objRef.makeToast(
-          "Oops, something went wrong!",
-          "Please, try again",
-          "danger");
-      }).then(() => objRef.$bvToast.hide("cluster-data"));
+			this.cluster()
+        .then(() => objRef.updateDashboard())
+        .catch(() => {
+          objRef.makeToast(
+            "Oops, something went wrong!",
+            "Please, try again",
+            "danger");})
+        .then(() => objRef.$bvToast.hide("cluster-data"));
     },
     callSaveSession() {
       let objRef = this;
@@ -371,7 +367,7 @@ export default {
         }).then(() => objRef.$bvToast.hide("save-session"));
     },
     updateDashboard() {
-      this.keys.dashboard++;
+      ++this.keys.dashboard;
     },
     ...mapActions([
       "cluster", "getUserData", "clearUserData", "saveSession"])

@@ -175,12 +175,6 @@ import { mapState, mapGetters, mapMutations, mapActions } from  "vuex";
 import * as d3 from "d3";
 import silhouette from "@robzzson/silhouette";
 
-Array.prototype.pushIfNotExist = function(item) { 
-  if (!this.includes(item)) {
-    this.push(item);
-  }
-};
-
 export default {
   name: "GraphView",
 	data() {
@@ -219,7 +213,7 @@ export default {
           
           this.node.classed("faded", d => !doc_ids.includes(d.id));
           this.link.classed("faded",
-            d => !(doc_ids.includes(d.source.id) || doc_ids.includes(d.target.id)));
+            d => !(doc_ids.includes(d.source.id) && doc_ids.includes(d.target.id)));
 
           doc_ids = null;
         }
@@ -338,6 +332,7 @@ export default {
 			});
 
 		// CANVAS
+    d3.selectAll("#graphViewCanvas > *").remove();
 		this.svg = d3.select("#graphViewCanvas")
 			.attr("width", "100%")
 			.attr("height", "100%")
@@ -366,8 +361,6 @@ export default {
 		this.updateLayout();
 	},
   destroyed(){
-    this.simulation = null;
-    
     this.node.remove();
     this.node = null;
     
@@ -379,9 +372,14 @@ export default {
     
     this.canvas.remove();
     this.canvas = null;
-    
+
     this.svg.remove();
     this.svg = null;
+
+    this.simulation
+      .nodes([])
+      .force("link").links([]);
+    this.simulation = null;
   },
 	methods: {
 		makeToast(

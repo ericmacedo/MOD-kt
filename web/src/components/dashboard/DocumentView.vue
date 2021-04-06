@@ -60,7 +60,7 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="sass">
 #viewDocument
-	overflow-y: scroll
+	overflow-y: auto
 	padding: 5px
 	font-size: small
 	word-break: normal

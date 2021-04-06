@@ -1,7 +1,7 @@
 import os, json, string, re
 from mgzip import compress
 from sentence_transformers import SentenceTransformer
-from models import User, Document
+from models import User, Document, WordModel
 from werkzeug.datastructures import FileStorage
 from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
@@ -12,9 +12,16 @@ from sklearn.metrics import pairwise_distances
 from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 from flask import Response
-from nltk import pos_tag
+from nltk import pos_tag, word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords, wordnet
+from joblib import Parallel, delayed
+from typing import Callable
+from functools import lru_cache
+
+def batch_processing(fn:Callable, data:list, **kwargs) -> list:
+    return Parallel(n_jobs=-1, backend="multiprocessing")(
+        delayed(fn)(data=i, **kwargs) for i in data)
 
 def pdf_to_string(file:FileStorage):
     from io import StringIO
@@ -38,12 +45,14 @@ def pdf_to_string(file:FileStorage):
 
     return(output_string.getvalue())
     
-def process_text(text:str, deep:bool=False) -> str:
+def process_text(data:str, **kwargs) -> str:
+    @lru_cache(maxsize=None)
     def strip_tags(text: str) -> str:
         p = re.compile(r'<.*?>')
         return p.sub('', text)
 
-    def get_wordnet_pos(word):
+    @lru_cache(maxsize=None)
+    def get_wordnet_pos(word:str):
         tag = pos_tag([word])[0][1][0].upper()
         tag_dict = {
             "J": wordnet.ADJ,
@@ -53,49 +62,61 @@ def process_text(text:str, deep:bool=False) -> str:
 
         return tag_dict.get(tag, wordnet.NOUN)
 
+    # Kwargs 
+    stop_words = kwargs.get("stop_words", [])
+    deep = kwargs.get("deep", False)
+
     punctuation = r"[{0}]".format(re.sub(r"[-']", "", string.punctuation))
 
-    stop_words = stopwords.words("english")
+    stop_words = [*set(stopwords.words("english"))
+        .union(stop_words)
+        .union(["'s", "'ll", "n't", "'d", "'ve", "'m", "'re", "'"])]
 
     # Lowercase
-    text = text.lower() if deep else text
+    data = data.lower() if deep else data
     
     # Strip tags
-    text = strip_tags(text)
+    data = strip_tags(data)
     
     # Symbols 
-    text = re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ', text)
+    data = re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ', data)
 
     # Links
-    text = re.sub(r'https?:\/\/.*[\r\n]*', '', text)
+    data = re.sub(r'https?:\/\/.*[\r\n]*', '', data)
 
     # line breaks
-    text = re.sub('-\n', r'', text)
+    data = re.sub('-\n', r'', data)
     
     # Punctuation
-    text = re.sub(punctuation, " ", text) if deep else text
+    data = re.sub(punctuation, " ", data) if deep else data
+    
+    # tokenization
+    data = " ".join(word_tokenize(data)) if deep else data
+
+    # Numeral ranges
+    data = re.sub(r'\d+-\d+', "", data)
 
     # Numerics
-    tokens = [
+    data = [
         re.sub(r"^\d+$", r"", i)
-        for i in re.findall(r"\S+", text)
-    ] if deep else re.findall(r"\S+", text)
+        for i in re.findall(r"\S+", data)
+    ] if deep else re.findall(r"\S+", data)
 
     # Remove extra characteres
-    tokens = [*filter(lambda x: len(x) > 2, tokens)]
-
+    data = [*filter(lambda x: len(x) > 2, data)]
+    
     lemmatizer = WordNetLemmatizer()
     tokens = [
         lemmatizer.lemmatize(
             token, get_wordnet_pos(token)
-        ) for token in tokens
-        if not token in stop_words] if deep else tokens
+        ) for token in data
+        if not token in stop_words] if deep else data
 
     return " ".join(tokens).strip()
 
-def term_frequency(text:str) -> dict:
+def term_frequency(data:str, **kwargs) -> dict:
     tf = {}
-    for word in text.split(" "):
+    for word in data.split(" "):
         tf[word] = (tf[word] + 1) if (word in tf) else 1
 
     return { k: v
@@ -144,9 +165,8 @@ def encode_documents(docs:list, model:str=None) -> list:
     del transformer
     return embeddings
 
-def l2_norm(data: list):
-    import numpy as np
-
+def l2_norm(data: list) -> np.array:
+    data = np.array(data, dtype=float)
     dist = np.sqrt((data ** 2).sum(-1))[...,np.newaxis]
     return data / dist
 
@@ -173,16 +193,16 @@ def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
     corpus_size = len(user.corpus)
 
     model = Word2Vec(
-        min_count=5,
-        window=8,
-        size=100,
-        alpha=0.025,
-        min_alpha=0.0007,
+        window = 8,
+        min_count = 5,
+        size = 100,
+        alpha = 0.025,
+        min_alpha= 0.0007,
         sample=calculateSample(corpus_size),
-        hs=1,
-        sg=1,
-        negative=15,
-        ns_exponent=0.75,
+        hs = 1,
+        sg = 1,
+        negative = 15,
+        ns_exponent = 0.75,
         workers=cpu_count(),
         iter=40)
 
@@ -193,7 +213,7 @@ def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
         total_examples=corpus_size, 
         epochs=40)
 
-    model.wv.init_sims()
+    model.wv.init_sims(replace=True)
     return model
 
 def Fast_Text(user:User, newData:list=None) -> FastText:
@@ -204,19 +224,18 @@ def Fast_Text(user:User, newData:list=None) -> FastText:
     corpus_size = len(user.corpus)
 
     model = FastText(
-        min_count=5,
-        window=8,
-        size=100,
-        alpha=0.025,
-        min_alpha=0.0007,
+        window = 8,
+        min_count = 5,
+        size = 100,
+        alpha = 0.025,
+        min_alpha= 0.0007,
         sample=calculateSample(corpus_size),
-        hs=1,
-        sg=1,
-        negative=15,
-        ns_exponent=0.75,
+        hs = 1,
+        sg = 1,
+        negative = 15,
+        ns_exponent = 0.75,
         workers=cpu_count(),
         iter=40)
-
     model.build_vocab(sentences=sentences)
     
     model.train(
@@ -224,7 +243,7 @@ def Fast_Text(user:User, newData:list=None) -> FastText:
         total_examples=corpus_size, 
         epochs=40)
 
-    model.wv.init_sims()
+    model.wv.init_sims(replace=True)
     return model
 
 def Doc_2_Vec(user:User) -> Doc2Vec:
@@ -243,8 +262,8 @@ def Doc_2_Vec(user:User) -> Doc2Vec:
         dm_concat=0,
         vector_size=100,
         window=8,
-        alpha=0.025,
-        min_alpha=0.0007,
+        alpha = 0.025,
+        min_alpha = 0.0007,
         hs=0,
         sample=calculateSample(corpus_size),
         negative=15,
@@ -263,8 +282,26 @@ def Doc_2_Vec(user:User) -> Doc2Vec:
     model.docvecs.init_sims()
     return model
 
+def infer_doc2vec(data:str, **kwargs) -> list:
+    model = kwargs.get("model", None)
+    return model.infer_vector(data.split(" "), steps=35) if model else None
+
 def most_similar(user:User, positive:list, topn:int=10) -> list:
-    model = user.fast_text if user.word_model == "FastText" else user.word2vec
+    model = user.fast_text if user.word_model == WordModel.FAST_TEXT else user.word2vec
+
+    if user.word_model == WordModel.WORD2VEC.value:
+        words_filtered = [*filter(lambda word: word in model.wv, positive)]
+        if len(positive) != 0 and len(words_filtered) == 0:
+            syns = []
+            for word in positive:
+                syns += [process_text(syn) for syn in synonyms(word)]
+            syns = [*filter(lambda word: word in model.wv, syns)]
+            if len(syns) == 0:
+                raise Exception("Neither the words nor its synonyms in the vocabulary")
+            else:
+                words_filtered = [*syns]
+
+        positive = words_filtered
 
     sim_wors = model.wv.most_similar(positive=positive, topn=topn)
 
@@ -328,12 +365,12 @@ def sankey_graph(user:User) -> dict:
 
     return graph
 
-def chunker(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
 def make_response(data:dict) -> Response:
+    def chunker(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
+
     content = compress(
         json.dumps(data, separators=(',', ':')).encode("utf-8"),
         4)

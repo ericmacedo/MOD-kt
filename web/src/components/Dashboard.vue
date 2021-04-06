@@ -1,5 +1,5 @@
 <template>
-<div class="dashboard" ref="dashboard" :key="dashboardKey">
+<div class="dashboard" ref="dashboard">
 	<Promised :promise="sessionData">
 	<template v-slot:pending>
 		<div class="h-100 text-center">
@@ -12,19 +12,19 @@
 		<b-container fluid>
       <b-row no-gutters>
         <b-col cols="12" sm="12" md="6" lg="4">
-          <document-view id="documentView"
+          <document-view id="documentView" :key="documentViewKey"
             class="component h-50 w-100"></document-view>
-          <word-cloud id="wordCloudView"
+          <word-cloud id="wordCloudView" :key="wordCloudKey"
             class="component h-50 w-100"></word-cloud>
         </b-col>
         <b-col cols="12" sm="12" md="6" lg="4">
           <graph-view id="graphView" ref="graphView"
-            class="component w-100"></graph-view>
+            :key="graphViewKey" class="component w-100"></graph-view>
         </b-col>
         <b-col cols="12" sm="12" md="6" lg="4">
-          <cluster-manager id="clusterManagerView"
+          <cluster-manager id="clusterManagerView" :key="clusterManagerKey"
             class="component h-50 w-100"></cluster-manager>
-            <word-similarity id="wordSimilarityView"
+            <word-similarity id="wordSimilarityView" :key="wordSimilarityKey"
               class="component h-50 w-100"></word-similarity>
         </b-col>
       </b-row>
@@ -142,7 +142,7 @@ export default {
   },
   props: {
     dashboardKey: {
-      required: true,
+      require: true,
       type: Number
     }
   },
@@ -152,6 +152,21 @@ export default {
 		}
 	},
   computed: {
+    documentViewKey() {
+      return `documentView-${this.dashboardKey}`;
+    },
+    wordCloudKey() {
+      return `wordCloudView-${this.dashboardKey}`;
+    },
+    graphViewKey() {
+      return `graphView-${this.dashboardKey}`;
+    },
+    clusterManagerKey() {
+      return `clusterManager-${this.dashboardKey}`;
+    },
+    wordSimilarityKey() {
+      return `wordSimilarity-${this.dashboardKey}`;
+    },
     ...mapState("userData", ["userId", "sessions", "isProcessed"])
   },
 	mounted() {
@@ -217,10 +232,10 @@ export default {
 			const cluster_k = prompt("Please, inform the number of clusters you want to find:");
 
       this.makeToast(
-          "Clustering your data",
-          "Please wait",
-          "warning",
-          "cluster-data");
+        "Clustering your data",
+        "Please wait",
+        "warning",
+        "cluster-data");
 			
 			this.sessionData = this.cluster(cluster_k);
 
@@ -229,9 +244,7 @@ export default {
           "Oops, something went wrong!",
           "Please, try again",
           "danger");
-      }).then(() => {
-        objRef.$bvToast.hide("cluster-data")
-      });
+      }).then(() => objRef.$bvToast.hide("cluster-data"));
 		},
     callDeleteSession(session) {
       let objRef = this;

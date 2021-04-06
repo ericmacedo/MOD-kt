@@ -4,7 +4,16 @@ from gensim.models import FastText, Word2Vec
 from gensim.models.doc2vec import Doc2Vec
 from datetime import datetime
 from uuid import uuid4
+from enum import Enum
 
+class DocumentModel(Enum):
+    DOC2VEC = "Doc2Vec"
+    S_BERT = "S-BERT"
+
+class WordModel(Enum):
+    WORD2VEC = "Word2Vec"
+    FAST_TEXT = "FastText"
+    
 class User:
     def __init__(self, userId:str):
         self.userId = userId
@@ -35,13 +44,13 @@ class User:
         return None
     
     @doc_model.setter
-    def doc_model(self, model:str):
+    def doc_model(self, model:DocumentModel):
         if os.path.isfile(self.__settings):
             with open(self.__settings, "r", encoding="utf-8") as f_settings:
                 settings = json.load(f_settings)
-            settings["doc_model"] = model
+            settings["doc_model"] = model.value
         else:
-            settings = dict(doc_model=model)
+            settings = dict(doc_model=model.value)
         
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
@@ -56,13 +65,13 @@ class User:
         return None
     
     @word_model.setter
-    def word_model(self, model:str):
+    def word_model(self, model:WordModel):
         if os.path.isfile(self.__settings):
             with open(self.__settings, "r", encoding="utf-8") as f_settings:
                 settings = json.load(f_settings)
-            settings["word_model"] = model
+            settings["word_model"] = model.value
         else:
-            settings = dict(word_model=model)
+            settings = dict(word_model=model.value)
         
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
@@ -84,6 +93,27 @@ class User:
             settings["isProcessed"] = isProcessed
         else:
             settings = dict(isProcessed=isProcessed)
+        
+        with open(self.__settings, "w", encoding="utf-8") as f_settings:
+            json.dump(settings, f_settings)
+
+    @property
+    def stop_words(self):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            if "stop_words" in settings:
+                return settings["stop_words"]
+        return []
+
+    @stop_words.setter
+    def stop_words(self, stop_words:list):
+        if os.path.isfile(self.__settings):
+            with open(self.__settings, "r", encoding="utf-8") as f_settings:
+                settings = json.load(f_settings)
+            settings["stop_words"] = stop_words
+        else:
+            settings = dict(stop_words=stop_words)
         
         with open(self.__settings, "w", encoding="utf-8") as f_settings:
             json.dump(settings, f_settings)
@@ -132,8 +162,8 @@ class User:
     def append_document(self,
                         file_name:str,
                         content:str,
-                        term_frequency:dict,
-                        processed:str,
+                        term_frequency:dict=None,
+                        processed:str=None,
                         embedding:list=None) -> dict:
 
         uuid = str(uuid4())
@@ -143,11 +173,13 @@ class User:
             "id": uuid,
             "file_name": file_name,
             "content": content,
-            "processed": processed,
-            "term_frequency": term_frequency,
             "uploaded_on": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S-UTC")}
         if embedding:
             document["embedding"] = embedding
+        if term_frequency:
+            document["term_frequency"] = term_frequency
+        if processed:
+            document["processed"] = processed
 
         with open(file_path, "w", encoding="utf-8") as out_file:
             json.dump(document, out_file)
@@ -329,12 +361,12 @@ class User:
 
     # UTILS
     @classmethod
-    def async_write(cls, path, graph):
+    def async_write(cls, path, data):
         # ASYNC FILE WRITTING
         # As files tends to getter bigger and bigger
         # It writes the file in background
-        with open(path, "w", encoding="utf-8") as g_file:
-            json.dump(graph, g_file)
+        with open(path, "w", encoding="utf-8") as json_file:
+            json.dump(data, json_file)
 
     def as_dict(self) -> dict:
         return dict(
@@ -373,7 +405,8 @@ class User:
             "userId":       self.userId,
             "corpus":       [doc.as_dict() for doc in self.corpus if doc],
             "sessions":     self.session_list(),
-            "isProcessed":  self.isProcessed}
+            "isProcessed":  self.isProcessed,
+            "stop_words":    self.stop_words}
 
     def sessionData(self, id:str=None) -> dict:
         if id:
@@ -416,7 +449,6 @@ class User:
                 }}
         return session
 
-
 class Document:
     def __init__(self, userId:str, id:str):
         self.__userId = userId
@@ -431,8 +463,8 @@ class Document:
             doc = json.load(jsonFile, encoding="utf-8")
             self._file_name      = doc["file_name"]
             self._content        = doc["content"]
-            self._processed      = doc["processed"]
-            self._term_frequency = doc["term_frequency"]
+            self._processed      = doc["processed"] if "processed" in doc else None
+            self._term_frequency = doc["term_frequency"] if "term_frequency" in doc else None
             self._embedding      = doc["embedding"] if "embedding" in doc else None
             self._uploaded_on    = doc["uploaded_on"]
 
@@ -512,7 +544,6 @@ class Document:
             embedding       = self._embedding,
             uploaded_on     = self._uploaded_on)
 
-    
 class Session:
     def __init__(self, userId:str, id:str):
         self.__userId = userId

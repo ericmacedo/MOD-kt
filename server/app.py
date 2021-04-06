@@ -11,7 +11,7 @@ FRONTEND_ROUTES = [
 app = Flask(__name__, static_url_path="")
 CORS(app)
 
-app.register_blueprint(api)
+app.register_blueprint(api, url_prefix='/api/')
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path>")

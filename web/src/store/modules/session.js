@@ -54,9 +54,6 @@ const mutations = {
     state.graph.distance = distance;
     state.graph.neighborhood = neighborhood;
   },
-  setLinkSelector(state, link_selector) {
-    state.controls.link_selector = link_selector;
-  },
   setTsne(state, tsne) {
     state.tsne = tsne;
   },
@@ -134,43 +131,6 @@ const mutations = {
   setWordSimilarity(state, {query, most_similar}) {
     state.word_similarity.query = query;
     state.word_similarity.most_similar = most_similar;
-  },
-  clear(state) {
-    state.id = undefined;
-    state.new_docs.splice(0, state.new);
-    state.notes = "";
-    state.index.splice(0, state.index.length);
-    state.graph = null;
-    state.graph = { nodes: [], distance: [], neighborhood: [] };
-    state.tsne.splice(0, state.tsne.length);
-    state.clusters = null;
-    state.clusters = {
-      cluster_k: undefined,
-      cluster_names: [],
-      colors: [],
-      cluster_docs: [],
-      cluster_words: [],
-      labels: []
-    };
-    state.controls = null;
-    state.controls = {
-      projection: undefined,
-      tsne: { perplexity: undefined },
-      link_selector: "Distance fn",
-      distance: undefined,
-      n_neighbors: undefined,
-      linkDistance: undefined,
-      charge: undefined
-    };
-    state.date = undefined;
-    state.selected.splice(0, state.selected.length);
-    state.focused = undefined;
-    state.highlight = undefined;
-    state.word_similarity = null;
-    state.word_similarity = {
-      query: [],
-      most_similar: []
-    };
   }
 };
 

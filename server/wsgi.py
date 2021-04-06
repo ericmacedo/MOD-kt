@@ -12,7 +12,8 @@ logging.basicConfig(filename="./log/flask.log",
 faulthandler.enable()
 
 NLTK_Downloader([
-    "stopwords", "wordnet", "averaged_perceptron_tagger"
+    "stopwords", "wordnet", "punkt",
+    "averaged_perceptron_tagger"
 ], quiet=True)
 
 load_dotenv('.env')

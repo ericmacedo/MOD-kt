@@ -40,3 +40,9 @@
 # To do
 *   [ ] Index Tutorial page (Component Index.vue)
 *   [ ] Lasso selection on graph view
+*   [ ] Stopwords manager
+*   [ ] Change upload pipeline
+
+# Know bugs
+* Recluster is not working
+* Unecessary links showing up o cluster highlighting

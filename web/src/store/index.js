@@ -28,6 +28,7 @@ export default new Vuex.Store({
           commit("userData/setCorpus", data.userData.corpus.map(doc => doc));
           commit("userData/setSessions", data.userData.sessions.map(session => session));
           commit("userData/setIsProcessed", data.userData.isProcessed);
+          commit("userData/setStopwords", data.userData.stop_words);
           
           data = null;
           resolve();
@@ -75,13 +76,15 @@ export default new Vuex.Store({
         }).catch(error => reject(error));
       });
     },
-    async cluster({commit, getters, state}, cluster_k=null) {
+    async cluster({commit, state}, cluster_k=null) {
       let formData = new FormData();
 			formData.set("userId", state.userData.userId);
+      formData.set("recluster", cluster_k == null);
       if (cluster_k != null) {
         formData.set("cluster_k", cluster_k);
       } else {
-        formData.set("session", JSON.stringify(getters["session/session"]));
+        formData.set("seed", JSON.stringify(state.session.clusters));
+        formData.set("index", state.session.index);
       }
       
       return new Promise((resolve, reject) => {
@@ -90,34 +93,37 @@ export default new Vuex.Store({
         }).then(({data}) => {
           let session = data.sessionData;
 
-          commit("session/clear");
+          if(cluster_k != null) {
+            commit("session/setId", session.id);
+            commit("session/setName", session.name);
+            commit("session/setNotes", session.notes);
+            commit("session/setIndex", session.index.map(id => id));
+            commit("session/setGraph", session.graph);
+            commit("session/setTsne", session.tsne.map(d => d));
+            commit("session/setControls", session.controls);
+            commit("session/setDate", session.date);
+            commit("session/setSelected", session.selected.map(d => d));
+            commit("session/setFocused", session.focused);
+            commit("session/setHighlight", session.highlight);
+            commit("session/setWordSimilarity", session.word_similarity);
+          }          
           
-          commit("session/setId", session.id);
-          commit("session/setName", session.name);
-          commit("session/setNotes", session.notes);
-          commit("session/setIndex", session.index.map(id => id));
-          commit("session/setGraph", session.graph);
-          commit("session/setLinkSelector", session.link_selector);
-          commit("session/setTsne", session.tsne.map(d => d));
           commit("session/setClusters", session.clusters);
-          commit("session/setControls", session.controls);
-          commit("session/setDate", session.date);
-          commit("session/setSelected", session.selected.map(d => d));
-          commit("session/setFocused", session.focused);
-          commit("session/setHighlight", session.highlight);
-          commit("session/setWordSimilarity", session.word_similarity);
-
+          
           data = null;
           resolve();
         }).catch(error => reject(error));
       });
     },
     async processCorpus({commit, state}, performance) {
+      let formData = new FormData();
+			formData.set("userId", state.userData.userId);
+      formData.set("performance", performance);
+      formData.set("stop_words", state.userData.stop_words);
+
       return new Promise((resolve, reject) => {
-        axios.get(state.SERVER+"/process_corpus", {
-          params: {
-            userId: state.userData.userId,
-            performance: performance}
+        axios.post(state.SERVER+"/process_corpus", formData,{ 
+          headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           commit("userData/setUserId",      data.userData.userId);
           commit("userData/setCorpus",      data.userData.corpus.map(doc => doc));
@@ -137,23 +143,20 @@ export default new Vuex.Store({
             sessionId: sessionId}
         }).then(({data})=> {
           let session = data.sessionData;
-
-          commit("session/clear");
           
           commit("session/setId", session.id);
           commit("session/setName", session.name);
           commit("session/setNotes", session.notes);
           commit("session/setIndex", session.index.map(id => id));
-          commit("session/setGraph", Object.assign({}, session.graph));
-          commit("session/setLinkSelector", session.link_selector);
+          commit("session/setGraph", session.graph);
           commit("session/setTsne", session.tsne.map(d => d));
-          commit("session/setClusters", Object.assign({}, session.clusters));
-          commit("session/setControls", Object.assign({}, session.controls));
+          commit("session/setClusters", session.clusters);
+          commit("session/setControls", session.controls);
           commit("session/setDate", session.date);
           commit("session/setSelected", session.selected.map(d => d));
           commit("session/setFocused", session.focused);
           commit("session/setHighlight", session.highlight);
-          commit("session/setWordSimilarity", Object.assign({}, session.word_similarity));
+          commit("session/setWordSimilarity", session.word_similarity);
           
           data = null;
           session = null;
@@ -235,11 +238,11 @@ export default new Vuex.Store({
       let formData = new FormData();
       
       formData.set("userId", state.userData.userId);
-      formData.set("clusters", JSON.stringify(state.session.clusters));
+      formData.set("seed", JSON.stringify(state.session.clusters));
       formData.set("new_docs", newData);
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER+"/process_corpus", formData, {
+        axios.put(state.SERVER+"/process_corpus", formData, {
           headers: {"Content-Type": "multipart/form-data"}
         }).then(({data}) => {
           let newData = data.newData;

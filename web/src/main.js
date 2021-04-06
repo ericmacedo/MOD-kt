@@ -20,6 +20,9 @@ Vue.use(BootstrapVue);
 import { Promised } from 'vue-promised';
 Vue.component('Promised', Promised);
 
+// UTILS
+import "./utils";
+
 Vue.config.productionTip = false;
 
 new Vue({

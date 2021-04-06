@@ -2,7 +2,8 @@ const state = {
   userId: undefined,
   corpus: [],
   sessions: [],
-  isProcessed: false
+  isProcessed: false,
+  stop_words: []
 };
 
 const getters = {
@@ -36,6 +37,9 @@ const mutations = {
   },
   setIsProcessed(state, value) {
     state.isProcessed = value;
+  },
+  setStopwords(state, stop_words) {
+    state.stop_words = stop_words;
   }
 };
 
