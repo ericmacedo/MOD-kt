@@ -94,19 +94,23 @@ export default{
   },
   computed: {
     selected_ids(){
-      const _nodes = this.graphData.nodes;
       const _clusters = [...new Set(
-        this.selection.node.concat(
-          this.graphData.links.filter(
-            d => this.selection.link.includes(d.id)
-          ).flatMap(d => [d.source.id, d.target.id]))
+        this.graphData.nodes.filter(
+          d => this.selection.node.includes(d.id)
+        ).flatMap(d => d.docs)
       )];
 
-      return [...new Set(
-        _clusters.map(
-          cluster_id => _nodes.find(d => d.id == cluster_id).docs
-        ).flat(2)
-      )];
+      const _intersections = new Set(
+        this.graphData.links.filter(d => 
+          this.selection.link.includes(d.id)
+        ).flatMap(d => {
+          let source = new Set(d.source.docs),
+              target = new Set(d.target.docs);
+          return [...source.intersection(target)];
+        })
+      );
+
+      return [..._intersections.union(_clusters)];
     },
     ...mapState("userData", ["corpus"]),
     ...mapState("sankey", ["selection"]),
@@ -120,6 +124,7 @@ export default{
           height = 200;
     var color = d3.scaleSequential(d3.interpolateRainbow);
 
+    // TODO FIX SANKEY
     // // CANVAS
     this.canvas = d3.select("#graphViewCanvas")
       .attr("width", "100%")
@@ -130,8 +135,6 @@ export default{
         .scaleExtent([0.1, 8])
         .on("zoom", (e) => {objRef.canvas.attr("transform", e.transform)}))
       .append("g");
-
-    console.log(this.graphData);
 
     // GRAPH
     this.sankeyGraph = sankey.sankey()
@@ -149,8 +152,6 @@ export default{
       nodes: this.graphData.nodes,
       links: this.graphData.links
     });
-
-    console.log(this.sankeyGraph);
 
     // NODES
     this.node = this.canvas.append("g")
