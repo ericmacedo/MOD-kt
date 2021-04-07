@@ -68,11 +68,15 @@ def process_text(data:str, **kwargs) -> str:
     stop_words = kwargs.get("stop_words", [])
     deep = kwargs.get("deep", False)
 
+    with open('./stopwords.txt', 'r') as f:
+        stop_words_file = [line.strip() for line in f]
+
     punctuation = r"[{0}]".format(re.sub(r"[-']", "", string.punctuation))
 
     stop_words = [*set(stopwords.words("english"))
         .union(stop_words)
-        .union(["'s", "'ll", "n't", "'d", "'ve", "'m", "'re", "'"])]
+        .union(["'s", "'ll", "n't", "'d", "'ve", "'m", "'re", "'"])
+        .union(stop_words_file)]
 
     # Lowercase
     data = data.lower() if deep else data

@@ -7,3 +7,4 @@ pyvenv.cfg
 pre-trained/
 static/
 log/
+sys
