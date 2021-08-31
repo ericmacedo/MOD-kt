@@ -15,7 +15,7 @@
   * `FLASK_RUN_PORT`: `5000`
   * `FLASK_SECRET_KEY`: YOUR_SECRET_KEY
 
-1. `virtualenv --python=python3.6 .env/ --prompt="(IDC [Python + Node.js])"`
+1. `virtualenv --python=python3.6 ./env/ --prompt="(IDC [Python + Node.js])"`
 2. `source ./env/bin/activate`
 3. `pip install -r python_requirements.txt`
 4. `deactivate; source ./env/bin/activate`
