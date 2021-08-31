@@ -1,10 +1,4 @@
 # created by virtualenv automatically
-__pycache__/
-bin/
-share/
-lib/
-pyvenv.cfg
-pre-trained/
 static/
 log/
 sys

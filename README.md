@@ -15,18 +15,19 @@
   * `FLASK_RUN_PORT`: `5000`
   * `FLASK_SECRET_KEY`: YOUR_SECRET_KEY
 
-1. `cd ./server`
-2. `virtualenv --python=python3.6 .`
-3. `source ./bin/activate`
-4. `pip install -r requirements.txt`
-5. Download and setup `allenai-specter` model
-  1. `mkdir ./server/pre-trained`
-  2. `wget https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/allenai-specter.zip`
-  3. `unzip ./server/allenai-specter -d ./server/pre-trained/allenai-specter; rm ./server/allenai-specter.zip`
-6. Setup logging
+1. `virtualenv --python=python3.6 .env/ --prompt="(IDC [Python + Node.js])"`
+2. `source ./env/bin/activate`
+3. `pip install -r python_requirements.txt`
+4. `deactivate; source ./env/bin/activate`
+5. `nodeenv --config-file=nodeenvrc --python-virtualenv`
+6. `mkdir -p ./env/data/scikit_learn ./env/data/nltk ./env/data/transformers`
+7. Download and setup `allenai-specter` model
+  1. `wget https://public.ukp.informatik.tu-darmstadt.de/reimers/sentence-transformers/v0.2/allenai-specter.zip --output-document=allenai-specter.zip`
+  2. `unzip ./allenai-specter -d ./env/data/transformers/allenai-specter; rm ./allenai-specter.zip`
+8.  Setup logging
    1. `mkdir ./server/log`
    2. `touch ./server/log/access.log ./server/log/error.log ./server/log/flask.log`
-7. Serve it with some Python WSGI HTTP Server for UNIX, such as Gunicorn[gevent]
+9.  Serve it with some Python WSGI HTTP Server for UNIX, such as Gunicorn[gevent]
 
 ## Web
 * Set Vue configs on './web/.env.production' file:

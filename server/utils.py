@@ -1,31 +1,32 @@
-import os, string, re
-import ujson as json
-from io import BytesIO
-from mgzip import compress
-from sentence_transformers import SentenceTransformer
-from models import User, Document, WordModel
-from werkzeug.datastructures import FileStorage
-from gensim.models import FastText, Word2Vec
-from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from multiprocessing import cpu_count
-from sklearn.utils import shuffle
-from openTSNE import TSNE
-from sklearn.metrics import pairwise_distances
-from sklearn.preprocessing import MinMaxScaler
 import numpy as np
-from flask import send_file
-from nltk import pos_tag, word_tokenize
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords, wordnet
-from joblib import Parallel, delayed
+import ujson as json
+import os
+import string
+import re
+from io import BytesIO
+from openTSNE import TSNE
 from typing import Callable
+from flask import send_file
 from functools import lru_cache
+from sklearn.utils import shuffle
+from joblib import Parallel, delayed
+from multiprocessing import cpu_count
+from nltk.stem import WordNetLemmatizer
+from nltk import pos_tag, word_tokenize
+from nltk.corpus import stopwords, wordnet
+from models.user import User
+from models.document import Document
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import pairwise_distances
+from werkzeug.datastructures import FileStorage
 
-def batch_processing(fn:Callable, data:list, **kwargs) -> list:
+
+def batch_processing(fn: Callable, data: list, **kwargs) -> list:
     return Parallel(n_jobs=-1, backend="multiprocessing")(
         delayed(fn)(data=i, **kwargs) for i in data)
 
-def pdf_to_string(file:FileStorage):
+
+def pdf_to_string(file: FileStorage):
     from io import StringIO
 
     from pdfminer.converter import TextConverter
@@ -46,15 +47,16 @@ def pdf_to_string(file:FileStorage):
         interpreter.process_page(page)
 
     return(output_string.getvalue())
-    
-def process_text(data:str, **kwargs) -> str:
+
+
+def process_text(data: str, **kwargs) -> str:
     @lru_cache(maxsize=None)
     def strip_tags(text: str) -> str:
         p = re.compile(r'<.*?>')
         return p.sub('', text)
 
     @lru_cache(maxsize=None)
-    def get_wordnet_pos(word:str):
+    def get_wordnet_pos(word: str):
         tag = pos_tag([word])[0][1][0].upper()
         tag_dict = {
             "J": wordnet.ADJ,
@@ -64,7 +66,7 @@ def process_text(data:str, **kwargs) -> str:
 
         return tag_dict.get(tag, wordnet.NOUN)
 
-    # Kwargs 
+    # Kwargs
     stop_words = kwargs.get("stop_words", [])
     deep = kwargs.get("deep", False)
 
@@ -74,17 +76,17 @@ def process_text(data:str, **kwargs) -> str:
     punctuation = r"[{0}]".format(re.sub(r"[-']", "", string.punctuation))
 
     stop_words = [*set(stopwords.words("english"))
-        .union(stop_words)
-        .union(["'s", "'ll", "n't", "'d", "'ve", "'m", "'re", "'"])
-        .union(stop_words_file)]
+                  .union(stop_words)
+                  .union(["'s", "'ll", "n't", "'d", "'ve", "'m", "'re", "'"])
+                  .union(stop_words_file)]
 
     # Lowercase
     data = data.lower() if deep else data
-    
+
     # Strip tags
     data = strip_tags(data)
-    
-    # Symbols 
+
+    # Symbols
     data = re.sub(r'[^\x00-\xb7f\xc0-\xff]', r' ', data)
 
     # Links
@@ -92,10 +94,10 @@ def process_text(data:str, **kwargs) -> str:
 
     # line breaks
     data = re.sub('-\n', r'', data)
-    
+
     # Punctuation
     data = re.sub(punctuation, " ", data) if deep else data
-    
+
     # tokenization
     data = " ".join(word_tokenize(data)) if deep else data
 
@@ -110,7 +112,7 @@ def process_text(data:str, **kwargs) -> str:
 
     # Remove extra characteres
     data = [*filter(lambda x: len(x) > 2, data)]
-    
+
     lemmatizer = WordNetLemmatizer()
     tokens = [
         lemmatizer.lemmatize(
@@ -120,15 +122,17 @@ def process_text(data:str, **kwargs) -> str:
 
     return " ".join(tokens).strip()
 
-def term_frequency(data:str, **kwargs) -> dict:
+
+def term_frequency(data: str, **kwargs) -> dict:
     tf = {}
     for word in data.split(" "):
         tf[word] = (tf[word] + 1) if (word in tf) else 1
 
-    return { k: v
-        for k, v in sorted(tf.items(), key=lambda item: item[1], reverse=True)}
+    return {k: v
+            for k, v in sorted(tf.items(), key=lambda item: item[1], reverse=True)}
 
-def similarity_graph(corpus:list) -> dict:
+
+def similarity_graph(corpus: list) -> dict:
     graph = {
         "nodes":        [],
         "distance":     [],
@@ -161,161 +165,56 @@ def similarity_graph(corpus:list) -> dict:
                     "value": j})
     return graph
 
-def encode_documents(docs:list, model:str=None) -> list:
-    model = model if model else (
-        os.path.abspath("./pre-trained/allenai-specter"))
-    
-    transformer = SentenceTransformer(model)
-    embeddings = transformer.encode(docs).tolist()
-
-    del transformer
-    return embeddings
 
 def l2_norm(data: list) -> np.array:
     data = np.array(data, dtype=float)
-    dist = np.sqrt((data ** 2).sum(-1))[...,np.newaxis]
+    dist = np.sqrt((data ** 2).sum(-1))[..., np.newaxis]
     return data / dist
 
-def t_SNE(corpus:list, perplexity:int=30) -> list:
+
+def calculateSample(corpus_size: int) -> float:
+    if corpus_size > 500:
+        return 1e-5
+
+    return 1 * (1.0 / (10 ** int(corpus_size/100)))
+
+
+def t_SNE(corpus: list, perplexity: int = 30) -> list:
     tsne = TSNE(
-        n_components = 2,
+        n_components=2,
         perplexity=perplexity,
         metric="euclidean",
         n_jobs=-1
     ).fit(np.array([doc.embedding for doc in corpus]))
     return tsne.tolist()
 
-def calculateSample(corpus_size:int) -> float:
-    if corpus_size > 500:
-        return 1e-5
-    
-    return 1 * (1.0/ (10 ** int(corpus_size/100)))
 
-def Word_2_Vec(user:User, newData:list=None) -> Word2Vec:
-    sentences = [
-        doc.processed.split(" ")
-        for doc in user.corpus]
+# def most_similar(user: User, positive: list, topn: int = 10) -> list:
+#     model = user.fast_text if user.word_model == WordModel.FAST_TEXT else user.word2vec
 
-    corpus_size = len(user.corpus)
+#     if user.word_model == WordModel.WORD2VEC.value:
+#         words_filtered = [*filter(lambda word: word in model.wv, positive)]
+#         if len(positive) != 0 and len(words_filtered) == 0:
+#             syns = []
+#             for word in positive:
+#                 syns += [process_text(syn) for syn in synonyms(word)]
+#             syns = [*filter(lambda word: word in model.wv, syns)]
+#             if len(syns) == 0:
+#                 raise Exception(
+#                     "Neither the words nor its synonyms in the vocabulary")
+#             else:
+#                 words_filtered = [*syns]
 
-    model = Word2Vec(
-        window = 8,
-        min_count = 5,
-        size = 100,
-        alpha = 0.025,
-        min_alpha= 0.0007,
-        sample=calculateSample(corpus_size),
-        hs = 1,
-        sg = 1,
-        negative = 15,
-        ns_exponent = 0.75,
-        workers=cpu_count(),
-        iter=40)
+#         positive = words_filtered
 
-    model.build_vocab(sentences=sentences)
-    
-    model.train(
-        shuffle(sentences),
-        total_examples=corpus_size, 
-        epochs=40)
+#     sim_wors = model.wv.most_similar(positive=positive, topn=topn)
 
-    model.wv.init_sims(replace=True)
-    return model
+#     return [
+#         {"word": word[0], "value": word[1]}
+#         for word in sim_wors]
 
-def Fast_Text(user:User, newData:list=None) -> FastText:
-    sentences = [
-        doc.processed.split(" ")
-        for doc in user.corpus]
 
-    corpus_size = len(user.corpus)
-
-    model = FastText(
-        window = 8,
-        min_count = 5,
-        size = 100,
-        alpha = 0.025,
-        min_alpha= 0.0007,
-        sample=calculateSample(corpus_size),
-        hs = 1,
-        sg = 1,
-        negative = 15,
-        ns_exponent = 0.75,
-        workers=cpu_count(),
-        iter=40)
-    model.build_vocab(sentences=sentences)
-    
-    model.train(
-        shuffle(sentences),
-        total_examples=corpus_size, 
-        epochs=40)
-
-    model.wv.init_sims(replace=True)
-    return model
-
-def Doc_2_Vec(user:User) -> Doc2Vec:
-    tagged_data = [
-        TaggedDocument(
-            doc.processed.split(" "),
-            tags=[doc.id]
-        ) for doc in user.corpus]
-
-    corpus_size = len(user.corpus)
-
-    model = Doc2Vec(
-        dm=1,
-        dm_mean=1,
-        dbow_words=1,
-        dm_concat=0,
-        vector_size=100,
-        window=8,
-        alpha = 0.025,
-        min_alpha = 0.0007,
-        hs=0,
-        sample=calculateSample(corpus_size),
-        negative=15,
-        ns_expoent=0.75,
-        min_count=5,
-        workers=cpu_count(),
-        epochs=40)
-
-    model.build_vocab(documents=tagged_data)
-
-    model.train(
-        documents=shuffle(tagged_data),
-        total_examples=model.corpus_count,
-        epochs=40)
-
-    model.docvecs.init_sims()
-    return model
-
-def infer_doc2vec(data:str, **kwargs) -> list:
-    model = kwargs.get("model", None)
-    return model.infer_vector(data.split(" "), steps=35) if model else None
-
-def most_similar(user:User, positive:list, topn:int=10) -> list:
-    model = user.fast_text if user.word_model == WordModel.FAST_TEXT else user.word2vec
-
-    if user.word_model == WordModel.WORD2VEC.value:
-        words_filtered = [*filter(lambda word: word in model.wv, positive)]
-        if len(positive) != 0 and len(words_filtered) == 0:
-            syns = []
-            for word in positive:
-                syns += [process_text(syn) for syn in synonyms(word)]
-            syns = [*filter(lambda word: word in model.wv, syns)]
-            if len(syns) == 0:
-                raise Exception("Neither the words nor its synonyms in the vocabulary")
-            else:
-                words_filtered = [*syns]
-
-        positive = words_filtered
-
-    sim_wors = model.wv.most_similar(positive=positive, topn=topn)
-
-    return [
-        {"word": word[0], "value": word[1]}
-        for word in sim_wors]
-
-def sankey_graph(user:User) -> dict:
+def sankey_graph(user: User) -> dict:
     sessions = user.sessions
 
     graph = {
@@ -346,21 +245,22 @@ def sankey_graph(user:User) -> dict:
                 "session": session.id,
                 "docs": docs})
             graph["sessions"][i]["clusters"].append(cluster_id)
-            
+
             for doc in docs:
                 if doc in graph["index"]:
                     graph["index"][doc][i] = color
 
             if i == (len(sessions) - 1):
                 continue
-            
+
             next_session = sessions[i+1]
             for k in range(next_session.clusters["cluster_k"]):
                 next_cluster_name = next_session.clusters["cluster_names"][k]
                 intersection = set(
                     session.clusters["cluster_docs"][cluster_name]
                 ).intersection(
-                    set(next_session.clusters["cluster_docs"][next_cluster_name])
+                    set(next_session.clusters["cluster_docs"]
+                        [next_cluster_name])
                 )
                 if len(intersection) > 0:
                     graph["links"].append({
@@ -371,11 +271,12 @@ def sankey_graph(user:User) -> dict:
 
     return graph
 
-def make_response(data:dict):
+
+def make_response(data: dict):
     buffer = BytesIO(json.dumps(
         data, ensure_ascii=False
     ).encode("utf-8"))
-    
+
     return send_file(
         buffer,
         mimetype='application/json',
@@ -383,7 +284,8 @@ def make_response(data:dict):
         as_attachment=True,
         conditional=True)
 
-def synonyms(word:str) -> list:
+
+def synonyms(word: str) -> list:
     word = word.replace("-", "_")
     synonyms = []
     for syn in wordnet.synsets(word):

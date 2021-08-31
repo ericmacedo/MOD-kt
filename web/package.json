@@ -6,7 +6,7 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build --mode production",
     "lint": "vue-cli-service lint",
-    "postbuild": "rm -r ../server/static; mv ./dist ../server/static",
+    "postbuild": "rm -rf ../server/static; mv ./dist ../server/static",
     "clean": "rm -rf .cache .tmp lib build"
   },
   "dependencies": {

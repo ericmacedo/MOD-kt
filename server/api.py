@@ -1,20 +1,21 @@
-from flask import Blueprint, request
-from werkzeug.utils import secure_filename
-from models import User, Document, WordModel, DocumentModel
+import logging
+import json
+from os import environ
 from clusterer import Clusterer
 from utils import (
     process_text, term_frequency,
-    t_SNE, most_similar, make_response,
-    similarity_graph, l2_norm,
-    encode_documents, Doc_2_Vec,
-    Fast_Text, Word_2_Vec, sankey_graph,
-    batch_processing, infer_doc2vec)
-import logging, json
-from os import environ
+    t_SNE, make_response,
+    similarity_graph, sankey_graph,
+    batch_processing, l2_norm)
+from flask import Blueprint, request
+from werkzeug.utils import secure_filename
+from models.user import User
+from models.document import Document
 
 LOGGER = logging.getLogger(__name__)
 
 api = Blueprint('api', __name__)
+
 
 @api.route("auth", methods=["POST"])
 # Authetication
@@ -41,6 +42,7 @@ def auth():
             }
         }, 500
 
+
 @api.route("corpus", methods=["POST", "PUT"])
 # CRUD operations on the corpus
 #   POST:   Delete operation
@@ -52,16 +54,16 @@ def corpus():
         user = User(userId=userId)
         if not user:
             raise Exception("No such user exists")
-        
+
         newData, content, file_name, n_entries = [], [], [], 0
-        
+
         if request.method == 'PUT':
             f_file = request.files.getlist("file")[0]
             f_format = request.form["format"]
             f_name = secure_filename(request.form["fileName"])
-            
+
             if f_format == "file-pdf":
-                from utils import pdf_to_string
+                from .utils import pdf_to_string
 
                 file_name.append(f_name)
                 content.append(pdf_to_string(f_file))
@@ -69,7 +71,7 @@ def corpus():
                 n_entries += 1
             elif f_format == "file-csv":
                 import pandas as pd
-                
+
                 pd_csv = pd.read_csv(f_file, encoding="utf-8")
                 csv_fields = request.form["fields"].split(",")
 
@@ -77,18 +79,19 @@ def corpus():
                     csv_content = ""
                     for field in csv_fields:
                         csv_content += f"{row[field]} "
-                    
+
                     file_name.append(f"{f_name}_{index}")
                     content.append(csv_content)
-                    
+
                     n_entries += 1
-                
+
                 del pd_csv, csv_fields, csv_content
 
             elif f_format == "file-alt":
                 file_name.append(f_name)
-                content.append(f_file.stream.read().decode("utf-8", errors="ignore"))
-                
+                content.append(f_file.stream.read().decode(
+                    "utf-8", errors="ignore"))
+
                 n_entries += 1
 
             del f_file, f_format, f_name
@@ -96,12 +99,12 @@ def corpus():
             # The following loop saves memory
             for i in range(n_entries):
                 doc = dict(
-                    file_name       = file_name.pop(0),
-                    content         = process_text(content.pop(0)), deep=False)
-                
+                    file_name=file_name.pop(0),
+                    content=process_text(content.pop(0)), deep=False)
+
                 doc = user.append_document(
-                    file_name       = doc["file_name"],
-                    content         = doc["content"])
+                    file_name=doc["file_name"],
+                    content=doc["content"])
 
                 newData.append(doc)
                 del doc
@@ -111,14 +114,14 @@ def corpus():
         elif request.method == "POST":
             RESET_FLAG = True if request.form["RESET_FLAG"] == "true" else False
 
-            if RESET_FLAG: # RESET WORKSPACE
+            if RESET_FLAG:  # RESET WORKSPACE
                 user.clear_workspace()
             else:
                 ids = request.form["ids"].split(",")
                 user.delete_documents(ids)
 
         del user
-        
+
         return make_response({
             "status": "Success",
             "newData": newData})
@@ -132,6 +135,7 @@ def corpus():
             }
         }, 500
 
+
 @api.route("process_corpus", methods=["PUT", "POST"])
 # Operation to process the corpus
 #   It computes:
@@ -140,7 +144,7 @@ def corpus():
 #       * Distance matrix (graph representation)
 def process_corpus():
     try:
-        if request.method == "POST": # ground up processing
+        if request.method == "POST":  # ground up processing
             userId = request.form["userId"]
             performance = request.form["performance"].upper()
 
@@ -154,56 +158,42 @@ def process_corpus():
             user.generate_index()
             corpus = user.corpus
 
-            processed = batch_processing(
-                fn=process_text,
-                data=[doc.content for doc in corpus],
-                deep=True,
-                stop_words=stop_words)
-            tf = batch_processing(fn=term_frequency, data=processed)
+            # processed = batch_processing(
+            #     fn=process_text,
+            #     data=[doc.content for doc in corpus],
+            #     deep=True,
+            #     stop_words=stop_words)
+            # tf = batch_processing(fn=term_frequency, data=processed)
 
-            for doc in corpus:
-                doc.term_frequency = tf.pop(0)
-                doc.processed = processed.pop(0)
+            # for doc in corpus:
+            #     doc.term_frequency = tf.pop(0)
+            #     doc.processed = processed.pop(0)
 
             if performance == "HIGH":
                 # SETTINGS
-                user.doc_model = DocumentModel.S_BERT
-                user.word_model = WordModel.FAST_TEXT
-                
-                user.fast_text = Fast_Text(user)
-                embeddings = encode_documents([
-                    doc.content for doc in corpus])
+                user.doc_model = "BERT"
+                user.word_model = "FastText"
             else:
                 # SETTINGS
-                user.doc_model = DocumentModel.DOC2VEC
-                user.word_model = WordModel.WORD2VEC
+                user.doc_model = "Doc2Vec"
+                user.word_model = "Word2Vec"
 
-                user.word2vec = Word_2_Vec(user)
+            embeddings = user.train()
 
-                model = Doc_2_Vec(user)
-                user.doc2vec = model
-
-                embeddings = l2_norm(batch_processing(
-                    fn=infer_doc2vec,
-                    data=[doc.processed for doc in corpus],
-                    model=model)).tolist()
-                
-                del model
-            
             for doc in corpus:
                 doc.embedding = embeddings.pop(0)
-            
+
             graph = similarity_graph(corpus)
             user.graph = graph
             user.tsne = t_SNE(corpus)
 
             user.isProcessed = True
-            
+
             return make_response({
                 "status": "success",
                 "userData": user.userData()})
 
-        elif request.method == "PUT": # Increment processing
+        elif request.method == "PUT":  # Increment processing
             userId = request.form["userId"]
 
             user = User(userId=userId)
@@ -211,7 +201,7 @@ def process_corpus():
                 raise Exception("No such user exists!")
 
             new_docs = request.form["new_docs"].split(",")
-            
+
             docs = [
                 Document(userId=userId, id=id)
                 for id in new_docs]
@@ -249,12 +239,12 @@ def process_corpus():
                         doc.processed.split(" "), steps=5
                     )).tolist()
 
-            corpus = user.corpus # refresh corpus reference
-            
-            graph  = similarity_graph(corpus)
+            corpus = user.corpus  # refresh corpus reference
+
+            graph = similarity_graph(corpus)
             user.graph = graph
-            
-            tsne  = t_SNE(corpus)
+
+            tsne = t_SNE(corpus)
             user.tsne = tsne
 
             seed = json.loads(request.form["seed"])
@@ -282,9 +272,9 @@ def process_corpus():
                         "cluster_names":    clusterer.cluster_names,
                         "cluster_docs":     clusterer.doc_clusters,
                         "cluster_words":    [[
-                            { "word": word, "weight": 1 }
+                            {"word": word, "weight": 1}
                             for word in paragraph[:5]
-                            ] for paragraph in clusterer.seed_paragraphs
+                        ] for paragraph in clusterer.seed_paragraphs
                         ]
                     }
                 }
@@ -300,24 +290,25 @@ def process_corpus():
             }
         }, 500
 
+
 @api.route("projection", methods=["POST"])
 def projection():
     try:
         if request.method == "POST":
             userId = request.form["userId"]
-            
+
             user = User(userId=userId)
             if not user:
                 raise Exception("No such user exists!")
-            
+
             index = request.form["index"].split(",")
             corpus = user.corpus
 
             corpus = [*filter(lambda doc: doc.id in index, corpus)]
-            
+
             projection = request.form["projection"]
 
-            if projection ==  "t-SNE":
+            if projection == "t-SNE":
                 perplexity = int(request.form["perplexity"])
                 projection = t_SNE(corpus, perplexity=perplexity)
 
@@ -335,6 +326,7 @@ def projection():
             }
         }, 500
 
+
 @api.route("session", methods=["GET", "PUT", "POST"])
 def session():
     try:
@@ -344,7 +336,7 @@ def session():
             user = User(userId=userId)
             if not user:
                 raise Exception("No such user exists!")
-            
+
             sessionId = request.args["sessionId"] if (
                 "sessionId" in request.args) else None
 
@@ -359,20 +351,20 @@ def session():
             user = User(userId=userId)
             if not user:
                 raise Exception("No such user exists!")
-            
+
             session = json.loads(request.form["sessionData"])
             session = user.append_session(
-                name            = session["name"],
-                notes           = session["notes"],
-                index           = session["index"],
-                clusters        = session["clusters"],
-                graph           = session["graph"],
-                tsne            = session["tsne"],
-                controls        = session["controls"],
-                selected        = session["selected"],
-                focused         = session["focused"],
-                highlight       = session["highlight"],
-                word_similarity = session["word_similarity"])
+                name=session["name"],
+                notes=session["notes"],
+                index=session["index"],
+                clusters=session["clusters"],
+                graph=session["graph"],
+                tsne=session["tsne"],
+                controls=session["controls"],
+                selected=session["selected"],
+                focused=session["focused"],
+                highlight=session["highlight"],
+                word_similarity=session["word_similarity"])
 
         elif request.method == "POST":
             userId = request.form["userId"]
@@ -399,6 +391,7 @@ def session():
             }
         }, 500
 
+
 @api.route("cluster", methods=["POST"])
 def cluster():
     try:
@@ -407,7 +400,7 @@ def cluster():
 
             user = User(userId=userId)
             recluster = True if request.form["recluster"] == "true" else False
-            
+
             if recluster:
                 seed = json.loads(request.form["seed"])
                 k = seed["cluster_k"]
@@ -432,12 +425,12 @@ def cluster():
                 "cluster_names":    clusterer.cluster_names,
                 "cluster_docs":     clusterer.doc_clusters,
                 "cluster_words":    [[
-                    { "word": word, "weight": 1 }
+                    {"word": word, "weight": 1}
                     for word in paragraph[:5]
-                    ] for paragraph in clusterer.seed_paragraphs
+                ] for paragraph in clusterer.seed_paragraphs
                 ]
             }
-                    
+
             return make_response({
                 "status": "success",
                 "sessionData": session})
@@ -452,6 +445,7 @@ def cluster():
             }
         }, 500
 
+
 @api.route("word_similarity", methods=["POST"])
 def word_similarity():
     try:
@@ -461,7 +455,7 @@ def word_similarity():
             query = request.form["query"].split(",")
 
             user = User(userId=userId)
-            word_sim = most_similar(user, query)
+            word_sim = user.word_vectors.most_similar(user.userId, query)
 
             return make_response({
                 "status": "success",
@@ -477,12 +471,13 @@ def word_similarity():
             }
         }, 500
 
+
 @api.route("sankey", methods=["GET"])
 def sankey():
     try:
         if request.method == "GET":
             userId = request.args["userId"]
-            
+
             user = User(userId=userId)
             if not user:
                 raise Exception("No such user exists!")
