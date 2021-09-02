@@ -1,22 +1,23 @@
 FROM nvidia/cuda:11.2.0-base-ubuntu18.04
 
+
 # ==========================================================
 #       Update system and install OS dependencies           
 # ==========================================================
-RUN apt update
-RUN apt -y install -y python3.6 curl unzip wget virtualenv \
-  --no-install-recommends \
-  --no-install-suggests
-RUN apt-get -y install python3-pip python3-virtualenv
+RUN apt-get update && apt-get -y install \
+  --no-install-recommends --no-install-suggests \
+  python3.6 curl unzip wget virtualenv \
+  python3-pip python3-virtualenv
 
 
 # ==========================================================
 #               Setup virtual environment                   
 # ==========================================================
-RUN mkdir /venv
+RUN mkdir -p /venv
 WORKDIR /venv
 RUN virtualenv --python=/usr/bin/python3.6 /venv/ \
   --prompt="(IDC [Python + Node.js])"
+
 ENV PATH="/venv/bin:$PATH"
 
 
@@ -25,6 +26,13 @@ ENV PATH="/venv/bin:$PATH"
 # ==========================================================
 COPY ./python_requirements.txt /venv/python_requirements.txt
 RUN pip install -r /venv/python_requirements.txt
+
+RUN mkdir -p  /venv/data/nltk \
+  /venv/data/scikit_learn \
+  /venv/data/transformers
+ENV NLTK_DATA="/venv/data/nltk"
+ENV SCIKIT_LEARN_DATA="/venv/data/scikit_learn"
+ENV SENTENCE_TRANSFORMERS_HOME="/venv/data/transformers"
 
 
 # ==========================================================
@@ -38,8 +46,10 @@ RUN . /venv/bin/activate && \
 # ==========================================================
 #                     Running system                        
 # ==========================================================
-COPY --chmod=0555 ./docker-entrypont.sh /
-ENTRYPOINT [ "/docker-entrypont.sh" ]
-
 WORKDIR /app/server/
-CMD /docker-entrypont.sh
+
+COPY ./docker_entrypoint.sh /
+RUN chmod +x /docker_entrypoint.sh
+ENTRYPOINT [ "/docker_entrypoint.sh" ]
+
+CMD [ "/docker_entrypoint.sh" , "server"]

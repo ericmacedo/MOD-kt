@@ -9,11 +9,11 @@ There are two ways of running this system:
 
 * **Standalone**: Runs directly in the host's system. Then, you must have install the dependencies:
     ```shell
-    # apt -y update
-    # apt -y install python3.6 python3-pip 
-    # apt -y install unzip wget curl virtualenv git \
-      --no-install-recommends \
-      --no-install-suggests
+    sudo apt-get -y update && \
+    sudo apt-get -y install python3.6 python3-pip && \
+    sudo apt-get -y install unzip wget curl virtualenv git \
+    --no-install-recommends \
+    --no-install-suggests
     ```
 * **Container**: Runs the system in a Docker Container.
   * Follow [this link](https://docs.docker.com/get-docker/) for instructions on how to install Docker
@@ -30,47 +30,47 @@ There are two ways of running this system:
     * `FLASK_SECRET_KEY=`**`YOUR_SECRET_KEY`**
 2. Create virtual environment in `./env/`:
     ```shell
-    $ virtualenv --python=python3.6 ./env/ --prompt="(IDC [Python + Node.js])"
+    virtualenv --python=python3.6 ./env/ --prompt="(IDC [Python + Node.js])"
     ```
 3. Activate environment: 
     ```shell
-    $ source ./env/bin/activate
+    source ./env/bin/activate
     ```
 4. Install Python dependencies with **Pip**:
     ```shell
-    $ pip install -r python_requirements.txt
+    pip install -r python_requirements.txt
     ```
 5. Refresh environment:
     ```shell
-    $ deactivate; source ./env/bin/activate
+    deactivate; source ./env/bin/activate
     ```
 6. Install **NodeEnv** on the existing environment:
     ```shell
-    $ nodeenv --config-file=nodeenvrc --python-virtualenv
+    nodeenv --config-file=nodeenvrc --python-virtualenv
     ```
 7. Create data folders for **Scikit Learn**, **NLTK** and **Sentence Transformers**:
     ```shell
-    $ mkdir -p  ./env/data/scikit_learn \
-              ./env/data/nltk \
-              ./env/data/transformers
+    mkdir -p ./env/data/scikit_learn \
+    ./env/data/nltk \
+    ./env/data/transformers
     ```
 8.  Setup logging
     ```shell
-    $ mkdir ./server/log
-    $ touch ./server/log/access.log \
-          ./server/log/error.log \
-          ./server/log/flask.log
+    mkdir ./server/log
+    touch ./server/log/access.log \
+    ./server/log/error.log \
+    ./server/log/flask.log
     ```
 9. Set **Vue** configs on `'./web/.env.production'` file:
     * `VUE_APP_SERVER_URL=YOUR_URL` (with protocol, `http` or `https`)
     * `VUE_APP_SERVER_PORT=YOUR_PORT`
 10. Install Node dependencies:
     ```shell
-    $ cd ./web && npm install
+    cd ./web && npm install
     ```
 11. Build ir for production:
     ```shell
-    $ npm run build --mode=production
+    npm run build --mode=production
     ```
 
 ### Running the server
@@ -80,12 +80,13 @@ There are two ways of running this system:
 
 Here's a example using `Gunicorn[gevent]`:
 ```shell
-$ gunicorn \
-    --workers 6 \
-    --threads 4 \
-    --timeout 3600 \
-    --bind 0.0.0.0:12115 \
-    wsgi:app
+gunicorn \
+--name i2dc \
+--workers 6 \
+--threads 4 \
+--timeout 3600 \
+--bind 0.0.0.0:12115 \
+wsgi:app
 ```
 * Make sure you actiavated the environment and that you're in the `./server/` folder.
 
@@ -100,69 +101,73 @@ $ gunicorn \
 
 1. Create data folder for `Scikit Learn`, `NLTK` and `Transformers`:
     ```shell
-      $ mkdir -p ./env/data/
-      $ mkdir ./env/data/scikit_learn \
-              ./env/data/nltk \
-              ./env/data/transformers
+    mkdir -p ./env/data/ && \
+    mkdir ./env/data/scikit_learn \
+    ./env/data/nltk \
+    ./env/data/transformers
     ```
 2. Create the log files:
     ```
-    $ mkdir -p ./server/log
-    $ touch ./server/log/access.log \
-            ./server/log/flask.log \
-            ./server/log/error.log
+    mkdir -p ./server/log && \
+    touch ./server/log/access.log \
+    ./server/log/flask.log \
+    ./server/log/error.log
     ```
 3. Create the `./server/.env` file:
     ```shell
-    $ echo \
+    echo \
     "FLASK_DEBUG=False
     FLASK_ENV=production
     FLASK_RUN_HOST=0.0.0.0
-    FLASK_RUN_PORT=5000
+    FLASK_RUN_PORT=12115
     FLASK_SECRET_KEY=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13)
     " > ./server/.env
     ```
 4. Create `Vue` environment file:
     ```shell
-    $ echo \
+    echo \
     "VUE_APP_SERVER_URL=http://127.0.0.1
-    VUE_APP_SERVER_PORT=5000
+    VUE_APP_SERVER_PORT=12115
     " > ./web/.env.production
-    ```
-5. Install `NPM` dependencies and build for production:
-    ```shell
-    $ cd ./web && npm install
-    $ npm run build --mode=production
     ```
 
 > Make sure you have Docker installed for the next instructions
 
 1. Fetch needed base Docker images:
     ```shell
-    $ docker pull nvidia/cuda:11.2.0-base-ubuntu18.04
-    $ docker pull busybox
+    docker pull nvidia/cuda:11.2.0-base-ubuntu18.04 && \
+    docker pull busybox
     ```
 2. Create a volume for data storage copy repository to it:
     ```shell
-    $ docker volume create i2dc
-    $ docker run -v i2dc:/app --name helper busybox true
-    $ docker cp . helper:/app
-    $ docker rm helper
+    docker volume create i2dc && \
+    docker run -v i2dc:/app --name helper busybox true && \
+    docker cp ./web helper:/app/web && \
+    docker cp ./server helper:/app/server && \
+    docker cp ./env helper:/app/env && \
+    docker rm helper
     ```
-3. Build Container snapshot and name it:
+3. Build Container image and name it:
     ```shell
-    $ docker build -t i2dc .
+    docker build -t i2dc .
     ```
     * Make sure you're in the root of this repository, where the `Dockerfile` is located
+4. Build the frontend:
+    ```shell
+    docker run --rm -v i2dc:/app i2dc build_frontend
+    ```
 
 ### Running the server
 
 ```shell
-# docker run -dit i2dc \
-    --name i2DC \
-    --port 12115:12115 \
-    --volume i2dc:/app
+docker run -dit \
+--name i2dc \
+--publish 12115:12115 \
+--volume i2dc:/app \
+i2dc
 ```
+
+* Now you can access the system through `http://localhost:12115`
 
 ### Using NVIDIA GPU processing
 
@@ -172,12 +177,22 @@ $ gunicorn \
 * Make sure you have Cuda drivers installed and configured on the host
 * Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#installation-guide). Then run:
     ```shell
-    # docker run -dit i2dc \
-        --name i2DC \
-        --port 12115:12115 \
-        --volume i2dc:/app \
-        --gpus all
+    docker run -dit \
+    --name i2dc \
+    --publish 12115:12115 \
+    --volume i2dc:/app \
+    --gpus all \
+    i2dc
     ```
+* Now you can access the system through `http://localhost:12115`
+
+## Creating new users
+
+Just create a folder with the username as its name under `./server/users`.
+For instance, to create a user named `default`:
+  ```shell
+  mkdir ./server/default
+  ```
 
 ## To do
 
