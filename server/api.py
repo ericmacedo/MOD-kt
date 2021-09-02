@@ -158,16 +158,16 @@ def process_corpus():
             user.generate_index()
             corpus = user.corpus
 
-            # processed = batch_processing(
-            #     fn=process_text,
-            #     data=[doc.content for doc in corpus],
-            #     deep=True,
-            #     stop_words=stop_words)
-            # tf = batch_processing(fn=term_frequency, data=processed)
+            processed = batch_processing(
+                fn=process_text,
+                data=[doc.content for doc in corpus],
+                deep=True,
+                stop_words=stop_words)
+            tf = batch_processing(fn=term_frequency, data=processed)
 
-            # for doc in corpus:
-            #     doc.term_frequency = tf.pop(0)
-            #     doc.processed = processed.pop(0)
+            for doc in corpus:
+                doc.term_frequency = tf.pop(0)
+                doc.processed = processed.pop(0)
 
             if performance == "HIGH":
                 # SETTINGS

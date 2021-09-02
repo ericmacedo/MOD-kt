@@ -67,7 +67,7 @@ def get_vectors(userId: str) -> list:
     return model.wv.vectors_norm.tolist()
 
 
-def cluster_words(userId: str, k: int, seed: dict = None) -> KMeans:
+def cluster(userId: str, k: int, seed: dict = None) -> KMeans:
     def handle_unseen_words(words: list) -> list:
         words_filtered = [
             *filter(lambda word: word in model.wv, words)]

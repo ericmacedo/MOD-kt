@@ -96,3 +96,9 @@ class Document:
             term_frequency=self._term_frequency,
             embedding=self._embedding,
             uploaded_on=self._uploaded_on)
+
+def infer_doc2vec(data: str, **kwargs) -> list:
+    model = kwargs.get("model", None)
+    return model.infer_vector(
+        data.split(" "), steps=35
+    ) if model else None

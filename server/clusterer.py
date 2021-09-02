@@ -93,11 +93,12 @@ class Clusterer:
     def cluster_documents(self) -> KMeans:
         doc_seeds = self.doc_vectors.get_vectors(
             userId=self.userId,
-            corpus=self.seed_paragraphs)
+            corpus=[" ".join(p)
+                    for p in self.seed_paragraphs])
 
         k_means = KMeans(
             n_clusters=self.k,
-            init=doc_seeds,
+            init=np.array(doc_seeds, dtype=np.float32),
             n_init=10,
             tol=1e-5
         ).fit(self.embeddings)

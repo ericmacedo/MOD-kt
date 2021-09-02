@@ -7,7 +7,7 @@ from datetime import datetime
 from importlib.util import (
     spec_from_file_location,
     module_from_spec)
-
+import pathlib
 from models import ModelType
 from models.document import Document
 from models.session import Session
@@ -29,6 +29,9 @@ class User:
 
         if not os.path.isdir(self.__user):
             return None
+        else:
+            pathlib.Path(self.__sessions).mkdir(parents=True, exist_ok=True)
+            pathlib.Path(self.__corpus).mkdir(parents=True, exist_ok=True)
 
     @property
     def doc_model(self):
@@ -164,7 +167,7 @@ class User:
 
         uuid = str(uuid4())
         file_path = f"{self.__corpus}/{uuid}.json"
-
+        
         document = {
             "id": uuid,
             "file_name": file_name,

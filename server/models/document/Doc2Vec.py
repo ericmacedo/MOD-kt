@@ -7,6 +7,7 @@ from multiprocessing import cpu_count
 from os.path import basename, splitext, isfile
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from utils import calculateSample, l2_norm, batch_processing
+from models.document import infer_doc2vec
 
 
 name = splitext(basename(__file__))[0]
@@ -70,16 +71,11 @@ def train_model(userId: str, corpus: List[str]) -> Doc2Vec:
 
 
 def get_vectors(userId: str, corpus: List[str]) -> list:
-    def infer_doc2vec(data: str, **kwargs) -> list:
-        model = kwargs.get("model", None)
-        return model.infer_vector(
-            data.split(" "), steps=35
-        ) if model else None
-
+    # import pdb; pdb.set_trace()
     model = load_model(userId=userId)
 
     return l2_norm(batch_processing(
         fn=infer_doc2vec,
-        data=[doc for doc in corpus],
+        data=corpus,
         model=model)
     ).tolist()

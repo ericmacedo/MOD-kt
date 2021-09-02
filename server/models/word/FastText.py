@@ -58,6 +58,7 @@ def train_model(userId: str, corpus: List[str]) -> FastText:
         epochs=40)
 
     model.wv.init_sims(replace=True)
+    save_model(userId=userId, model=model)
     return model
 
 
@@ -66,7 +67,7 @@ def get_vectors(userId: str) -> list:
     return model.wv.vectors_norm.tolist()
 
 
-def cluster_words(userId: str, k: int, seed: dict = None) -> KMeans:
+def cluster(userId: str, k: int, seed: dict = None) -> KMeans:
     model = load_model(userId=userId)
     model.wv.init_sims()
 
