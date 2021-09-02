@@ -25,7 +25,7 @@ ENV PATH="/venv/bin:$PATH"
 #              Virtual Environment: Python                  
 # ==========================================================
 COPY ./python_requirements.txt /venv/python_requirements.txt
-RUN pip install -r /venv/python_requirements.txt
+RUN pip3 install --no-cache-dir -r /venv/python_requirements.txt
 
 RUN mkdir -p  /venv/data/nltk \
   /venv/data/scikit_learn \

@@ -3,7 +3,8 @@ set -e
 
 if [ $# -eq 1 ]; then
   if [ $1 == 'build_frontend' ]; then
-    cd /app/web && npm install
+    cd /app/web
+    npm install && npm cache clean
     npm run build --mode=production
   elif [ $1 == 'server' ]; then
     cd  /app/server
