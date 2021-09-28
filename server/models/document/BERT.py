@@ -1,11 +1,11 @@
 import pickle
 import numpy as np
-from typing import List
 from pathlib import Path
-from multiprocessing import cpu_count
+from sklearn.cluster import KMeans
+from typing import List, Iterable, Dict
 from dataclasses import dataclass, field
+from os.path import basename, splitext, isfile
 from sentence_transformers import SentenceTransformer
-from os.path import basename, splitext, isfile, abspath
 
 
 @dataclass
@@ -27,11 +27,10 @@ class Bert:
     def load(cls, path: str):
         return pickle.load(open(path, "rb"))
 
-    @classmethod
-    def save(cls, path: str, data: np.ndarray):
+    def save(self, path: str):
         with open(path, "wb") as pkl_file:
             pickle.dump(
-                obj=data,
+                obj=self,
                 file=pkl_file,
                 protocol=pickle.DEFAULT_PROTOCOL,
                 fix_imports=True)
@@ -57,14 +56,28 @@ def save_model(userId: str, model: Bert):
     model.save(model_path(userId))
 
 
-def train_model(userId: str, corpus: List[str]) -> Bert:
+def train_model(userId: str, corpus: Iterable[str]) -> Bert:
     model = Bert(model_name="allenai-specter")
     model.train(corpus=corpus)
     return model
 
 
-def get_vectors(userId: str, corpus: List[str]) -> list:
+def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
     model = Bert(model_name="allenai-specter")
-    model.train(corpus=corpus)
+    return model.train(corpus=data)
 
-    return model.embeddings
+
+def cluster(userId: str,
+            seed_paragraphs: Iterable[Dict[str, Iterable]],
+            k: int,
+            embeddings: List) -> Iterable[int]:
+    doc_seeds = get_vectors(
+        userId=userId,
+        data=[" ".join(p["paragraph"]) for p in seed_paragraphs])
+
+    return KMeans(
+        n_clusters=k,
+        init=np.array(doc_seeds, dtype=np.float32),
+        n_init=10,
+        tol=1e-5
+    ).fit_predict(embeddings)

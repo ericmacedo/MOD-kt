@@ -54,22 +54,37 @@ class Clusterer:
         self.seed = seed
 
         self.seed_paragraphs = []
-        self.word_labels = None
-        word_clusterer = self.word_vectors.cluster_words(
+        w_centers = self.word_vectors.cluster(
             userId=user.userId,
             k=self.k,
             seed=self.seed)
-        self.word_clusters = word_clusterer.labels_
 
         # Builds seed paragraphs to cluster documents
-        for index, centroid in enumerate(word_clusterer.cluster_centers_):
-            self.seed_paragraphs.append(
-                self.word_vectors.seed_paragraph(
-                    userId=user.userId,
-                    vector=centroid))
+        self.seed_paragraphs = [
+            self.word_vectors.seed_paragraph(
+                userId=user.userId,
+                centroid=centroid
+            ) for centroid in w_centers]
 
-        self.doc_labels = None
-        doc_clusterer = self.cluster_documents()
+        # If word_vectors is Bag-of-Words:
+        # seed_paragraph has "vector"
+        # Else
+        # Genereate "vector" for paragraphs
+        if not [p["vector"] for p in self.seed_paragraphs if "vector" in p]:
+            vectors = self.doc_vectors.get_vectors(
+                userId=user.userId,
+                data=[
+                    " ".join(p["paragraph"])
+                    for p in self.seed_paragraphs])
+
+            for i in range(self.k):
+                self.seed_paragraphs[i]["vector"] = vectors.pop(0)
+
+        self.doc_labels = self.doc_vectors.cluster(
+            userId=user.userId,
+            k=self.k,
+            seed_paragraphs=self.seed_paragraphs,
+            embeddings=self.embeddings)
 
         self.cluster_names = []
         self.colors = []
@@ -89,22 +104,6 @@ class Clusterer:
         for index, label in enumerate(self.doc_labels):
             self.doc_clusters[f"{self.cluster_names[label]}"].append(
                 corpus[index].id)
-
-    def cluster_documents(self) -> KMeans:
-        doc_seeds = self.doc_vectors.get_vectors(
-            userId=self.userId,
-            corpus=[" ".join(p)
-                    for p in self.seed_paragraphs])
-
-        k_means = KMeans(
-            n_clusters=self.k,
-            init=np.array(doc_seeds, dtype=np.float32),
-            n_init=10,
-            tol=1e-5
-        ).fit(self.embeddings)
-        self.doc_labels = k_means.labels_
-
-        return k_means
 
     @classmethod
     def predict(cls, userId: str, docs: list) -> list:

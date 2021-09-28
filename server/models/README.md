@@ -12,3 +12,4 @@
   * And `corpus` is the corpus to be trained on
 * `get_vectors(userId: str, corpus: List[str]) -> List`
   * And `corpus` is the corpus to be trained on
+* `cluster(userId)`

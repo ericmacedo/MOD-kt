@@ -426,7 +426,7 @@ def cluster():
                 "cluster_docs":     clusterer.doc_clusters,
                 "cluster_words":    [[
                     {"word": word, "weight": 1}
-                    for word in paragraph[:5]
+                    for word in paragraph["paragraph"][:5]
                 ] for paragraph in clusterer.seed_paragraphs
                 ]
             }

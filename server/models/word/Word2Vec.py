@@ -1,13 +1,13 @@
 import numpy as np
-from typing import List
 from pathlib import Path
+from typing import Iterable
 from nltk.stem import wordnet
-from utils import process_text, calculateSample
 from sklearn.utils import shuffle
-from sklearn.cluster import KMeans
 from gensim.models import Word2Vec
+from sklearn.cluster import KMeans
 from multiprocessing import cpu_count
 from os.path import basename, splitext, isfile
+from utils import process_text, calculateSample
 
 name = splitext(basename(__file__))[0]
 
@@ -22,7 +22,6 @@ def load_model(userId: str) -> Word2Vec:
     path = model_path(userId)
     if isfile(path):
         model = Word2Vec.load(path)
-        model.wv.init_sims()
         return model
     return None
 
@@ -31,7 +30,7 @@ def save_model(userId: str, model: Word2Vec):
     model.save(model_path(userId))
 
 
-def train_model(userId: str, corpus: List[str]) -> Word2Vec:
+def train_model(userId: str, corpus: Iterable[str]) -> Word2Vec:
     sentences = [doc.split(" ") for doc in corpus]
 
     corpus_size = len(corpus)
@@ -62,12 +61,15 @@ def train_model(userId: str, corpus: List[str]) -> Word2Vec:
     return model
 
 
-def get_vectors(userId: str) -> list:
+def get_vectors(userId: str,
+                data: Iterable[str] = None) -> Iterable[Iterable[float]]:
     model = load_model(userId=userId)
-    return model.wv.vectors_norm.tolist()
+    return model.wv.vectors.tolist()
 
 
-def cluster(userId: str, k: int, seed: dict = None) -> KMeans:
+def cluster(userId: str,
+            k: int,
+            seed: dict = None) -> Iterable[Iterable[float]]:
     def handle_unseen_words(words: list) -> list:
         words_filtered = [
             *filter(lambda word: word in model.wv, words)]
@@ -94,7 +96,6 @@ def cluster(userId: str, k: int, seed: dict = None) -> KMeans:
         return [*set(synonyms)]
 
     model = load_model(userId=userId)
-    model.wv.init_sims()
 
     if seed:  # UPDATE CLUSTERS GIVEN USER SEEDS
         init_mode = np.zeros((k, model.vector_size))
@@ -133,17 +134,19 @@ def cluster(userId: str, k: int, seed: dict = None) -> KMeans:
         init=init_mode,
         n_init=10,
         tol=1e-5
-    ).fit(model.wv.vectors_norm)
+    ).fit(model.wv.vectors)
 
-    return k_means
+    return k_means.cluster_centers_
 
 
-def seed_paragraph(userId: str, vector: list, topn: int = 50) -> list:
+def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
     model = load_model(userId=userId)
 
-    return [
-        term[0]
-        for term in model.wv.similar_by_vector(vector, topn=topn)]
+    return dict(
+        paragraph=[
+            term[0]
+            for term in model.wv.similar_by_vector(centroid, topn=topn)]
+    )
 
 
 def most_similar(userId: str, positive: list, topn: int = 10) -> list:

@@ -351,7 +351,7 @@ class User:
 
         return self.doc_vectors.get_vectors(
             userId=self.userId,
-            corpus=[doc.processed for doc in self.corpus])
+            data=[doc.processed for doc in self.corpus])
 
     @classmethod
     def async_write(cls, path, data):
