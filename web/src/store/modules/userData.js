@@ -15,20 +15,20 @@ const getters = {
 const actions = {};
 
 const mutations = {
-  setUserId (state, userId) {
+  setUserId(state, userId) {
     state.userId = userId;
   },
-  setCorpus (state, corpus) {
+  setCorpus(state, corpus) {
     state.corpus = corpus;
   },
-  pushCorpus (state, newData) {
+  pushCorpus(state, newData) {
     state.corpus = state.corpus.concat(newData);
   },
   removeFromCorpus(state, to_remove) {
     state.corpus = state.corpus.filter(
       doc => !to_remove.includes(doc.id));
   },
-  setSessions (state, sessions) {
+  setSessions(state, sessions) {
     state.sessions = sessions;
   },
   clearUserData(state) {

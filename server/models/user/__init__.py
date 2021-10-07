@@ -167,7 +167,7 @@ class User:
 
         uuid = str(uuid4())
         file_path = f"{self.__corpus}/{uuid}.json"
-        
+
         document = {
             "id": uuid,
             "file_name": file_name,
@@ -343,15 +343,20 @@ class User:
         return module
 
     def train(self) -> list:
-        for vector in [self.word_vectors, self.doc_vectors]:
-            vector.train_model(
+        corpus = [doc.processed for doc in self.corpus]
+        self.word_vectors.train_model(
+            userId=self.userId,
+            corpus=corpus)
+
+        if self.word_model != self.doc_model:
+            self.doc_vectors.train_model(
                 userId=self.userId,
-                corpus=[doc.processed
-                        for doc in self.corpus])
+                corpus=corpus)
 
         return self.doc_vectors.get_vectors(
             userId=self.userId,
-            data=[doc.processed for doc in self.corpus])
+            data=corpus
+        ).tolist()
 
     @classmethod
     def async_write(cls, path, data):

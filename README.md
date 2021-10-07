@@ -2,7 +2,7 @@
 
 [![Ubuntu](https://img.shields.io/static/v1?label=Ubuntu&message=18.04&color=orange)]("https://releases.ubuntu.com/18.04/)
 [![Docker](https://img.shields.io/static/v1?label=Docker&message=20.10.7&color=steelblue)](https://docs.docker.com/engine/release-notes/#20107)
-[![Python](https://img.shields.io/static/v1?label=Python&message=3.6&color=yellow)](https://www.python.org/downloads/release/python-369/)
+[![Python](https://img.shields.io/static/v1?label=Python&message=3.6.9&color=yellow)](https://www.python.org/downloads/release/python-369/)
 [![PyPi](https://img.shields.io/static/v1?label=PyPi&message=21.2.4&color=blue)](https://pypi.org/project/pip/21.2.4/)
 [![NPM](https://img.shields.io/static/v1?label=npm&message=6.14.13&color=red)](https://www.npmjs.com/package/npm/v/6.14.13)
 [![Node](https://img.shields.io/static/v1?label=Node.js&message=14.17.0&color=green)](https://nodejs.org/ca/blog/release/v14.17.0/)

@@ -56,11 +56,6 @@ def cluster(userId: str,
 
     cmeansWords = 5
 
-    termNames = list(model.vocabulary)
-    termNamesIndex = {}
-    for index, value in enumerate(termNames):
-        termNamesIndex[value] = index
-
     clusterTerms = []
     if seed:
         for i in range(k):
@@ -79,7 +74,7 @@ def cluster(userId: str,
     for cluster in u:
         temp = []
         for j in range(0, cmeansWords):
-            temp.append(termNames[cluster.argmax()])
+            temp.append(model.vocabulary[cluster.argmax()])
             cluster[cluster.argmax()] = -1
         clusterTerms.append(temp)
 
@@ -90,7 +85,7 @@ def cluster(userId: str,
     for index, clusterTerm in enumerate(clusterTerms):
         center = np.zeros(model.n)
         for term in clusterTerm:
-            center += model.matrix[:, termNamesIndex[term]]
+            center += model.matrix[:, model.vocabulary.index(term)]
         center /= k
         termCentroids[index] = center
 

@@ -1,7 +1,5 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
-from collections import OrderedDict
 from typing import List, Iterable
-from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 import pickle
@@ -12,28 +10,21 @@ class ModelType(Enum):
     WORD = "word"
 
 
-@dataclass
 class BagOfWords:
-    n: int
-    m: int
-
-    index: List[str]
-    matrix: Iterable[List]
-    vocabulary: OrderedDict
-
-    def train(self, corpus: List[str], index: List[str] = None) -> np.array:
-        allWords = dict()
+    def train(self, corpus: Iterable[str],
+              index: Iterable[str] = None) -> np.array:
+        allWords = list()
         vectorizer = TfidfVectorizer(min_df=2)
 
         tfidf_matrix = vectorizer.fit_transform(corpus)
         tfidf_feature_names = vectorizer.get_feature_names()
         tfidf_feature_names_hashmap = {}
 
-        self.n, self.m = tfidf_matrix.shape  # (N documents, M features)
-        self.index = index if index else [f"doc_{i}" for i in range(self.n)]
+        n, m = tfidf_matrix.shape  # (N documents, M features)
+        self.index = index if index else [f"doc_{i}" for i in range(n)]
 
         # tfidf feature names hashmap
-        for j in range(0, self.m):
+        for j in range(0, m):
             tfidf_feature_names_hashmap[tfidf_feature_names[j]] = j
 
         # filter based on the mean tf/idf
@@ -41,20 +32,20 @@ class BagOfWords:
         words_tfidf = tfidf_matrix.mean(0)
         for index, item in enumerate(np.nditer(words_tfidf)):
             if item > tfidf_mean:
-                allWords[tfidf_feature_names[index]] = 0
+                allWords.append(tfidf_feature_names[index])
 
-        self.vocabulary = OrderedDict(sorted(allWords.items()))
+        self.vocabulary = sorted(allWords)
 
         # create document term matrix (out)
         self.matrix = list()
-        for j in range(self.n):
+        for j in range(n):
             self.matrix.append(list())
             tfidf_hashmap = {}
             for col in tfidf_matrix.getrow(j).nonzero()[1]:
                 if tfidf_feature_names[col] in self.vocabulary:
                     tfidf_hashmap[col] = tfidf_matrix[j, col]
 
-            for word, score in self.vocabulary.items():
+            for word in self:
                 word_index = tfidf_feature_names_hashmap.get(word)
                 if tfidf_feature_names_hashmap.get(word) in tfidf_hashmap:
                     self.matrix[j].append(
@@ -63,6 +54,7 @@ class BagOfWords:
                     self.matrix[j].append(0.0)
 
         self.matrix = np.array(self.matrix, dtype=np.float32)
+        self.n, self.m = self.matrix.shape  # (N documents, M features)
         return self.matrix
 
     @classmethod

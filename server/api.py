@@ -146,7 +146,8 @@ def process_corpus():
     try:
         if request.method == "POST":  # ground up processing
             userId = request.form["userId"]
-            performance = request.form["performance"].upper()
+            word_model = request.form["word_model"]
+            document_model = request.form["document_model"]
 
             user = User(userId=userId)
             if not user:
@@ -168,15 +169,9 @@ def process_corpus():
             for doc in corpus:
                 doc.term_frequency = tf.pop(0)
                 doc.processed = processed.pop(0)
-
-            if performance == "HIGH":
-                # SETTINGS
-                user.doc_model = "BERT"
-                user.word_model = "FastText"
-            else:
-                # SETTINGS
-                user.doc_model = "Doc2Vec"
-                user.word_model = "Word2Vec"
+            
+            user.doc_model = document_model
+            user.word_model = word_model
 
             embeddings = user.train()
 
