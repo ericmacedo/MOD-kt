@@ -58,7 +58,6 @@ class Clusterer:
             userId=user.userId,
             k=self.k,
             seed=self.seed)
-        print("Words clustered")
 
         # Builds seed paragraphs to cluster documents
         self.seed_paragraphs = [
@@ -66,7 +65,6 @@ class Clusterer:
                 userId=user.userId,
                 centroid=centroid
             ) for centroid in w_centers]
-        print("Word paragraph generated")
 
         # If word_vectors is Bag-of-Words:
         # seed_paragraph has "vector"
@@ -87,7 +85,6 @@ class Clusterer:
             k=self.k,
             seed_paragraphs=self.seed_paragraphs,
             embeddings=self.embeddings)
-        print("Documents clustered")
 
         self.cluster_names = []
         self.colors = []

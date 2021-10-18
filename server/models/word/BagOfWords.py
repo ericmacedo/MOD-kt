@@ -62,23 +62,21 @@ def cluster(userId: str,
             clusterTerms.append([
                 word["word"]
                 for word in seed["cluster_words"][i]])
+    else:
+        _, u, _, _, _, _, _ = BestCMeans().fit_predict(
+            data=model.matrix,
+            c=k,
+            m=1.1,
+            error=0.005,
+            maxiter=50,
+            init=None)
 
-    _, u, _, _, _, _, _ = BestCMeans().fit_predict(
-        data=model.matrix,
-        c=k,
-        m=1.1,
-        error=0.005,
-        maxiter=50,
-        init=None)
-
-    for cluster in u:
-        temp = []
-        for j in range(0, cmeansWords):
-            temp.append(model.vocabulary[cluster.argmax()])
-            cluster[cluster.argmax()] = -1
-        clusterTerms.append(temp)
-
-    k = len(clusterTerms)
+        for cluster in u:
+            temp = []
+            for j in range(0, cmeansWords):
+                temp.append(model.vocabulary[cluster.argmax()])
+                cluster[cluster.argmax()] = -1
+            clusterTerms.append(temp)
 
     # calculate centroid of selected terms
     termCentroids = np.zeros((k, model.n))
@@ -105,10 +103,8 @@ def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
     # upper bound for the number of terms of each cluster
     termPercentile = termPercentileInit * model.m / 100
     seedDocumentsTerms = np.zeros(model.m)
-    tempTermCentroidCosine = np.zeros(model.m)
-    tempTermCentroidCosine[:] = termCentroidCosine
 
-    center = np.array(centroid)
+    center = termCentroidCosine
     average = np.average(center)
     minDistance = center.min()
     counter = 0

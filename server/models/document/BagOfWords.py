@@ -55,7 +55,7 @@ def cluster(userId: str,
     embeddings = np.array(embeddings)
     n, m = embeddings.shape
 
-    seedDocumentsTerms = [i["vector"] for i in seed_paragraphs if i["vector"]]
+    seedDocumentsTerms = [i["vector"] for i in seed_paragraphs]
 
     # select documents related to the selected terms and calculate the centroid of documents
     seedDocumentsTermsCosine = np.zeros((k, n))

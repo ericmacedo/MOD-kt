@@ -169,7 +169,7 @@ def process_corpus():
             for doc in corpus:
                 doc.term_frequency = tf.pop(0)
                 doc.processed = processed.pop(0)
-            
+
             user.doc_model = document_model
             user.word_model = word_model
 
@@ -216,23 +216,10 @@ def process_corpus():
             user.generate_index()
             corpus = user.corpus
 
-            if user.word_model == "FastText":
-                user.fast_text = Fast_Text(user=user)
-            else:
-                user.word2vec = Word_2_Vec(user=user)
+            embeddings = user.train()
 
-            if user.doc_model == "S-BERT":
-                embeddings = encode_documents([
-                    doc.content for doc in docs])
-                for doc in docs:
-                    doc.embedding = embeddings.pop(0)
-            else:
-                doc2vec = user.doc2vec
-
-                for doc in docs:
-                    doc.embedding = l2_norm(doc2vec.infer_vector(
-                        doc.processed.split(" "), steps=5
-                    )).tolist()
+            for doc in corpus:
+                doc.embedding = embeddings.pop(0)
 
             corpus = user.corpus  # refresh corpus reference
 

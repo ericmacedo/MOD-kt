@@ -344,6 +344,7 @@ class User:
 
     def train(self) -> list:
         corpus = [doc.processed for doc in self.corpus]
+
         self.word_vectors.train_model(
             userId=self.userId,
             corpus=corpus)

@@ -1,5 +1,5 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
-from typing import List, Iterable
+from typing import List, Iterable, Type
 from enum import Enum
 import numpy as np
 import pickle
@@ -45,7 +45,7 @@ class BagOfWords:
                 if tfidf_feature_names[col] in self.vocabulary:
                     tfidf_hashmap[col] = tfidf_matrix[j, col]
 
-            for word in self:
+            for word in self.vocabulary:
                 word_index = tfidf_feature_names_hashmap.get(word)
                 if tfidf_feature_names_hashmap.get(word) in tfidf_hashmap:
                     self.matrix[j].append(
@@ -56,6 +56,18 @@ class BagOfWords:
         self.matrix = np.array(self.matrix, dtype=np.float32)
         self.n, self.m = self.matrix.shape  # (N documents, M features)
         return self.matrix
+
+    def __getitem__(self, item) -> np.array:
+        if isinstance(item, (int, slice)):
+            return self.__class__(self.matrix[item])
+        elif isinstance(item, str):
+            if item in self.vocabulary:
+                index = self.vocabulary.index(item)
+                return self.matrix[:, index]
+            else:
+                raise TypeError("Invalid index type")
+        else:
+            raise TypeError("Unsuported index. It must be int, slice or str")
 
     @classmethod
     def load(cls, path: str):
