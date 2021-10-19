@@ -7,7 +7,7 @@ from nltk import download as NLTK_Downloader
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 
-logging.basicConfig(filename=os.path.abspath("./log/flask.log"),
+logging.basicConfig(filename=os.path.abspath("./log/server.log"),
                     level=logging.DEBUG,
                     format="%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s")
 
@@ -16,6 +16,7 @@ faulthandler.enable()
 load_dotenv('.env')
 
 # Data folders
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["SENTENCE_TRANSFORMERS_HOME"] = os.path.abspath('../env/data/transformers')
 os.environ["NLTK_DATA"] = os.path.abspath('../env/data/nltk')
 os.environ["SCIKIT_LEARN_DATA"] = os.path.abspath('../env/data/scikit_learn')
@@ -27,9 +28,6 @@ NLTK_Downloader([
 
 from app import app  # noqa
 
-app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
-
-
 def sanity_check() -> bool:
     from importlib.util import (
         spec_from_file_location,
@@ -37,9 +35,9 @@ def sanity_check() -> bool:
 
     base_attr = ["name", "model_path", "load_model",
                  "save_model", "train_model",
-                 "get_vectors"]
+                 "get_vectors", "cluster"]
     m_type = {
-        "word": base_attr + ["cluster_words", "seed_paragraph", "most_similar"],
+        "word": base_attr + ["seed_paragraph", "most_similar"],
         "document": base_attr + []}
     try:
         for model in m_type.keys():
@@ -73,10 +71,10 @@ def sanity_check() -> bool:
 
 if __name__ == "__main__":
     if sanity_check():
-        app.run(
-            host=os.environ.get("FLASK_HOST"),
-            port=os.environ.get("FLASK_PORT"),
-            debug=os.environ.get("DEBUG"),
-            threaded=True)
+        import uvicorn
+
+        uvicorn.run(app,
+            host=os.environ.get("SERVER_HOST"),
+            port=int(os.environ.get("SERVER_PORT")))
     else:
         sys.exit(0)

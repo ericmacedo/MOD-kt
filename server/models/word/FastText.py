@@ -119,4 +119,10 @@ def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
 
 
 def most_similar(userId: str, positive: list, topn: int = 10) -> list:
-    pass
+    model = load_model(userId=userId)
+
+    sim_wors = model.wv.most_similar(positive=positive, topn=topn)
+
+    return [
+        {"word": word[0], "value": word[1]}
+        for word in sim_wors]

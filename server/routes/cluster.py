@@ -1,32 +1,37 @@
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
+from fastapi import APIRouter, Form
 from clusterer import Clusterer
+from pydantic import BaseModel
+from typing import List, Dict
+from utils import chunker
 import json
+
+class ClusterForm(BaseModel):
+    userId: str
+    recluster: bool
+    seed: Dict
+    cluster_k: int
+    index: List[str]
 
 
 router = APIRouter(prefix="/cluster")
 
 
-@router.post("/")
-def projection(userId: str = Form(...),
-               recluster: str = Form(...),
-               seed: str = Form(...),
-               cluster_k: str = Form(...),
-               index: str = Form(...)):
+@router.post("")
+async def cluster(form: ClusterForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        recluster = True if recluster == "true" else False
-
-        if recluster:
-            seed = json.loads(seed)
-            k = seed["cluster_k"]
-            index = index.split(",")
+        if form.recluster:
+            seed = form.seed
+            k = form.cluster_k
+            index = form.index
             session = {}
         else:
             session = user.sessionData(id=None)
             seed = None
-            k = int(cluster_k)
+            k = int(form.cluster_k)
             index = user.index
 
         clusterer = Clusterer(
@@ -48,7 +53,8 @@ def projection(userId: str = Form(...),
             ]
         }
 
-        return {"status": "success", "sessionData": session}
+        response = {"status": "success", "sessionData": session}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

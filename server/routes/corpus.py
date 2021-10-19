@@ -1,30 +1,35 @@
+from fastapi import APIRouter, Form, File, UploadFile
+from fastapi.responses import StreamingResponse
 from werkzeug.utils import secure_filename
-from fastapi import APIRouter, Form
-from typing import List, Optional
 from routes import LOGGER, fetch_user
+from typing import List, Optional
+from pydantic import BaseModel
 from utils import process_text
+from utils import chunker
+from io import BytesIO
 
 
 router = APIRouter(prefix="/corpus")
 
+class CorpusForm(BaseModel):
+    userId: str
+    RESET_FLAG: bool
+    ids: List[str] = []
 
-@router.post("/")
-def corpus(userId: str = Form(...),
-           RESET_FLAG: str = Form(...),
-           ids: Optional[str] = Form(...)):
 
+@router.post("")
+async def corpus(form: CorpusForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        RESET_FLAG = True if RESET_FLAG == "true" else False
-
-        if RESET_FLAG:  # RESET WORKSPACE
+        if form.RESET_FLAG:  # RESET WORKSPACE
             user.clear_workspace()
         else:
-            ids = ids.split(",")
-            user.delete_documents(ids)
+            user.delete_documents(form.ids)
 
-        return {"status": "Success", "newData": []}
+        response = {"status": "Success", "newData": []}
+        return StreamingResponse(chunker(response))
+
     except Exception as e:
         LOGGER.debug(e)
         return {
@@ -37,23 +42,23 @@ def corpus(userId: str = Form(...),
         }
 
 
-@router.put("/")
-def corpus(userId: str = Form(...),
-           file: List = Form(...),
-           format: str = Form(...),
-           fileName: str = Form(...),
-           fields: Optional[str] = Form(...)):
+@router.put("")
+async def corpus(userId: str = Form(...),
+                 file: UploadFile = File(...),
+                 fileName: str = Form(...),
+                 format: str = Form(...),
+                 fields: Optional[List[str]] = Form(...)):
     try:
         user = fetch_user(userId=userId)
 
         newData, content, file_name, n_entries = [], [], [], 0
 
-        f_file = file[0]
-        f_format = str(format)
-        f_name = secure_filename(str(fileName))
+        f_file = BytesIO(file.file.read())
+        f_format = format
+        f_name = secure_filename(fileName)
 
         if f_format == "file-pdf":
-            from ..utils import pdf_to_string
+            from utils import pdf_to_string
 
             file_name.append(f_name)
             content.append(pdf_to_string(f_file))
@@ -63,11 +68,10 @@ def corpus(userId: str = Form(...),
             import pandas as pd
 
             pd_csv = pd.read_csv(f_file, encoding="utf-8")
-            csv_fields = fields.split(",")
 
             for index, row in pd_csv.iterrows():
                 csv_content = ""
-                for field in csv_fields:
+                for field in fields:
                     csv_content += f"{row[field]} "
 
                 file_name.append(f"{f_name}_{index}")
@@ -75,12 +79,13 @@ def corpus(userId: str = Form(...),
 
                 n_entries += 1
 
-            del pd_csv, csv_fields, csv_content
+            
+            del pd_csv, csv_content
 
         elif f_format == "file-alt":
             file_name.append(f_name)
-            content.append(f_file.stream.read().decode(
-                "utf-8", errors="ignore"))
+            content.append(f_file.read().decode(
+                encoding="utf-8", errors="ignore"))
 
             n_entries += 1
 
@@ -101,9 +106,9 @@ def corpus(userId: str = Form(...),
 
         del file_name, content, n_entries, user
 
-        return {
-            "status": "Success",
-            "newData": newData}
+        response = {"status": "Success", "newData": newData}
+        return StreamingResponse(chunker(response))
+
     except Exception as e:
         LOGGER.debug(e)
         return {

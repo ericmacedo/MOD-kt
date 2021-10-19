@@ -1,25 +1,38 @@
-# Flask
-from flask import Flask
-from flask_cors import CORS
-from flask_compress import Compress
+from typing import Optional
 
-# Application
-from api import api
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import ORJSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
-FRONTEND_ROUTES = [
-    "", "corpus", "dashboard", "sessions"]
+from routes import (
+    auth, cluster, corpus,
+    process_corpus, projection,
+    sankey, session, word_similarity)
 
-app = Flask(__name__, static_url_path="")
-Compress(app)
-CORS(app)
+FRONTEND_ROUTES = ["", "corpus", "dashboard", "sessions"]
 
-app.register_blueprint(api, url_prefix='/api/')
+app = FastAPI(default_response_class=ORJSONResponse)
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.route("/", defaults={"path": ""})
-@app.route("/<path>")
-def index(path):
+app.add_middleware(GZipMiddleware, minimum_size=200)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"])
+
+for route in [auth, cluster, corpus,
+              process_corpus, projection,
+              sankey, session, word_similarity]:
+    app.include_router(route.router, prefix="/api")
+
+@app.get("/{path}")
+@app.get("/")
+def index(path: Optional[str] = None):
+    path = path if path else ""
     if path in FRONTEND_ROUTES:
-        return app.send_static_file("index.html")
-    else:
-        return app.send_static_file(path)
+        return FileResponse('static/index.html')

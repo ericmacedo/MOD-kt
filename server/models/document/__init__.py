@@ -1,8 +1,39 @@
+from sentence_transformers import SentenceTransformer
 from scipy.spatial.distance import cdist
+from dataclasses import dataclass, field
+from typing import List
 import numpy as np
 import numbers
+import pickle
 import json
 import os
+
+@dataclass
+class Bert:
+    model_name: str
+    embeddings: list = field(default_factory=list)
+
+    def __init__(self, model_name: str = "allenai-specter"):
+        self.model_name = model_name
+
+    def train(self, corpus: List[str]) -> list:
+        transformer = SentenceTransformer(self.model_name)
+        self.embeddings = transformer.encode(corpus).tolist()
+
+        del transformer
+        return self.embeddings
+
+    @classmethod
+    def load(cls, path: str):
+        return pickle.load(open(path, "rb"))
+
+    def save(self, path: str):
+        with open(path, "wb") as pkl_file:
+            pickle.dump(
+                obj=self,
+                file=pkl_file,
+                protocol=pickle.DEFAULT_PROTOCOL,
+                fix_imports=True)
 
 
 class Document:

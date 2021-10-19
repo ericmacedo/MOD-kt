@@ -8,4 +8,5 @@ module.exports = {
     }
   },
   productionSourceMap: false,
+  publicPath: "/static/"
 }

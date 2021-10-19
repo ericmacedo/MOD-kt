@@ -345,19 +345,16 @@ class User:
     def train(self) -> list:
         corpus = [doc.processed for doc in self.corpus]
 
-        self.word_vectors.train_model(
-            userId=self.userId,
-            corpus=corpus)
-
+        embeddings = self.doc_vectors.train_model(
+                userId=self.userId,
+                corpus=corpus)
+        
         if self.word_model != self.doc_model:
-            self.doc_vectors.train_model(
+            self.word_vectors.train_model(
                 userId=self.userId,
                 corpus=corpus)
 
-        return self.doc_vectors.get_vectors(
-            userId=self.userId,
-            data=corpus
-        ).tolist()
+        return embeddings
 
     @classmethod
     def async_write(cls, path, data):

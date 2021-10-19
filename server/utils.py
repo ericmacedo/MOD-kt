@@ -1,5 +1,5 @@
 import numpy as np
-import ujson as json
+import orjson
 import os
 import string
 import re
@@ -189,29 +189,13 @@ def t_SNE(corpus: list, perplexity: int = 30) -> list:
     return tsne.tolist()
 
 
-# def most_similar(user: User, positive: list, topn: int = 10) -> list:
-#     model = user.fast_text if user.word_model == WordModel.FAST_TEXT else user.word2vec
-
-#     if user.word_model == WordModel.WORD2VEC.value:
-#         words_filtered = [*filter(lambda word: word in model.wv, positive)]
-#         if len(positive) != 0 and len(words_filtered) == 0:
-#             syns = []
-#             for word in positive:
-#                 syns += [process_text(syn) for syn in synonyms(word)]
-#             syns = [*filter(lambda word: word in model.wv, syns)]
-#             if len(syns) == 0:
-#                 raise Exception(
-#                     "Neither the words nor its synonyms in the vocabulary")
-#             else:
-#                 words_filtered = [*syns]
-
-#         positive = words_filtered
-
-#     sim_wors = model.wv.most_similar(positive=positive, topn=topn)
-
-#     return [
-#         {"word": word[0], "value": word[1]}
-#         for word in sim_wors]
+def synonyms(word: str) -> list:
+    word = word.replace("-", "_")
+    synonyms = []
+    for syn in wordnet.synsets(word):
+        for lm in syn.lemmas():
+            synonyms.append(lm.name())
+    return [*set(synonyms)]
 
 
 def sankey_graph(user: User) -> dict:
@@ -271,19 +255,11 @@ def sankey_graph(user: User) -> dict:
 
     return graph
 
-
-def make_response(data: dict):
-    buffer = BytesIO(json.dumps(
-        data, ensure_ascii=False
-    ).encode("utf-8"))
-
-    return send_file(
-        buffer,
-        mimetype='application/json',
-        attachment_filename="response.json",
-        as_attachment=True,
-        conditional=True)
-
+async def chunker(data:dict, n:int = 1048):
+    b_json = orjson.dumps(data)
+    
+    for i in range(0, len(b_json), n):
+        yield b_json[i:i + n]
 
 def synonyms(word: str) -> list:
     word = word.replace("-", "_")

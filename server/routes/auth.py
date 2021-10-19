@@ -1,19 +1,26 @@
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
+from fastapi import APIRouter, Form
+from pydantic import BaseModel
+from utils import chunker
+
+class AuthForm(BaseModel):
+    userId: str
 
 
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/")
+@router.post("")
 # Authetication
 #   Returns the userData if success
-def auth(userId: str = Form(...)):
+async def auth(form: AuthForm):
     try:
-        user = fetch_user(userId=userId)
-        return {
+        user = fetch_user(userId=form.userId)
+        response = {
             "status": "Success",
             "userData": user.userData()}
+        return StreamingResponse(chunker(response))
     except Exception as e:
         LOGGER.debug(e)
         return {

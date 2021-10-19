@@ -1,25 +1,30 @@
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
+from fastapi import APIRouter, Form
+from pydantic import BaseModel
+from typing import List
+from utils import chunker
 
+class WordSimilarityForm(BaseModel):
+    userId: str
+    query: List[str]
 
 router = APIRouter(prefix="/word_similarity")
 
 
-@router.post("/")
-def projection(userId: str = Form(...),
-               query: str = Form(...)):
+@router.post("")
+async def word_similarity(form: WordSimilarityForm):
 
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        query = query.split(",")
+        word_sim = user.word_vectors.most_similar(user.userId, form.query)
 
-        word_sim = user.word_vectors.most_similar(user.userId, query)
-
-        return {
+        response = {
             "status": "success",
-            "query": query,
+            "query": form.query,
             "most_similar": word_sim}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

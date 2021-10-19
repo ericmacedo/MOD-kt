@@ -30,11 +30,11 @@ def save_model(userId: str, model: BagOfWords):
     model.save(model_path(userId))
 
 
-def train_model(userId: str, corpus: Iterable[str]) -> BagOfWords:
+def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     model = BagOfWords()
     model.train(corpus=corpus)
     save_model(userId=userId, model=model)
-    return model
+    return model.matrix.tolist()
 
 
 def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
@@ -44,7 +44,7 @@ def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
             userId=userId,
             corpus=data)
 
-    return model.matrix
+    return model.matrix.tolist()
 
 
 def cluster(userId: str,

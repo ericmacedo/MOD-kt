@@ -17,12 +17,11 @@ export default new Vuex.Store({
   },
   actions: {
     async getUserData({ commit, state }, userId) {
-      let formData = new FormData();
-      formData.set("userId", userId);
+      let jsonData = { userId: userId };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/auth", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/auth", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("userData/setUserId", data.userData.userId);
           commit("userData/setCorpus", data.userData.corpus.map(doc => doc));
@@ -36,13 +35,14 @@ export default new Vuex.Store({
       });
     },
     async clearUserData({ commit, state }) {
-      let formData = new FormData();
-      formData.set("userId", state.userData.userId);
-      formData.set("RESET_FLAG", true);
+      let jsonData = {
+        userId: state.userData.userId,
+        RESET_FLAG: true
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/corpus", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(() => {
           commit("userData/clearUserData");
 
@@ -53,7 +53,7 @@ export default new Vuex.Store({
     async uploadDocument({ commit, state }, formData) {
       return new Promise((resolve, reject) => {
         axios.put(state.SERVER + "/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+          headers: { "Content-Type": "application/form-data" }
         }).then((result) => {
           commit("userData/pushCorpus", result.data.newData.map(d => d));
           resolve(result);
@@ -62,14 +62,15 @@ export default new Vuex.Store({
       });
     },
     async deleteDocument({ commit, state }, { to_remove, RESET_FLAG }) {
-      let formData = new FormData();
-      formData.set("userId", state.userData.userId);
-      formData.set("ids", to_remove);
-      formData.set("RESET_FLAG", RESET_FLAG);
+      let jsonData = {
+        userId: state.userData.userId,
+        ids: to_remove,
+        RESET_FLAG: RESET_FLAG
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/corpus", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(() => {
           commit("userData/removeFromCorpus", to_remove);
           resolve();
@@ -77,19 +78,17 @@ export default new Vuex.Store({
       });
     },
     async cluster({ commit, state }, cluster_k = null) {
-      let formData = new FormData();
-      formData.set("userId", state.userData.userId);
-      formData.set("recluster", cluster_k == null);
-      if (cluster_k != null) {
-        formData.set("cluster_k", cluster_k);
-      } else {
-        formData.set("seed", JSON.stringify(state.session.clusters));
-        formData.set("index", state.session.index);
-      }
+      let jsonData = {
+        userId: state.userData.userId,
+        recluster: (cluster_k == null) ? true : false,
+        cluster_k: (cluster_k != null) ? cluster_k : state.session.clusters.cluster_k,
+        seed: (cluster_k == null) ? state.session.clusters : {},
+        index: (cluster_k == null) ? state.session.index : []
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/cluster", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/cluster", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           let session = data.sessionData;
 
@@ -116,15 +115,16 @@ export default new Vuex.Store({
       });
     },
     async processCorpus({ commit, state }, setting) {
-      let formData = new FormData();
-      formData.set("userId", state.userData.userId);
-      formData.set("word_model", setting.word);
-      formData.set("document_model", setting.document);
-      formData.set("stop_words", state.userData.stop_words);
+      let jsonData = {
+        userId: state.userData.userId,
+        word_model: setting.word,
+        document_model: setting.document,
+        stop_words: state.userData.stop_words
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/process_corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/process_corpus", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("userData/setUserId", data.userData.userId);
           commit("userData/setCorpus", data.userData.corpus.map(doc => doc));
@@ -167,16 +167,16 @@ export default new Vuex.Store({
       });
     },
     async getProjection({ commit, state }) {
-      let formData = new FormData();
-
-      formData.set("userId", state.userData.userId);
-      formData.set("projection", state.session.controls.projection);
-      formData.set("index", state.session.index);
-      formData.set("perplexity", state.session.controls.tsne.perplexity);
+      let jsonData = {
+        userId: state.userData.userId,
+        projection: state.session.controls.projection,
+        index: state.session.index,
+        perplexity: state.session.controls.tsne.perplexity
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/projection", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/projection", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setTsne", data.projection.map(d => d));
 
@@ -186,13 +186,14 @@ export default new Vuex.Store({
       });
     },
     async getMostSimilar({ state, commit }) {
-      let formData = new FormData();
-      formData.set("userId", state.userData.userId);
-      formData.set("query", state.session.word_similarity.query);
+      let jsonData = {
+        userId: state.userData.userId,
+        query: state.session.word_similarity.query
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/word_similarity", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/word_similarity", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setWordSimilarity", {
             query: data.query,
@@ -205,15 +206,14 @@ export default new Vuex.Store({
       });
     },
     async saveSession({ commit, getters, state }) {
-      let formData = new FormData();
-      let session = getters["session/session"];
-
-      formData.set("userId", state.userData.userId);
-      formData.set("sessionData", JSON.stringify(session));
+      let jsonData = {
+        userId: state.userData.userId,
+        sessionData: getters["session/session"]
+      };
 
       return new Promise((resolve, reject) => {
-        axios.put(state.SERVER + "/session", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.put(state.SERVER + "/session", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setId", data.sessionData.id);
           commit("session/setDate", data.sessionData.date);
@@ -224,29 +224,29 @@ export default new Vuex.Store({
       });
     },
     async deleteSession({ state }, sessionId) {
-      let formData = new FormData();
-
-      formData.set("userId", state.userData.userId);
-      formData.set("sessionId", sessionId);
+      let jsonData = {
+        userId: state.userData.userId,
+        sessionId: sessionId
+      };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/session", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.post(state.SERVER + "/session", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(() => {
           resolve()
         }).catch(error => reject(error));
       });
     },
     async updateCorpus({ state, commit }, newData) {
-      let formData = new FormData();
-
-      formData.set("userId", state.userData.userId);
-      formData.set("seed", JSON.stringify(state.session.clusters));
-      formData.set("new_docs", newData);
+      let jsonData = {
+        userId: state.userData.userId,
+        seed: state.session.clusters,
+        new_docs: newData
+      };
 
       return new Promise((resolve, reject) => {
-        axios.put(state.SERVER + "/process_corpus", formData, {
-          headers: { "Content-Type": "multipart/form-data" }
+        axios.put(state.SERVER + "/process_corpus", jsonData, {
+          headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           let newData = data.newData;
 

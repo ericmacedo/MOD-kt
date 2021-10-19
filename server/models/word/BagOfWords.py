@@ -122,3 +122,23 @@ def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
     return dict(
         paragraph=[model.vocabulary[i] for i in indexes],
         vector=seedDocumentsTerms)
+
+def most_similar(userId: str, positive: list, topn: int = 10) -> list:
+    model = load_model(userId=userId)
+
+    syns = []
+
+    centroid = np.mean([model[term] for term in positive], axis=0)
+
+    termCentroidCosine = np.zeros(model.m)
+
+    for index, term in enumerate(model.vocabulary):
+        termCentroidCosine[index] = cosine(centroid, model[term])
+
+    indexes = np.argsort(termCentroidCosine)
+    
+    return [
+        {
+            "word": model.vocabulary[i],
+            "value": float(1.0 - termCentroidCosine[i])
+        } for i in indexes[:10]]

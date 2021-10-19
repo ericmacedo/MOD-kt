@@ -32,7 +32,7 @@ def save_model(userId: str, model: Doc2Vec):
     model.save(model_path(userId))
 
 
-def train_model(userId: str, corpus: Iterable[str]) -> Doc2Vec:
+def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     tagged_data = [
         TaggedDocument(
             doc.split(" "),
@@ -67,7 +67,7 @@ def train_model(userId: str, corpus: Iterable[str]) -> Doc2Vec:
 
     model.docvecs.init_sims()
     save_model(userId=userId, model=model)
-    return model
+    return get_vectors(userId=userId, data=corpus)
 
 
 def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:

@@ -1,30 +1,35 @@
-from typing import Optional
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
-from utils import t_SNE
+from fastapi import APIRouter, Form
+from typing import Optional, List
+from utils import t_SNE, chunker
+from pydantic import BaseModel
+
+class ProjectionForm(BaseModel):
+    userId: str
+    projection: str
+    perplexity: Optional[int] = None
+    index: List[str]
 
 
 router = APIRouter(prefix="/projection")
 
 
-@router.post("/")
-def projection(userId: str = Form(...),
-               projection: str = Form(...),
-               perplexity: Optional[str] = Form(...),
-               index: str = Form(...)):
+@router.post("")
+async def projection(form: ProjectionForm):
     try:
-        user = fetch_user(userId=userId)
+        from pdb import set_trace; set_trace() # noqa
+        user = fetch_user(userId=form.userId)
 
-        index = index.split(",")
         corpus = user.corpus
 
-        corpus = [*filter(lambda doc: doc.id in index, corpus)]
+        corpus = [*filter(lambda doc: doc.id in form.index, corpus)]
 
-        if projection == "t-SNE":
-            perplexity = int(perplexity)
-            projection = t_SNE(corpus, perplexity=perplexity)
+        if form.projection == "t-SNE":
+            projection = t_SNE(corpus, perplexity=form.perplexity)
 
-        return {"status": "success", "projection": projection}
+        response = {"status": "success", "projection": projection}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

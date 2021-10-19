@@ -1,18 +1,20 @@
-from typing import Optional
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
+from utils import sankey_graph, chunker
 from routes import LOGGER, fetch_user
-from utils import sankey_graph
+from fastapi import APIRouter, Form
+from typing import Optional
+ 
+
+router = APIRouter(prefix="/sankey")
 
 
-router = APIRouter(prefix="/projection")
-
-
-@router.post("/")
-def projection(userId: str = Form(...)):
+@router.get("")
+async def sankey(userId: str):
     try:
         user = fetch_user(userId=userId)
 
-        return sankey_graph(user=user)
+        response = sankey_graph(user=user)
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

@@ -1,16 +1,28 @@
-from typing import Optional
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
+from fastapi import APIRouter, Form
+from pydantic import BaseModel
 from models.user import User
+from utils import chunker
+from typing import Dict
 import json
+
+
+class SessionBaseForm(BaseModel):
+    userId: str
+
+class SessionForm(SessionBaseForm):
+    sessionData: Dict
+
+class SessionDeleteForm(SessionBaseForm):
+    sessionId: str
 
 
 router = APIRouter(prefix="/session")
 
 
-@router.get("/")
-def projection(userId: str = Form(...),
-               sessionId: str = Form(...)):
+@router.get("")
+async def session(userId: str, sessionId: str):
     try:
         user = fetch_user(userId=userId)
 
@@ -20,7 +32,8 @@ def projection(userId: str = Form(...),
         user = User(userId=userId)
         session = user.sessionData(id=sessionId)
 
-        return {"status": "success", "sessionData": session}
+        response = {"status": "success", "sessionData": session}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -34,13 +47,12 @@ def projection(userId: str = Form(...),
         }
 
 
-@router.put("/")
-def projection(userId: str = Form(...),
-               sessionData: str = Form(...)):
+@router.put("")
+async def session(form: SessionForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        session = json.loads(sessionData)
+        session = form.sessionData
         session = user.append_session(
             name=session["name"],
             notes=session["notes"],
@@ -54,7 +66,8 @@ def projection(userId: str = Form(...),
             highlight=session["highlight"],
             word_similarity=session["word_similarity"])
 
-        return {"status": "success", "sessionData": session}
+        response = {"status": "success", "sessionData": session}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -68,15 +81,15 @@ def projection(userId: str = Form(...),
         }
 
 
-@router.post("/")
-def projection(userId: str = Form(...),
-               sessionId: str = Form(...)):
+@router.post("")
+async def session(form: SessionDeleteForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        user.delete_sessions([sessionId])
+        user.delete_sessions([form.sessionId])
 
-        return {"status": "success", "sessionData": None}
+        response = {"status": "success", "sessionData": None}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

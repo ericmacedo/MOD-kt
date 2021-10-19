@@ -1,28 +1,40 @@
-from fastapi import APIRouter, Form
+from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
+from models.document import Document
+from fastapi import APIRouter, Form
 from utils import (
     process_text, term_frequency,
-    t_SNE, similarity_graph,
-    batch_processing)
+    batch_processing, chunker,
+    t_SNE, similarity_graph)
 from clusterer import Clusterer
-
-from models.document import Document
+from pydantic import BaseModel
+from typing import List, Dict
 import json
+
+
+class ProcessCorpusBaseForm(BaseModel):
+    userId: str
+    
+class ProcessCorpusForm(ProcessCorpusBaseForm):
+    userId: str
+    word_model: str
+    document_model: str
+    stop_words: List[str]
+
+class ProcessCorpusIncrementForm(ProcessCorpusBaseForm):
+    new_docs: List[str]
+    seed: Dict
 
 
 router = APIRouter(prefix="/process_corpus")
 
 
-@router.post("/")
-def process_corpus(userId: str = Form(...),
-                   word_model: str = Form(...),
-                   document_model: str = Form(...),
-                   stop_words: str = Form(...)):
+@router.post("")
+async def process_corpus(form: ProcessCorpusForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        stop_words = stop_words.split(",")
-        user.stop_words = stop_words
+        user.stop_words = form.stop_words
 
         user.generate_index()
         corpus = user.corpus
@@ -31,18 +43,18 @@ def process_corpus(userId: str = Form(...),
             fn=process_text,
             data=[doc.content for doc in corpus],
             deep=True,
-            stop_words=stop_words)
+            stop_words=user.stop_words)
         tf = batch_processing(fn=term_frequency, data=processed)
 
         for doc in corpus:
             doc.term_frequency = tf.pop(0)
             doc.processed = processed.pop(0)
 
-        user.doc_model = document_model
-        user.word_model = word_model
+        user.doc_model = form.document_model
+        user.word_model = form.word_model
 
         embeddings = user.train()
-
+        
         for doc in corpus:
             doc.embedding = embeddings.pop(0)
 
@@ -52,7 +64,8 @@ def process_corpus(userId: str = Form(...),
 
         user.isProcessed = True
 
-        return {"status": "success", "userData": user.userData()}
+        response = {"status": "success", "userData": user.userData()}
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -66,18 +79,15 @@ def process_corpus(userId: str = Form(...),
         }
 
 
-@router.put("/")
-def process_corpus(userId: str = Form(...),
-                   new_docs: str = Form(...),
-                   seed: str = Form(...)):
+@router.put("")
+async def process_corpus(form: ProcessCorpusIncrementForm):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
-        new_docs = new_docs.split(",")
 
         docs = [
-            Document(userId=userId, id=id)
-            for id in new_docs]
+            Document(userId=form.userId, id=id)
+            for id in form.new_docs]
         stop_words = user.stop_words
 
         processed = batch_processing(
@@ -107,16 +117,13 @@ def process_corpus(userId: str = Form(...),
         tsne = t_SNE(corpus)
         user.tsne = tsne
 
-        seed = json.loads(seed)
-        k = seed["cluster_k"]
-
         clusterer = Clusterer(
             user=user,
             index=user.index,
-            k=k,
-            seed=seed)
+            k=form.seed.cluster_k,
+            seed=form.seed)
 
-        return {
+        response = {
             "status": "success",
             "newData": {
                 "new_index": [doc.id for doc in docs],
@@ -138,6 +145,7 @@ def process_corpus(userId: str = Form(...),
                 }
             }
         }
+        return StreamingResponse(chunker(response))
 
     except Exception as e:
         LOGGER.debug(e)

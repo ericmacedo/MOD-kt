@@ -7,7 +7,7 @@ from gensim.models import Word2Vec
 from sklearn.cluster import KMeans
 from multiprocessing import cpu_count
 from os.path import basename, splitext, isfile
-from utils import process_text, calculateSample
+from utils import process_text, calculateSample, synonyms
 
 name = splitext(basename(__file__))[0]
 
@@ -87,14 +87,6 @@ def cluster(userId: str,
 
         return words_filtered
 
-    def synonyms(word: str) -> list:
-        word = word.replace("-", "_")
-        synonyms = []
-        for syn in wordnet.synsets(word):
-            for lm in syn.lemmas():
-                synonyms.append(lm.name())
-        return [*set(synonyms)]
-
     model = load_model(userId=userId)
 
     if seed:  # UPDATE CLUSTERS GIVEN USER SEEDS
@@ -150,4 +142,24 @@ def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
 
 
 def most_similar(userId: str, positive: list, topn: int = 10) -> list:
-    pass
+    model = load_model(userId=userId)
+
+    words_filtered = [*filter(lambda word: word in model.wv, positive)]
+    if len(positive) != 0 and len(words_filtered) == 0:
+        syns = []
+        for word in positive:
+            syns += [process_text(syn) for syn in synonyms(word)]
+        syns = [*filter(lambda word: word in model.wv, syns)]
+        if len(syns) == 0:
+            raise Exception(
+                "Neither the words nor its synonyms in the vocabulary")
+        else:
+            words_filtered = [*syns]
+
+        positive = words_filtered
+
+    sim_wors = model.wv.most_similar(positive=positive, topn=topn)
+
+    return [
+        {"word": word[0], "value": word[1]}
+        for word in sim_wors]
