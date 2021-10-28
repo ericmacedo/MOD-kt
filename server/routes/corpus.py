@@ -11,6 +11,7 @@ from io import BytesIO
 
 router = APIRouter(prefix="/corpus")
 
+
 class CorpusForm(BaseModel):
     userId: str
     RESET_FLAG: bool
@@ -47,7 +48,7 @@ async def corpus(userId: str = Form(...),
                  file: UploadFile = File(...),
                  fileName: str = Form(...),
                  format: str = Form(...),
-                 fields: Optional[List[str]] = Form(...)):
+                 fields: Optional[str] = Form(...)):
     try:
         user = fetch_user(userId=userId)
 
@@ -71,7 +72,7 @@ async def corpus(userId: str = Form(...),
 
             for index, row in pd_csv.iterrows():
                 csv_content = ""
-                for field in fields:
+                for field in fields.split(","):
                     csv_content += f"{row[field]} "
 
                 file_name.append(f"{f_name}_{index}")
@@ -79,7 +80,6 @@ async def corpus(userId: str = Form(...),
 
                 n_entries += 1
 
-            
             del pd_csv, csv_content
 
         elif f_format == "file-alt":
