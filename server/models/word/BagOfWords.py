@@ -1,10 +1,11 @@
-import numpy as np
-from pathlib import Path
-from typing import Iterable
-from models import BagOfWords
-from models.document import BestCMeans
-from scipy.spatial.distance import cosine
 from os.path import basename, splitext, isfile
+from scipy.spatial.distance import cosine
+from models.document import BestCMeans
+from utils import process_text, synonyms
+from models import BagOfWords
+from typing import Iterable
+from pathlib import Path
+import numpy as np
 
 
 name = splitext(basename(__file__))[0]
@@ -51,6 +52,23 @@ def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
 def cluster(userId: str,
             k: int,
             seed: dict = None) -> Iterable[Iterable[float]]:
+    def handle_unseen_words(words: list) -> list:
+        words_filtered = [
+            *filter(lambda word: word in model.vocabulary, words)]
+        if len(words) != 0 and len(words_filtered) == 0:
+            synonyms = []
+            for word in words:
+                synonyms += [process_text(syn) for syn in synonyms(word)]
+            synonyms = [
+                *filter(lambda word: word in model.vocabulary, synonyms)]
+            if len(synonyms) == 0:
+                raise Exception(
+                    "Neither the words nor its synonyms in the vocabulary")
+            else:
+                words_filtered = [*synonyms]
+
+        return words_filtered
+
     # iKMeans clustering
     model = load_model(userId=userId)
 
@@ -59,9 +77,10 @@ def cluster(userId: str,
     clusterTerms = []
     if seed:
         for i in range(k):
-            clusterTerms.append([
+            clusterTerms.append(handle_unseen_words([
                 word["word"]
-                for word in seed["cluster_words"][i]])
+                for word in seed["cluster_words"][i]
+                if word["weight"] > 0]))
     else:
         _, u, _, _, _, _, _ = BestCMeans().fit_predict(
             data=model.matrix,
@@ -123,10 +142,23 @@ def seed_paragraph(userId: str, centroid: Iterable, topn: int = 50) -> dict:
         paragraph=[model.vocabulary[i] for i in indexes],
         vector=seedDocumentsTerms)
 
+
 def most_similar(userId: str, positive: list, topn: int = 10) -> list:
     model = load_model(userId=userId)
 
-    syns = []
+    words_filtered = [*filter(lambda word: word in model.vocabulary, positive)]
+    if len(positive) != 0 and len(words_filtered) == 0:
+        syns = []
+        for word in positive:
+            syns += [process_text(syn) for syn in synonyms(word)]
+        syns = [*filter(lambda word: word in model.vocabulary, syns)]
+        if len(syns) == 0:
+            raise Exception(
+                "Neither the words nor its synonyms in the vocabulary")
+        else:
+            words_filtered = [*syns]
+
+        positive = words_filtered
 
     centroid = np.mean([model[term] for term in positive], axis=0)
 
@@ -136,9 +168,13 @@ def most_similar(userId: str, positive: list, topn: int = 10) -> list:
         termCentroidCosine[index] = cosine(centroid, model[term])
 
     indexes = np.argsort(termCentroidCosine)
-    
-    return [
-        {
-            "word": model.vocabulary[i],
-            "value": float(1.0 - termCentroidCosine[i])
-        } for i in indexes[:10]]
+
+    result, i = [], 0
+    while len(result) < 10:
+        if not model.vocabulary[indexes[i]] in positive:
+            result.append({
+                "word": model.vocabulary[indexes[i]],
+                "value": float(1.0 - termCentroidCosine[indexes[i]])})
+        i += 1
+
+    return result

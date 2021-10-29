@@ -5,8 +5,11 @@ from typing import List
 import numpy as np
 import numbers
 import pickle
+import torch
 import json
 import os
+import gc
+
 
 @dataclass
 class Bert:
@@ -21,11 +24,22 @@ class Bert:
         self.embeddings = transformer.encode(corpus).tolist()
 
         del transformer
+
+        Bert.clear_memory()
         return self.embeddings
 
     @classmethod
     def load(cls, path: str):
         return pickle.load(open(path, "rb"))
+
+    @classmethod
+    def clear_memory(cls):
+        from gc import collect
+        from torch.cuda import empty_cache, ipc_collect
+
+        collect()
+        ipc_collect()
+        empty_cache()
 
     def save(self, path: str):
         with open(path, "wb") as pkl_file:
