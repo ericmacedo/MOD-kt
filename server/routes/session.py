@@ -1,18 +1,19 @@
 from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from models.user import User
 from utils import chunker
 from typing import Dict
-import json
 
 
 class SessionBaseForm(BaseModel):
     userId: str
 
+
 class SessionForm(SessionBaseForm):
     sessionData: Dict
+
 
 class SessionDeleteForm(SessionBaseForm):
     sessionId: str
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/session")
 
 
 @router.get("")
-async def session(userId: str, sessionId: str):
+async def session(userId: str, sessionId: str, request: Request):
     try:
         user = fetch_user(userId=userId)
 
@@ -33,7 +34,7 @@ async def session(userId: str, sessionId: str):
         session = user.sessionData(id=sessionId)
 
         response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -48,7 +49,7 @@ async def session(userId: str, sessionId: str):
 
 
 @router.put("")
-async def session(form: SessionForm):
+async def session(form: SessionForm, request: Request):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -67,7 +68,7 @@ async def session(form: SessionForm):
             word_similarity=session["word_similarity"])
 
         response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -82,14 +83,14 @@ async def session(form: SessionForm):
 
 
 @router.post("")
-async def session(form: SessionDeleteForm):
+async def session(form: SessionDeleteForm, request: Request):
     try:
         user = fetch_user(userId=form.userId)
 
         user.delete_sessions([form.sessionId])
 
         response = {"status": "success", "sessionData": None}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)

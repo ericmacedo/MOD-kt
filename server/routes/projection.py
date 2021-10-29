@@ -1,6 +1,6 @@
 from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Request
 from typing import Optional, List
 from utils import t_SNE, chunker
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/projection")
 
 
 @router.post("")
-async def projection(form: ProjectionForm):
+async def projection(form: ProjectionForm, request: Request):
     try:
         from pdb import set_trace; set_trace() # noqa
         user = fetch_user(userId=form.userId)
@@ -29,7 +29,7 @@ async def projection(form: ProjectionForm):
             projection = t_SNE(corpus, perplexity=form.perplexity)
 
         response = {"status": "success", "projection": projection}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)

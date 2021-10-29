@@ -1,7 +1,7 @@
 from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
 from models.document import Document
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Request
 from utils import (
     process_text, term_frequency,
     batch_processing, chunker,
@@ -9,17 +9,18 @@ from utils import (
 from clusterer import Clusterer
 from pydantic import BaseModel
 from typing import List, Dict
-import json
 
 
 class ProcessCorpusBaseForm(BaseModel):
     userId: str
-    
+
+
 class ProcessCorpusForm(ProcessCorpusBaseForm):
     userId: str
     word_model: str
     document_model: str
     stop_words: List[str]
+
 
 class ProcessCorpusIncrementForm(ProcessCorpusBaseForm):
     new_docs: List[str]
@@ -30,7 +31,7 @@ router = APIRouter(prefix="/process_corpus")
 
 
 @router.post("")
-async def process_corpus(form: ProcessCorpusForm):
+async def process_corpus(form: ProcessCorpusForm, request: Request):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -54,7 +55,7 @@ async def process_corpus(form: ProcessCorpusForm):
         user.word_model = form.word_model
 
         embeddings = user.train()
-        
+
         for doc in corpus:
             doc.embedding = embeddings.pop(0)
 
@@ -65,7 +66,7 @@ async def process_corpus(form: ProcessCorpusForm):
         user.isProcessed = True
 
         response = {"status": "success", "userData": user.userData()}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)
@@ -80,10 +81,9 @@ async def process_corpus(form: ProcessCorpusForm):
 
 
 @router.put("")
-async def process_corpus(form: ProcessCorpusIncrementForm):
+async def process_corpus(form: ProcessCorpusIncrementForm, request: Request):
     try:
         user = fetch_user(userId=form.userId)
-
 
         docs = [
             Document(userId=form.userId, id=id)
@@ -145,7 +145,7 @@ async def process_corpus(form: ProcessCorpusIncrementForm):
                 }
             }
         }
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)

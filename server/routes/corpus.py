@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, File, UploadFile
+from fastapi import APIRouter, Form, File, UploadFile, Request
 from fastapi.responses import StreamingResponse
 from werkzeug.utils import secure_filename
 from routes import LOGGER, fetch_user
@@ -44,7 +44,8 @@ async def corpus(form: CorpusForm):
 
 
 @router.put("")
-async def corpus(userId: str = Form(...),
+async def corpus(request: Request,
+                 userId: str = Form(...),
                  file: UploadFile = File(...),
                  fileName: str = Form(...),
                  format: str = Form(...),
@@ -107,7 +108,7 @@ async def corpus(userId: str = Form(...),
         del file_name, content, n_entries, user
 
         response = {"status": "Success", "newData": newData}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)

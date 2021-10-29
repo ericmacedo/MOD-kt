@@ -1,11 +1,11 @@
 from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Request
 from clusterer import Clusterer
 from pydantic import BaseModel
 from typing import List, Dict
 from utils import chunker
-import json
+
 
 class ClusterForm(BaseModel):
     userId: str
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/cluster")
 
 
 @router.post("")
-async def cluster(form: ClusterForm):
+async def cluster(form: ClusterForm, request: Request):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -54,7 +54,7 @@ async def cluster(form: ClusterForm):
         }
 
         response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response))
+        return StreamingResponse(chunker(response, request))
 
     except Exception as e:
         LOGGER.debug(e)

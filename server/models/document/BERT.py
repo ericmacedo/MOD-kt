@@ -28,14 +28,26 @@ def save_model(userId: str, model: Bert):
 
 def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     model = Bert(model_name="allenai-specter")
+
     embeddings = model.train(corpus=corpus)
     save_model(userId=userId, model=model)
+
+    del model
+    Bert.clear_memory()
     return embeddings
 
 
 def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
-    model = Bert(model_name="allenai-specter")
-    return model.train(corpus=data)
+    model = load_model(userId=userId)
+
+    if not model:
+        model = Bert(model_name="allenai-specter")
+
+    embeddings = model.train(corpus=data)
+
+    del model
+    Bert.clear_memory()
+    return embeddings
 
 
 def cluster(userId: str,

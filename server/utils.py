@@ -6,7 +6,7 @@ import re
 from io import BytesIO
 from openTSNE import TSNE
 from typing import Callable
-from flask import send_file
+from fastapi import Request
 from functools import lru_cache
 from sklearn.utils import shuffle
 from joblib import Parallel, delayed
@@ -255,11 +255,16 @@ def sankey_graph(user: User) -> dict:
 
     return graph
 
-async def chunker(data:dict, n:int = 1048):
+
+async def chunker(data: dict, request: Request = None, n: int = 1048):
     b_json = orjson.dumps(data)
-    
+
     for i in range(0, len(b_json), n):
+        if await request.is_disconnected():
+            print("client disconnected!!!")
+            break
         yield b_json[i:i + n]
+
 
 def synonyms(word: str) -> list:
     word = word.replace("-", "_")
