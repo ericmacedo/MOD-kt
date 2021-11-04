@@ -32,8 +32,6 @@ def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     embeddings = model.train(corpus=corpus)
     save_model(userId=userId, model=model)
 
-    del model
-    Bert.clear_memory()
     return embeddings
 
 
@@ -45,8 +43,6 @@ def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
 
     embeddings = model.train(corpus=data)
 
-    del model
-    Bert.clear_memory()
     return embeddings
 
 

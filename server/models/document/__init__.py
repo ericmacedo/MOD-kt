@@ -1,14 +1,12 @@
-from sentence_transformers import SentenceTransformer
+from multiprocessing import Process, Queue
 from scipy.spatial.distance import cdist
 from dataclasses import dataclass, field
 from typing import List
 import numpy as np
 import numbers
 import pickle
-import torch
 import json
 import os
-import gc
 
 
 @dataclass
@@ -18,14 +16,28 @@ class Bert:
 
     def __init__(self, model_name: str = "allenai-specter"):
         self.model_name = model_name
+        self.embeddings = []
 
-    def train(self, corpus: List[str]) -> list:
+    def _train(self, queue: Queue, corpus: List[str]):
+        from sentence_transformers import SentenceTransformer
+
         transformer = SentenceTransformer(self.model_name)
-        self.embeddings = transformer.encode(corpus).tolist()
+        embeddings = transformer.encode(corpus).tolist()
 
         del transformer
-
         Bert.clear_memory()
+
+        queue.put(embeddings)
+
+    def train(self, corpus: List[str]) -> list:
+        queue = Queue()
+        p = Process(
+            target=self._train,
+            kwargs={"queue": queue, "corpus": corpus})
+        p.start()
+        self.embeddings = queue.get()
+        p.join()
+
         return self.embeddings
 
     @classmethod
