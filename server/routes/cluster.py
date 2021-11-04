@@ -1,10 +1,10 @@
-from fastapi.responses import StreamingResponse
-from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Request
+from routes import (
+    LOGGER, fetch_user, SessionData,
+    ClusterData, ErrorResponse)
 from clusterer import Clusterer
 from pydantic import BaseModel
 from typing import List, Dict
-from utils import chunker
+from fastapi import APIRouter
 
 
 class ClusterForm(BaseModel):
@@ -15,11 +15,16 @@ class ClusterForm(BaseModel):
     index: List[str]
 
 
+class ClusterResponse(BaseModel):
+    status: str = "Success"
+    sessionData: SessionData
+
+
 router = APIRouter(prefix="/cluster")
 
 
 @router.post("")
-async def cluster(form: ClusterForm, request: Request):
+def cluster(form: ClusterForm):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -40,7 +45,7 @@ async def cluster(form: ClusterForm, request: Request):
             k=k,
             seed=seed)
 
-        session["clusters"] = {
+        clusters = {
             "cluster_k":        clusterer.k,
             "labels":           clusterer.doc_labels.tolist(),
             "colors":           clusterer.colors,
@@ -49,20 +54,14 @@ async def cluster(form: ClusterForm, request: Request):
             "cluster_words":    [[
                 {"word": word, "weight": 1}
                 for word in paragraph["paragraph"][:5]
-            ] for paragraph in clusterer.seed_paragraphs
-            ]
+            ] for paragraph in clusterer.seed_paragraphs]
         }
+        session["clusters"] = ClusterData(**clusters)
 
-        response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response, request))
+        response = {"sessionData": SessionData(**session)}
+        return ClusterResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)

@@ -1,11 +1,9 @@
-from fastapi import APIRouter, Form, File, UploadFile, Request
-from fastapi.responses import StreamingResponse
+from routes import LOGGER, fetch_user, ErrorResponse
+from fastapi import APIRouter, Form, File, UploadFile
+from typing import List, Optional, Any, Dict
 from werkzeug.utils import secure_filename
-from routes import LOGGER, fetch_user
-from typing import List, Optional
 from pydantic import BaseModel
 from utils import process_text
-from utils import chunker
 from io import BytesIO
 
 
@@ -18,8 +16,13 @@ class CorpusForm(BaseModel):
     ids: List[str] = []
 
 
+class CorpusResponse(BaseModel):
+    status: str = "Success"
+    newData: List[Dict[str, Any]] = []
+
+
 @router.post("")
-async def corpus(form: CorpusForm):
+def corpus(form: CorpusForm):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -28,28 +31,20 @@ async def corpus(form: CorpusForm):
         else:
             user.delete_documents(form.ids)
 
-        response = {"status": "Success", "newData": []}
-        return StreamingResponse(chunker(response))
+        return CorpusResponse()
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)
 
 
 @router.put("")
-async def corpus(request: Request,
-                 userId: str = Form(...),
-                 file: UploadFile = File(...),
-                 fileName: str = Form(...),
-                 format: str = Form(...),
-                 fields: Optional[str] = Form(...)):
+def corpus(userId: str = Form(...),
+           file: UploadFile = File(...),
+           fileName: str = Form(...),
+           format: str = Form(...),
+           fields: Optional[str] = Form(...)):
     try:
         user = fetch_user(userId=userId)
 
@@ -107,16 +102,10 @@ async def corpus(request: Request,
 
         del file_name, content, n_entries, user
 
-        response = {"status": "Success", "newData": newData}
-        return StreamingResponse(chunker(response, request))
+        response = {"newData": [doc for doc in newData]}
+        return CorpusResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)

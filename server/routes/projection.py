@@ -1,9 +1,9 @@
-from fastapi.responses import StreamingResponse
-from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Request
+from routes import LOGGER, fetch_user, ErrorResponse
 from typing import Optional, List
-from utils import t_SNE, chunker
+from utils import t_SNE
 from pydantic import BaseModel
+from fastapi import APIRouter
+
 
 class ProjectionForm(BaseModel):
     userId: str
@@ -12,13 +12,19 @@ class ProjectionForm(BaseModel):
     index: List[str]
 
 
+class ProjectionResponse(BaseModel):
+    status: str = "Success"
+    projection: List[List[float]]
+
+
 router = APIRouter(prefix="/projection")
 
 
 @router.post("")
-async def projection(form: ProjectionForm, request: Request):
+def projection(form: ProjectionForm):
     try:
-        from pdb import set_trace; set_trace() # noqa
+        from pdb import set_trace
+        set_trace()  # noqa
         user = fetch_user(userId=form.userId)
 
         corpus = user.corpus
@@ -28,16 +34,10 @@ async def projection(form: ProjectionForm, request: Request):
         if form.projection == "t-SNE":
             projection = t_SNE(corpus, perplexity=form.perplexity)
 
-        response = {"status": "success", "projection": projection}
-        return StreamingResponse(chunker(response, request))
+        response = {"projection": projection}
+        return ProjectionResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)

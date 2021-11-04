@@ -1,9 +1,8 @@
-from fastapi.responses import StreamingResponse
 from routes import LOGGER, fetch_user
-from fastapi import APIRouter, Request
+from routes import ErrorResponse, SessionData
 from pydantic import BaseModel
+from fastapi import APIRouter
 from models.user import User
-from utils import chunker
 from typing import Dict
 
 
@@ -19,11 +18,16 @@ class SessionDeleteForm(SessionBaseForm):
     sessionId: str
 
 
+class SessionResponse(BaseModel):
+    status: str = "Success"
+    sessionData: SessionData = None
+
+
 router = APIRouter(prefix="/session")
 
 
 @router.get("")
-async def session(userId: str, sessionId: str, request: Request):
+def session(userId: str, sessionId: str):
     try:
         user = fetch_user(userId=userId)
 
@@ -33,23 +37,17 @@ async def session(userId: str, sessionId: str, request: Request):
         user = User(userId=userId)
         session = user.sessionData(id=sessionId)
 
-        response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response, request))
+        response = {"sessionData": SessionData(**session)}
+        return SessionResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)
 
 
 @router.put("")
-async def session(form: SessionForm, request: Request):
+def session(form: SessionForm):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -67,38 +65,23 @@ async def session(form: SessionForm, request: Request):
             highlight=session["highlight"],
             word_similarity=session["word_similarity"])
 
-        response = {"status": "success", "sessionData": session}
-        return StreamingResponse(chunker(response, request))
+        response = {"sessionData": SessionData(**session)}
+        return SessionResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)
 
 
 @router.post("")
-async def session(form: SessionDeleteForm, request: Request):
+def session(form: SessionDeleteForm):
     try:
         user = fetch_user(userId=form.userId)
-
         user.delete_sessions([form.sessionId])
-
-        response = {"status": "success", "sessionData": None}
-        return StreamingResponse(chunker(response, request))
+        return SessionResponse()
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)

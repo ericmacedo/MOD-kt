@@ -1,14 +1,13 @@
-from fastapi.responses import StreamingResponse
-from routes import LOGGER, fetch_user
+from routes import LOGGER, fetch_user, UserData, ErrorResponse
+from typing import List, Dict, Optional
 from models.document import Document
-from fastapi import APIRouter, Request
 from utils import (
     process_text, term_frequency,
-    batch_processing, chunker,
-    t_SNE, similarity_graph)
+    batch_processing, t_SNE,
+    similarity_graph)
 from clusterer import Clusterer
 from pydantic import BaseModel
-from typing import List, Dict
+from fastapi import APIRouter
 
 
 class ProcessCorpusBaseForm(BaseModel):
@@ -27,11 +26,17 @@ class ProcessCorpusIncrementForm(ProcessCorpusBaseForm):
     seed: Dict
 
 
+class ProcessCorpusResponse(BaseModel):
+    status: str = "Success"
+    userData: Optional[UserData]
+    newData: Optional[Dict]
+
+
 router = APIRouter(prefix="/process_corpus")
 
 
 @router.post("")
-async def process_corpus(form: ProcessCorpusForm, request: Request):
+def process_corpus(form: ProcessCorpusForm):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -65,23 +70,17 @@ async def process_corpus(form: ProcessCorpusForm, request: Request):
 
         user.isProcessed = True
 
-        response = {"status": "success", "userData": user.userData()}
-        return StreamingResponse(chunker(response, request))
+        response = {"userData": UserData(**user.userData())}
+        return ProcessCorpusResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)
 
 
 @router.put("")
-async def process_corpus(form: ProcessCorpusIncrementForm, request: Request):
+def process_corpus(form: ProcessCorpusIncrementForm):
     try:
         user = fetch_user(userId=form.userId)
 
@@ -124,7 +123,6 @@ async def process_corpus(form: ProcessCorpusIncrementForm, request: Request):
             seed=form.seed)
 
         response = {
-            "status": "success",
             "newData": {
                 "new_index": [doc.id for doc in docs],
                 "index": user.index,
@@ -145,15 +143,9 @@ async def process_corpus(form: ProcessCorpusIncrementForm, request: Request):
                 }
             }
         }
-        return StreamingResponse(chunker(response, request))
+        return ProcessCorpusResponse(**response)
 
     except Exception as e:
         LOGGER.debug(e)
-        return {
-            "status": "Fail",
-            "code": 500,
-            "message": {
-                "title": str(type(e)),
-                "content": str(e)
-            }
-        }
+        response = {"message": {"title": str(type(e)), "content": str(e)}}
+        return ErrorResponse(**response)

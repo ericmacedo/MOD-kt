@@ -1,24 +1,18 @@
-import numpy as np
-import orjson
-import os
-import string
-import re
-from io import BytesIO
-from openTSNE import TSNE
-from typing import Callable
-from fastapi import Request
-from functools import lru_cache
-from sklearn.utils import shuffle
-from joblib import Parallel, delayed
-from multiprocessing import cpu_count
-from nltk.stem import WordNetLemmatizer
-from nltk import pos_tag, word_tokenize
-from nltk.corpus import stopwords, wordnet
-from models.user import User
-from models.document import Document
+from werkzeug.datastructures import FileStorage
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import pairwise_distances
-from werkzeug.datastructures import FileStorage
+from nltk.corpus import stopwords, wordnet
+from nltk import pos_tag, word_tokenize
+from nltk.stem import WordNetLemmatizer
+from joblib import Parallel, delayed
+from functools import lru_cache
+from models.user import User
+from typing import Callable
+from openTSNE import TSNE
+from io import StringIO
+import numpy as np
+import string
+import re
 
 
 def batch_processing(fn: Callable, data: list, **kwargs) -> list:
@@ -27,8 +21,6 @@ def batch_processing(fn: Callable, data: list, **kwargs) -> list:
 
 
 def pdf_to_string(file: FileStorage):
-    from io import StringIO
-
     from pdfminer.converter import TextConverter
     from pdfminer.layout import LAParams
     from pdfminer.pdfdocument import PDFDocument
@@ -254,16 +246,6 @@ def sankey_graph(user: User) -> dict:
                         "value": len(intersection)})
 
     return graph
-
-
-async def chunker(data: dict, request: Request = None, n: int = 1048):
-    b_json = orjson.dumps(data)
-
-    for i in range(0, len(b_json), n):
-        if await request.is_disconnected():
-            print("client disconnected!!!")
-            break
-        yield b_json[i:i + n]
 
 
 def synonyms(word: str) -> list:

@@ -1,16 +1,16 @@
-import os
-import json
-import threading
-import numpy as np
-from uuid import uuid4
+from models.document import Document
+from models.session import Session
 from datetime import datetime
+from models import ModelType
 from importlib.util import (
     spec_from_file_location,
     module_from_spec)
+from uuid import uuid4
+import numpy as np
+import threading
 import pathlib
-from models import ModelType
-from models.document import Document
-from models.session import Session
+import json
+import os
 
 
 class User:
@@ -346,9 +346,9 @@ class User:
         corpus = [doc.processed for doc in self.corpus]
 
         embeddings = self.doc_vectors.train_model(
-                userId=self.userId,
-                corpus=corpus)
-        
+            userId=self.userId,
+            corpus=corpus)
+
         if self.word_model != self.doc_model:
             self.word_vectors.train_model(
                 userId=self.userId,
