@@ -26,8 +26,8 @@ import "./utils";
 Vue.config.productionTip = false;
 
 new Vue({
-	render: h => h(App),
-	router: router,
-	components: {App},
+  render: h => h(App),
+  router: router,
+  components: { App },
   store: store
 }).$mount('#app');

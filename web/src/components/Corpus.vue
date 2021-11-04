@@ -56,6 +56,9 @@
         </b-button-toolbar>
 
         <!-- TABLE -->
+        <!-- TODO: add support to virtual scrolling -->
+        <!-- https://github.com/Akryum/vue-virtual-scroller -->
+        <!-- https://www.digitalocean.com/community/tutorials/vuejs-vue-virtual-scroller -->
         <b-table
           id="corpusTable"
           hover
