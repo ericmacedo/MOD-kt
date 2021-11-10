@@ -53,7 +53,7 @@ export default new Vuex.Store({
     async uploadDocument({ commit, state }, formData) {
       return new Promise((resolve, reject) => {
         axios.put(state.SERVER + "/corpus", formData, {
-          headers: { "Content-Type": "application/form-data" }
+          headers: { "Content-Type": "multipart/form-data" }
         }).then((result) => {
           commit("userData/pushCorpus", result.data.newData.map(d => d));
           resolve(result);

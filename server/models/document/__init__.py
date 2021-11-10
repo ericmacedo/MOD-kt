@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue
 from scipy.spatial.distance import cdist
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Iterable
 import numpy as np
 import numbers
 import pickle
@@ -39,6 +39,17 @@ class Bert:
         p.join()
 
         return self.embeddings
+
+    def predict(self, data: Iterable[str]) -> List[List[float]]:
+        queue = Queue()
+        p = Process(
+            target=self._train,
+            kwargs={"queue": queue, "corpus": data})
+        p.start()
+        embeddings = queue.get()
+        p.join()
+
+        return embeddings
 
     @classmethod
     def load(cls, path: str):

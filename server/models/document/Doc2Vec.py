@@ -70,14 +70,16 @@ def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     return get_vectors(userId=userId, data=corpus)
 
 
-def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
+def get_vectors(userId: str, data: Iterable[str]) -> List[List[float]]:
     model = load_model(userId=userId)
+
+    model.docvecs.init_sims()
 
     return l2_norm(batch_processing(
         fn=infer_doc2vec,
         data=data,
         model=model)
-    ).tolist()
+    ).tolist() if data else model.docvecs.vectors_docs_norm.tolist()
 
 
 def cluster(userId: str,

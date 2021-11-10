@@ -23,8 +23,6 @@ router = APIRouter(prefix="/projection")
 @router.post("")
 def projection(form: ProjectionForm):
     try:
-        from pdb import set_trace
-        set_trace()  # noqa
         user = fetch_user(userId=form.userId)
 
         corpus = user.corpus

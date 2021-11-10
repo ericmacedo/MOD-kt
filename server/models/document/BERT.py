@@ -35,15 +35,10 @@ def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     return embeddings
 
 
-def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
+def get_vectors(userId: str, data: Iterable[str]) -> List[List[float]]:
     model = load_model(userId=userId)
 
-    if not model:
-        model = Bert(model_name="allenai-specter")
-
-    embeddings = model.train(corpus=data)
-
-    return embeddings
+    return model.predict(data=data) if data else model.embeddings
 
 
 def cluster(userId: str,

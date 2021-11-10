@@ -37,14 +37,10 @@ def train_model(userId: str, corpus: Iterable[str]) -> Iterable:
     return model.matrix.tolist()
 
 
-def get_vectors(userId: str, data: Iterable[str]) -> Iterable[Iterable[float]]:
+def get_vectors(userId: str, data: Iterable[str]) -> List[List[float]]:
     model = load_model(userId=userId)
-    if not model:
-        model = train_model(
-            userId=userId,
-            corpus=data)
 
-    return model.matrix.tolist()
+    return model.predict(data=data) if data else model.matrix.tolist()
 
 
 def cluster(userId: str,

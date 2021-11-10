@@ -1,5 +1,6 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from typing import List, Iterable, Type
+from sklearn.feature_extraction.text import (
+    TfidfVectorizer, TfidfTransformer, CountVectorizer)
+from typing import List, Iterable
 from enum import Enum
 import numpy as np
 import pickle
@@ -56,6 +57,14 @@ class BagOfWords:
         self.matrix = np.array(self.matrix, dtype=np.float32)
         self.n, self.m = self.matrix.shape  # (N documents, M features)
         return self.matrix
+
+    def predict(self, data: Iterable[str]) -> List[List[float]]:
+        vectorizer = CountVectorizer(
+            vocabulary=self.vocabulary, encoding="utf-8")
+
+        return TfidfTransformer().fit_transform(
+            vectorizer.fit_transform(data)
+        ).toarray().tolist()
 
     def __getitem__(self, item) -> np.array:
         if isinstance(item, (int, slice)):

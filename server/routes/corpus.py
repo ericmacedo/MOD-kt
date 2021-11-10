@@ -1,5 +1,5 @@
-from routes import LOGGER, fetch_user, ErrorResponse
-from fastapi import APIRouter, Form, File, UploadFile
+from routes import LOGGER, fetch_user, ErrorResponse, AsForm
+from fastapi import APIRouter, UploadFile, Depends
 from typing import List, Optional, Any, Dict
 from werkzeug.utils import secure_filename
 from pydantic import BaseModel
@@ -14,6 +14,15 @@ class CorpusForm(BaseModel):
     userId: str
     RESET_FLAG: bool
     ids: List[str] = []
+
+
+@AsForm
+class CorpusUploadForm(BaseModel):
+    userId: str
+    file: UploadFile
+    fileName: str
+    format: str
+    fields: Optional[List[str]] = None
 
 
 class CorpusResponse(BaseModel):
@@ -40,35 +49,31 @@ def corpus(form: CorpusForm):
 
 
 @router.put("")
-def corpus(userId: str = Form(...),
-           file: UploadFile = File(...),
-           fileName: str = Form(...),
-           format: str = Form(...),
-           fields: Optional[str] = Form(...)):
+def corpus(form: CorpusUploadForm = Depends(CorpusUploadForm.as_form)):
     try:
-        user = fetch_user(userId=userId)
+        user = fetch_user(userId=form.userId)
 
         newData, content, file_name, n_entries = [], [], [], 0
 
-        f_file = BytesIO(file.file.read())
-        f_format = format
-        f_name = secure_filename(fileName)
+        f_file = BytesIO(form.file.file.read())
+        f_name = secure_filename(form.fileName)
 
-        if f_format == "file-pdf":
+        if form.format == "file-pdf":
             from utils import pdf_to_string
 
             file_name.append(f_name)
             content.append(pdf_to_string(f_file))
 
             n_entries += 1
-        elif f_format == "file-csv":
+        elif form.format == "file-csv":
             import pandas as pd
 
             pd_csv = pd.read_csv(f_file, encoding="utf-8")
 
+            form.fields = form.fields if form.fields else [*pd_csv.columns]
             for index, row in pd_csv.iterrows():
                 csv_content = ""
-                for field in fields.split(","):
+                for field in form.fields:
                     csv_content += f"{row[field]} "
 
                 file_name.append(f"{f_name}_{index}")
@@ -78,14 +83,14 @@ def corpus(userId: str = Form(...),
 
             del pd_csv, csv_content
 
-        elif f_format == "file-alt":
+        elif form.format == "file-alt":
             file_name.append(f_name)
             content.append(f_file.read().decode(
                 encoding="utf-8", errors="ignore"))
 
             n_entries += 1
 
-        del f_file, f_format, f_name
+        del f_file, f_name
 
         # The following loop saves memory
         for i in range(n_entries):
