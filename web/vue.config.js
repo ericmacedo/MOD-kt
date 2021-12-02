@@ -8,5 +8,13 @@ module.exports = {
     }
   },
   productionSourceMap: false,
-  publicPath: "/static/"
+  publicPath: "/static/",
+  chainWebpack: config => {
+    config
+      .plugin('html')
+      .tap(args => {
+        args[0].title = "Mod-Kt";
+        return args;
+      })
+  }
 }
