@@ -25,8 +25,8 @@ There are two ways of running this system:
 ## Standalone version
 
 1. Set flask configs on `'./server/.env'` file:
-    * `FLASK_DEBUG=`**`False`** if production, **`True`** if development
-    * `FLASK_ENV=`**`development`**   or **`production`**
+    * `SERVER_DEBUG=`**`False`** if production, **`True`** if development
+    * `SERVER_ENV=`**`development`**   or **`production`**
     * `FLASK_RUN_HOST=`**`localhost`** or **`0.0.0.0`**
     * `FLASK_RUN_PORT=`**`5000`**
     * `FLASK_SECRET_KEY=`**`YOUR_SECRET_KEY`**
@@ -61,7 +61,7 @@ There are two ways of running this system:
     mkdir ./server/log
     touch ./server/log/access.log \
     ./server/log/error.log \
-    ./server/log/flask.log
+    ./server/log/server.log
     ```
 9. Set **Vue** configs on `'./web/.env.production'` file:
     * `VUE_APP_SERVER_URL=YOUR_URL` (with protocol, `http` or `https`)
@@ -82,13 +82,12 @@ There are two ways of running this system:
 
 Here's a example using `Gunicorn[gevent]`:
 ```shell
-gunicorn \
---name i2dc \
---workers 6 \
---threads 4 \
---timeout 3600 \
---bind 0.0.0.0:12115 \
-wsgi:app
+env/bin/gunicorn \
+	--workers 6 \
+	--worker-class uvicorn.workers.UvicornWorker \
+	--timeout 3600 \
+	--bind 0.0.0.0:12115 \
+	wsgi:app
 ```
 * Make sure you actiavated the environment and that you're in the `./server/` folder.
 
@@ -112,14 +111,14 @@ wsgi:app
     ```
     mkdir -p ./server/log && \
     touch ./server/log/access.log \
-    ./server/log/flask.log \
+    ./server/log/server.log \
     ./server/log/error.log
     ```
 3. Create the `./server/.env` file:
     ```shell
     echo \
-    "FLASK_DEBUG=False
-    FLASK_ENV=production
+    "SERVER_DEBUG=False
+    SERVER_ENV=production
     FLASK_RUN_HOST=0.0.0.0
     FLASK_RUN_PORT=12115
     FLASK_SECRET_KEY=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13)
