@@ -9,18 +9,19 @@ Vue.use(Router);
 
 export default new Router({
   mode: "history",
+  base: `${process.env.VUE_APP_SERVER_PREFIX || "/"}`,
   routes: [
     {
       path: "/",
       name: "Index",
       component: Index
-    }, 
+    },
     {
-        path: "/corpus",
-        name: "Corpus",
-        component: Corpus,
-        props: true
-    }, 
+      path: "/corpus",
+      name: "Corpus",
+      component: Corpus,
+      props: true
+    },
     {
       path: "/dashboard",
       name: "Dashboard",
@@ -28,10 +29,10 @@ export default new Router({
       props: true
     },
     {
-        path: "/sessions",
-        name: "Session Manager",
-        component: SessionManager,
-        props: true
+      path: "/sessions",
+      name: "Session Manager",
+      component: SessionManager,
+      props: true
     }
   ]
 });

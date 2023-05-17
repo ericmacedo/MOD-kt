@@ -13,14 +13,17 @@ export default new Vuex.Store({
     userData, session, sankey
   },
   state: {
-    SERVER: `${process.env.VUE_APP_SERVER_URL}:${process.env.VUE_APP_SERVER_PORT}/api`
+    HTTP: axios.create({
+      baseURL: `${process.env.VUE_APP_SERVER_HOST}${process.env.VUE_APP_SERVER_PREFIX}/api`,
+      timeout: 3_600_000 // 60 min in ms
+    })
   },
   actions: {
     async getUserData({ commit, state }, userId) {
       let jsonData = { userId: userId };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/auth", jsonData, {
+        state.HTTP.post("/auth", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("userData/setUserId", data.userData.userId);
@@ -41,7 +44,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/corpus", jsonData, {
+        state.HTTP.post("/corpus", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(() => {
           commit("userData/clearUserData");
@@ -52,7 +55,7 @@ export default new Vuex.Store({
     },
     async uploadDocument({ commit, state }, formData) {
       return new Promise((resolve, reject) => {
-        axios.put(state.SERVER + "/corpus", formData, {
+        state.HTTP.put("/corpus", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         }).then((result) => {
           commit("userData/pushCorpus", result.data.newData.map(d => d));
@@ -69,7 +72,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/corpus", jsonData, {
+        state.HTTP.post("/corpus", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(() => {
           commit("userData/removeFromCorpus", to_remove);
@@ -87,7 +90,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/cluster", jsonData, {
+        state.HTTP.post("/cluster", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           let session = data.sessionData;
@@ -123,7 +126,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/process_corpus", jsonData, {
+        state.HTTP.post("/process_corpus", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("userData/setUserId", data.userData.userId);
@@ -138,7 +141,7 @@ export default new Vuex.Store({
     },
     async getSessionById({ commit, state }, sessionId) {
       return new Promise((resolve, reject) => {
-        axios.get(state.SERVER + "/session", {
+        state.HTTP.get("/session", {
           params: {
             userId: state.userData.userId,
             sessionId: sessionId
@@ -175,7 +178,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/projection", jsonData, {
+        state.HTTP.post("/projection", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setTsne", data.projection.map(d => d));
@@ -192,7 +195,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/word_similarity", jsonData, {
+        state.HTTP.post("/word_similarity", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setWordSimilarity", {
@@ -212,7 +215,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.put(state.SERVER + "/session", jsonData, {
+        state.HTTP.put("/session", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           commit("session/setId", data.sessionData.id);
@@ -230,7 +233,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.post(state.SERVER + "/session", jsonData, {
+        state.HTTP.post("/session", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(() => {
           resolve()
@@ -245,7 +248,7 @@ export default new Vuex.Store({
       };
 
       return new Promise((resolve, reject) => {
-        axios.put(state.SERVER + "/process_corpus", jsonData, {
+        state.HTTP.put("/process_corpus", jsonData, {
           headers: { "Content-Type": "application/json" }
         }).then(({ data }) => {
           let newData = data.newData;
@@ -268,7 +271,7 @@ export default new Vuex.Store({
     },
     async requestSankeyGraph({ state, commit }, userId) {
       return new Promise((resolve, reject) => {
-        axios.get(state.SERVER + "/sankey", {
+        state.HTTP.get("/sankey", {
           params: { userId: userId }
         }).then(({ data }) => {
           commit("sankey/setGraph", data);

@@ -4,60 +4,29 @@
     <div class="upload-container">
       <div class="border-container center-text">
         <div class="icons fa-4x">
-          <font-awesome-icon
-            :icon="['fas', 'file-csv']"
-            transform="shrink-3 down-2 left-6 rotate--45"
-          />
-          <font-awesome-icon
-            :icon="['fas', 'file-pdf']"
-            transform="shrink-2 up-4"
-          />
-          <font-awesome-icon
-            :icon="['fas', 'file-alt']"
-            transform="shrink-3 down-2 right-6 rotate-45"
-          />
+          <font-awesome-icon :icon="['fas', 'file-csv']" transform="shrink-3 down-2 left-6 rotate--45" />
+          <font-awesome-icon :icon="['fas', 'file-pdf']" transform="shrink-2 up-4" />
+          <font-awesome-icon :icon="['fas', 'file-alt']" transform="shrink-3 down-2 right-6 rotate-45" />
         </div>
         <b-input-group class="mb-2">
-          <b-form-file
-            ref="files"
-            id="file-upload"
-            multiple
-            accept=".pdf, .csv, .txt"
-            drop-placeholder="Drop files here..."
-            v-model="files"
-            @input="onInputFieldChange"
-          >
+          <b-form-file ref="files" id="file-upload" multiple accept=".pdf, .csv, .txt"
+            drop-placeholder="Drop files here..." v-model="files" @input="onInputFieldChange">
           </b-form-file>
           <b-btn-group no-gutter>
-            <b-button :disabled="files.length == 0" @click="clearUpload"
-              >Clear</b-button
-            >
-            <b-button
-              variant="success"
-              :disabled="files.length == 0"
-              @click="callUploadDocument"
-            >
-              Submit</b-button
-            >
+            <b-button :disabled="files.length == 0" @click="clearUpload">Clear</b-button>
+            <b-button variant="success" :disabled="files.length == 0" @click="callUploadDocument">
+              Submit</b-button>
           </b-btn-group>
         </b-input-group>
         <p>Drag and drop files here, or browse your computer.</p>
       </div>
     </div>
     <b-list-group ref="uploadQueue" id="uploadQueue">
-      <b-list-group-item
-        v-for="(file, index) in queue"
-        :key="index"
-        :variant="file.status"
-      >
+      <b-list-group-item v-for="(file, index) in queue" :key="index" :variant="file.status">
         <font-awesome-icon size="lg" :icon="['fas', file.format]" />
         {{ file.name }}
-        <b-form-select
-          v-if="file.format == 'file-csv'"
-          multiple
-          v-model="file.csv.selected_fields"
-          :options="file.csv.fields"
-        ></b-form-select>
+        <b-form-select v-if="file.format == 'file-csv'" multiple v-model="file.csv.selected_fields"
+          :options="file.csv.fields"></b-form-select>
       </b-list-group-item>
     </b-list-group>
   </b-container>
@@ -170,7 +139,7 @@ export default {
         formData.set("fileName", file.name);
         formData.set("format", format);
         for (var i = 0; i < fields.length; i++) {
-          formData.append("fields", fields[i]);
+          formData.append("field_keys", fields[i]);
         }
 
         let result = await objRef.uploadDocument(formData);

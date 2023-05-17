@@ -1,8 +1,12 @@
+from os import getenv, chdir
+from pathlib import Path
 from fastapi.responses import ORJSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI
+from dotenv import load_dotenv
+
 
 from typing import Optional
 
@@ -14,14 +18,19 @@ from routes import (
 from tqdm import tqdm
 from functools import partialmethod
 
+load_dotenv('.env')
+
+chdir(f"{Path(__file__).resolve().parent}")
+
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 
 FRONTEND_ROUTES = ["", "corpus", "dashboard", "sessions"]
 
 app = FastAPI(title="i2DC", default_response_class=ORJSONResponse)
+prefix = getenv("SERVER_URL_PREFIX", "")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount(f"{prefix}/static", StaticFiles(directory="static"), name="static")
 
 app.add_middleware(GZipMiddleware, minimum_size=200)
 app.add_middleware(
@@ -34,11 +43,11 @@ app.add_middleware(
 for route in [auth, cluster, corpus,
               process_corpus, projection,
               sankey, session, word_similarity]:
-    app.include_router(route.router, prefix="/api")
+    app.include_router(route.router, prefix=f"{prefix}/api")
 
 
-@app.get("/{path}", response_class=FileResponse)
-@app.get("/", response_class=FileResponse)
+@app.get(f"{prefix}/{'{path}'}", response_class=FileResponse)
+@app.get(f"{prefix}/", response_class=FileResponse)
 def index(path: Optional[str] = None):
     path = path if path else ""
     if path in FRONTEND_ROUTES:

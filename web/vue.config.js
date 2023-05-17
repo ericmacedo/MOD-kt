@@ -8,7 +8,7 @@ module.exports = {
     }
   },
   productionSourceMap: false,
-  publicPath: "/static/",
+  publicPath: `${process.env.VUE_APP_SERVER_PREFIX || ""}/static/`,
   chainWebpack: config => {
     config
       .plugin('html')

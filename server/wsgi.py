@@ -17,9 +17,6 @@ load_dotenv('.env')
 
 # Data folders
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-os.environ["SENTENCE_TRANSFORMERS_HOME"] = os.path.abspath('../env/data/transformers')
-os.environ["NLTK_DATA"] = os.path.abspath('../env/data/nltk')
-os.environ["SCIKIT_LEARN_DATA"] = os.path.abspath('../env/data/scikit_learn')
 
 NLTK_Downloader([
     "stopwords", "wordnet", "punkt",

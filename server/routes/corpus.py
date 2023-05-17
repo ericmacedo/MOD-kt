@@ -22,7 +22,7 @@ class CorpusUploadForm(BaseModel):
     file: UploadFile
     fileName: str
     format: str
-    fields: Optional[List[str]] = None
+    field_keys: Optional[List[str]] = None
 
 
 class CorpusResponse(BaseModel):
@@ -70,10 +70,10 @@ def corpus(form: CorpusUploadForm = Depends(CorpusUploadForm.as_form)):
 
             pd_csv = pd.read_csv(f_file, encoding="utf-8")
 
-            form.fields = form.fields if form.fields else [*pd_csv.columns]
+            form.field_keys = form.field_keys if form.field_keys else [*pd_csv.columns]
             for index, row in pd_csv.iterrows():
                 csv_content = ""
-                for field in form.fields:
+                for field in form.field_keys:
                     csv_content += f"{row[field]} "
 
                 file_name.append(f"{f_name}_{index}")

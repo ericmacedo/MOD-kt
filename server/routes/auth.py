@@ -19,7 +19,7 @@ router = APIRouter(prefix="/auth")
 @router.post("")
 # Authetication
 #   Returns the userData if success
-async def auth(form: AuthForm):
+def auth(form: AuthForm):
     try:
         user = fetch_user(userId=form.userId)
         response = {"userData": user.userData()}

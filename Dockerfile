@@ -1,5 +1,7 @@
 FROM nvidia/cuda:11.2.0-base-ubuntu18.04
 
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 
 # ==========================================================
 #       Update system and install OS dependencies           

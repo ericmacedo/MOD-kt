@@ -78,7 +78,7 @@ def AsForm(cls: Type[BaseModel]):
                 )
             )
 
-    async def as_form_func(**data):
+    def as_form_func(**data):
         return cls(**data)
 
     sig = inspect.signature(as_form_func)

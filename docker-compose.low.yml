@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  main:
+    build: .
+    ports:
+      - "${SERVER_PORT}:${SERVER_PORT}"
+    volumes:
+      - ./server:/app/server
+      - ./web:/app/web
+    command: /bin/bash /docker_entrypoint.sh all
+    environment:
+      # shared variable
+      SYSTEM_PREFIX: ${SYSTEM_PREFIX}
+
+      # Server variables
+      SERVER_DEBUG: ${SERVER_DEBUG}
+      SERVER_ENV: ${SERVER_ENV}
+      SERVER_HOST: ${SERVER_HOST}
+      SERVER_PORT: ${SERVER_PORT}
+      SERVER_URL_PREFIX: ${SERVER_URL_PREFIX}
+      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY}
+
+      # Frontend variables
+      VUE_APP_SERVER_PREFIX: ${VUE_APP_SERVER_PREFIX}
+      VUE_APP_SERVER_HOST: ${VUE_APP_SERVER_HOST}
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+    restart: always
